@@ -35,6 +35,7 @@ export default function LoginScreen() {
     redirectUri: AuthSession.makeRedirectUri({
       native: "https://auth.expo.io/@juliotwo1996/beta-1",
     }),
+    shouldAutoExchangeCode: true,
   });
 
   useEffect(() => {
