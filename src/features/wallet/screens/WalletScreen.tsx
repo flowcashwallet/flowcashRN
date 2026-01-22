@@ -1,3 +1,7 @@
+import {
+  fetchVisionEntities,
+  updateVisionEntity,
+} from "@/features/vision/visionSlice";
 import { AppDispatch, RootState } from "@/store/store";
 import React, { useEffect, useState } from "react";
 import {
@@ -41,12 +45,16 @@ const CATEGORIES = STRINGS.wallet.categories;
 export default function WalletScreen() {
   const dispatch = useDispatch<AppDispatch>();
   const { transactions } = useSelector((state: RootState) => state.wallet);
+  const { entities: visionEntities } = useSelector(
+    (state: RootState) => state.vision,
+  );
   const { user } = useSelector((state: RootState) => state.auth);
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
 
   const [modalVisible, setModalVisible] = useState(false);
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
+  const [isEntityDropdownOpen, setIsEntityDropdownOpen] = useState(false);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedTransaction, setSelectedTransaction] =
     useState<Transaction | null>(null);
@@ -62,8 +70,14 @@ export default function WalletScreen() {
   const [description, setDescription] = useState("");
   const [type, setType] = useState<"income" | "expense">("expense");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Clear selected entity when transaction type changes
+  useEffect(() => {
+    setSelectedEntityId(null);
+  }, [type]);
 
   const onRefresh = React.useCallback(() => {
     if (user?.uid) {
@@ -78,6 +92,7 @@ export default function WalletScreen() {
   useEffect(() => {
     if (user?.uid) {
       dispatch(fetchTransactions(user.uid));
+      dispatch(fetchVisionEntities(user.uid));
     }
   }, [dispatch, user]);
 
@@ -157,15 +172,42 @@ export default function WalletScreen() {
         description,
         type,
         ...(selectedCategory ? { category: selectedCategory } : {}),
+        ...(selectedEntityId ? { relatedEntityId: selectedEntityId } : {}),
         date: Date.now(),
       }),
     )
       .unwrap()
       .then(() => {
+        // Update Vision Entity if associated
+        if (selectedEntityId) {
+          const entity = visionEntities.find((e) => e.id === selectedEntityId);
+          if (entity) {
+            const transAmount = parseAmount(amount);
+            let newAmount = entity.amount;
+
+            if (entity.type === "asset") {
+              if (type === "income") {
+                newAmount += transAmount;
+              } else {
+                newAmount -= transAmount;
+              }
+            } else {
+              // Liability
+              if (type === "income") {
+                newAmount -= transAmount;
+              } else {
+                newAmount += transAmount;
+              }
+            }
+            dispatch(updateVisionEntity({ ...entity, amount: newAmount }));
+          }
+        }
+
         setModalVisible(false);
         setAmount("");
         setDescription("");
         setSelectedCategory(null);
+        setSelectedEntityId(null);
       })
       .catch((error) => {
         console.error("Error adding transaction:", error);
@@ -320,6 +362,7 @@ export default function WalletScreen() {
               setAmount("");
               setDescription("");
               setSelectedCategory(null);
+              setSelectedEntityId(null);
               setModalVisible(true);
             }}
             style={{
@@ -337,6 +380,7 @@ export default function WalletScreen() {
               setAmount("");
               setDescription("");
               setSelectedCategory(null);
+              setSelectedEntityId(null);
               setModalVisible(true);
             }}
             style={{
@@ -470,6 +514,136 @@ export default function WalletScreen() {
                       </Typography>
                     </TouchableOpacity>
                   ))}
+                </ScrollView>
+              </View>
+            )}
+
+            {/* Entity Selector */}
+            <Typography
+              variant="caption"
+              style={{ marginBottom: Spacing.xs, color: colors.text }}
+            >
+              {STRINGS.vision.selectEntity}
+            </Typography>
+
+            <TouchableOpacity
+              onPress={() => setIsEntityDropdownOpen(!isEntityDropdownOpen)}
+              style={{
+                paddingHorizontal: Spacing.m,
+                paddingVertical: Spacing.m,
+                borderRadius: BorderRadius.m,
+                backgroundColor: colors.surface,
+                borderWidth: 1,
+                borderColor: colors.border,
+                marginBottom: isEntityDropdownOpen ? 0 : Spacing.m,
+                borderBottomLeftRadius: isEntityDropdownOpen
+                  ? 0
+                  : BorderRadius.m,
+                borderBottomRightRadius: isEntityDropdownOpen
+                  ? 0
+                  : BorderRadius.m,
+              }}
+            >
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <Typography
+                  variant="body"
+                  style={{
+                    color: selectedEntityId ? colors.text : colors.text + "80",
+                  }}
+                >
+                  {selectedEntityId
+                    ? visionEntities.find((e) => e.id === selectedEntityId)
+                        ?.name || STRINGS.vision.entityPlaceholder
+                    : STRINGS.vision.entityPlaceholder}
+                </Typography>
+                <Typography variant="body" style={{ color: colors.text }}>
+                  {isEntityDropdownOpen ? "▲" : "▼"}
+                </Typography>
+              </View>
+            </TouchableOpacity>
+
+            {isEntityDropdownOpen && (
+              <View
+                style={{
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  borderTopWidth: 0,
+                  borderBottomLeftRadius: BorderRadius.m,
+                  borderBottomRightRadius: BorderRadius.m,
+                  backgroundColor: colors.surface,
+                  marginBottom: Spacing.m,
+                  maxHeight: 200,
+                }}
+              >
+                <ScrollView nestedScrollEnabled>
+                  {visionEntities.filter((e) =>
+                    type === "income"
+                      ? e.type === "asset"
+                      : e.type === "liability",
+                  ).length === 0 ? (
+                    <Typography
+                      variant="body"
+                      style={{ padding: Spacing.m, color: colors.icon }}
+                    >
+                      {type === "income"
+                        ? "No hay activos disponibles"
+                        : "No hay pasivos disponibles"}
+                    </Typography>
+                  ) : (
+                    visionEntities
+                      .filter((e) =>
+                        type === "income"
+                          ? e.type === "asset"
+                          : e.type === "liability",
+                      )
+                      .map((entity, index) => (
+                        <TouchableOpacity
+                          key={entity.id}
+                          onPress={() => {
+                            setSelectedEntityId(entity.id);
+                            setIsEntityDropdownOpen(false);
+                          }}
+                          style={{
+                            padding: Spacing.m,
+                            borderTopWidth: index > 0 ? 1 : 0,
+                            borderTopColor: colors.border,
+                          }}
+                        >
+                          <View
+                            style={{
+                              flexDirection: "row",
+                              justifyContent: "space-between",
+                            }}
+                          >
+                            <Typography
+                              variant="body"
+                              style={{ color: colors.text }}
+                            >
+                              {entity.name}
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              style={{
+                                color:
+                                  entity.type === "asset"
+                                    ? colors.success
+                                    : colors.error,
+                              }}
+                            >
+                              {entity.type === "asset"
+                                ? STRINGS.vision.assets
+                                : STRINGS.vision.liabilities}
+                            </Typography>
+                          </View>
+                        </TouchableOpacity>
+                      ))
+                  )}
                 </ScrollView>
               </View>
             )}

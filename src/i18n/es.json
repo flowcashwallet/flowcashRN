@@ -19,7 +19,19 @@
   },
   "vision": {
     "title": "Visión",
-    "description": "Aquí podrás visualizar tus metas a largo plazo."
+    "description": "Aquí podrás visualizar tus metas a largo plazo.",
+    "assets": "Activos",
+    "liabilities": "Pasivos",
+    "addAsset": "Agregar Activo",
+    "addLiability": "Agregar Pasivo",
+    "name": "Nombre",
+    "description": "Descripción",
+    "netWorth": "Patrimonio Neto",
+    "noAssets": "No hay activos registrados",
+    "noLiabilities": "No hay pasivos registrados",
+    "selectEntity": "Asociar a (Opcional)",
+    "entityPlaceholder": "Seleccionar Activo/Pasivo",
+    "transactionHistory": "Historial de Transacciones"
   },
   "auth": {
     "welcome": "Bienvenido",

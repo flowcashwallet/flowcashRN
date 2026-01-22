@@ -19,6 +19,7 @@ export interface Transaction {
   type: "income" | "expense";
   description: string;
   category?: string; // e.g. "🍔 Comida"
+  relatedEntityId?: string; // ID of the Asset or Liability
   date: number; // timestamp
 }
 
@@ -56,6 +57,7 @@ export const fetchTransactions = createAsyncThunk(
           type: data.type,
           description: data.description,
           category: data.category,
+          relatedEntityId: data.relatedEntityId,
           date: data.date,
         });
       });

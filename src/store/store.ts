@@ -1,11 +1,13 @@
-import { configureStore } from '@reduxjs/toolkit';
-import walletReducer from '../features/wallet/walletSlice';
-import authReducer from '../features/auth/authSlice';
+import { configureStore } from "@reduxjs/toolkit";
+import authReducer from "../features/auth/authSlice";
+import visionReducer from "../features/vision/visionSlice";
+import walletReducer from "../features/wallet/walletSlice";
 
 export const store = configureStore({
   reducer: {
     wallet: walletReducer,
     auth: authReducer,
+    vision: visionReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
