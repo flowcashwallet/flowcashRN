@@ -8,6 +8,7 @@ import {
   query,
   updateDoc,
   where,
+  writeBatch,
 } from "firebase/firestore";
 import { db } from "../../services/firebaseConfig";
 
@@ -111,6 +112,24 @@ export const updateTransaction = createAsyncThunk(
   },
 );
 
+export const deleteMultipleTransactions = createAsyncThunk(
+  "wallet/deleteMultipleTransactions",
+  async (transactionIds: string[], { rejectWithValue }) => {
+    try {
+      const batch = writeBatch(db);
+      transactionIds.forEach((id) => {
+        const docRef = doc(db, "transactions", id);
+        batch.delete(docRef);
+      });
+      await batch.commit();
+      return transactionIds;
+    } catch (error: any) {
+      console.error("Error deleting multiple transactions:", error);
+      return rejectWithValue(error.message);
+    }
+  },
+);
+
 const walletSlice = createSlice({
   name: "wallet",
   initialState,
@@ -146,6 +165,15 @@ const walletSlice = createSlice({
         (state, action: PayloadAction<string>) => {
           state.transactions = state.transactions.filter(
             (t) => t.id !== action.payload,
+          );
+        },
+      )
+      // Delete Multiple
+      .addCase(
+        deleteMultipleTransactions.fulfilled,
+        (state, action: PayloadAction<string[]>) => {
+          state.transactions = state.transactions.filter(
+            (t) => !action.payload.includes(t.id),
           );
         },
       )

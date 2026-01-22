@@ -5,6 +5,7 @@ import {
   KeyboardAvoidingView,
   Modal,
   Platform,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
@@ -15,6 +16,7 @@ import { useDispatch, useSelector } from "react-redux";
 import {
   Transaction,
   addTransaction,
+  deleteMultipleTransactions,
   deleteTransaction,
   fetchTransactions,
   updateTransaction,
@@ -26,6 +28,7 @@ import { Card } from "@/components/atoms/Card";
 import { Input } from "@/components/atoms/Input";
 import { Typography } from "@/components/atoms/Typography";
 import { TransactionList } from "@/components/organisms/TransactionList";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 
 import { ThemedView } from "@/components/themed-view";
 import { BorderRadius, Colors, Spacing } from "@/constants/theme";
@@ -69,10 +72,19 @@ export default function WalletScreen() {
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
   const [type, setType] = useState<"income" | "expense">("expense");
-  const [selectedCategory, setSelectedCategory] = useState<string>(
-    CATEGORIES[0],
-  );
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = React.useCallback(() => {
+    if (user?.uid) {
+      setRefreshing(true);
+      dispatch(fetchTransactions(user.uid))
+        .unwrap()
+        .then(() => setRefreshing(false))
+        .catch(() => setRefreshing(false));
+    }
+  }, [dispatch, user]);
 
   useEffect(() => {
     if (user?.uid) {
@@ -172,7 +184,7 @@ export default function WalletScreen() {
         amount: parseFloat(amount),
         description,
         type,
-        category: selectedCategory,
+        category: selectedCategory || undefined,
         date: Date.now(),
       }),
     )
@@ -181,7 +193,7 @@ export default function WalletScreen() {
         setModalVisible(false);
         setAmount("");
         setDescription("");
-        setSelectedCategory(CATEGORIES[0]);
+        setSelectedCategory(null);
       })
       .catch((error) => {
         console.error("Error adding transaction:", error);
@@ -190,6 +202,37 @@ export default function WalletScreen() {
       .finally(() => {
         setIsSaving(false);
       });
+  };
+
+  const handleDeleteMonthlyTransactions = () => {
+    if (currentMonthTransactions.length === 0) {
+      Alert.alert("Aviso", "No hay transacciones para eliminar en este mes.");
+      return;
+    }
+
+    Alert.alert(
+      "Eliminar transacciones del mes",
+      `¿Estás seguro de que quieres eliminar TODAS las transacciones de ${currentMonthName}? Esta acción no se puede deshacer.`,
+      [
+        {
+          text: "Cancelar",
+          style: "cancel",
+        },
+        {
+          text: "Eliminar Todo",
+          style: "destructive",
+          onPress: () => {
+            const idsToDelete = currentMonthTransactions.map((t) => t.id);
+            dispatch(deleteMultipleTransactions(idsToDelete))
+              .unwrap()
+              .catch((error: any) => {
+                console.error("Error deleting monthly transactions:", error);
+                alert("Error al eliminar: " + error);
+              });
+          },
+        },
+      ],
+    );
   };
 
   const handleTransactionPress = (transaction: Transaction) => {
@@ -232,16 +275,37 @@ export default function WalletScreen() {
       <ScrollView
         contentContainerStyle={{ paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]} // Android
+          />
+        }
       >
         {/* Header / Balance Card */}
         <Card variant="elevated" style={styles.balanceCard}>
-          <Typography
-            variant="h3"
-            weight="bold"
-            style={{ color: colors.primary, marginBottom: Spacing.s }}
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              width: "100%",
+              alignItems: "center",
+              marginBottom: Spacing.s,
+            }}
           >
-            {currentMonthName}
-          </Typography>
+            <Typography
+              variant="h3"
+              weight="bold"
+              style={{ color: colors.primary }}
+            >
+              {currentMonthName}
+            </Typography>
+            <TouchableOpacity onPress={handleDeleteMonthlyTransactions}>
+              <IconSymbol name="trash.fill" size={24} color={colors.error} />
+            </TouchableOpacity>
+          </View>
           <Typography
             variant="caption"
             style={{ color: colors.text, opacity: 0.7 }}
@@ -278,6 +342,9 @@ export default function WalletScreen() {
             onPress={() => {
               console.log("OPENING MODAL: INCOME");
               setType("income");
+              setAmount("");
+              setDescription("");
+              setSelectedCategory(null);
               setModalVisible(true);
             }}
             style={{
@@ -292,6 +359,9 @@ export default function WalletScreen() {
             onPress={() => {
               console.log("OPENING MODAL: EXPENSE");
               setType("expense");
+              setAmount("");
+              setDescription("");
+              setSelectedCategory(null);
               setModalVisible(true);
             }}
             style={{
@@ -377,8 +447,13 @@ export default function WalletScreen() {
                   alignItems: "center",
                 }}
               >
-                <Typography variant="body" style={{ color: colors.text }}>
-                  {selectedCategory}
+                <Typography
+                  variant="body"
+                  style={{
+                    color: selectedCategory ? colors.text : colors.text + "80",
+                  }}
+                >
+                  {selectedCategory || "Seleccionar categoría"}
                 </Typography>
                 <Typography variant="body" style={{ color: colors.text }}>
                   {isCategoryDropdownOpen ? "▲" : "▼"}
@@ -550,9 +625,13 @@ export default function WalletScreen() {
                           >
                             <Typography
                               variant="body"
-                              style={{ color: colors.text }}
+                              style={{
+                                color: editCategory
+                                  ? colors.text
+                                  : colors.text + "80",
+                              }}
                             >
-                              {editCategory}
+                              {editCategory || "Seleccionar categoría"}
                             </Typography>
                             <Typography
                               variant="body"
