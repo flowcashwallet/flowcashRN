@@ -31,10 +31,12 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useDispatch, useSelector } from "react-redux";
 
 export default function VisionScreen() {
   const dispatch = useDispatch<AppDispatch>();
+  const insets = useSafeAreaInsets();
   const { entities, loading: visionLoading } = useSelector(
     (state: RootState) => state.vision,
   );
@@ -264,7 +266,9 @@ export default function VisionScreen() {
   };
 
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView
+      style={[styles.container, { paddingTop: insets.top + Spacing.m }]}
+    >
       <ScrollView
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -500,22 +504,21 @@ export default function VisionScreen() {
                     <View
                       style={{ flexDirection: "row", marginBottom: Spacing.s }}
                     >
-                      <Button
-                        title={STRINGS.wallet.income}
-                        variant={
-                          transactionType === "income" ? "primary" : "outline"
-                        }
-                        onPress={() => setTransactionType("income")}
-                        style={{ flex: 1, marginRight: Spacing.xs }}
-                      />
-                      <Button
-                        title={STRINGS.wallet.expense}
-                        variant={
-                          transactionType === "expense" ? "primary" : "outline"
-                        }
-                        onPress={() => setTransactionType("expense")}
-                        style={{ flex: 1, marginLeft: Spacing.xs }}
-                      />
+                      {selectedEntity.type === "asset" ? (
+                        <Button
+                          title={STRINGS.wallet.income}
+                          variant="primary"
+                          onPress={() => {}}
+                          style={{ flex: 1 }}
+                        />
+                      ) : (
+                        <Button
+                          title={STRINGS.wallet.expense}
+                          variant="primary"
+                          onPress={() => {}}
+                          style={{ flex: 1 }}
+                        />
+                      )}
                     </View>
                     <Input
                       placeholder={STRINGS.wallet.amount}
