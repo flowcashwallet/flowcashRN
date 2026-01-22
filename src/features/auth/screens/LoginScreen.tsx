@@ -17,7 +17,6 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Colors, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import STRINGS from "@/i18n/es.json";
-import * as AuthSession from "expo-auth-session";
 
 WebBrowser.maybeCompleteAuthSession();
 export default function LoginScreen() {
@@ -32,9 +31,7 @@ export default function LoginScreen() {
 
     iosClientId:
       "635821696580-2cra0f8iruo4oblm9ufvf7051egp17kq.apps.googleusercontent.com",
-    redirectUri: AuthSession.makeRedirectUri({
-      native: "https://auth.expo.io/@juliotwo1996/beta-1",
-    }),
+    redirectUri: "https://auth.expo.io/@juliotwo1996/beta-1",
     shouldAutoExchangeCode: true,
   });
 
