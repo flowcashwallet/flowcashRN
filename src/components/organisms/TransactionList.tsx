@@ -1,5 +1,6 @@
 import { Spacing } from "@/constants/theme";
 import { Transaction } from "@/features/wallet/walletSlice";
+import STRINGS from "@/i18n/es.json";
 import React from "react";
 import { FlatList, StyleSheet, View } from "react-native";
 import { Typography } from "../atoms/Typography";
@@ -20,7 +21,7 @@ export function TransactionList({
     return (
       <View style={styles.emptyContainer}>
         <Typography variant="body" style={{ opacity: 0.6 }}>
-          No hay movimientos recientes
+          {STRINGS.wallet.noRecentTransactions}
         </Typography>
       </View>
     );
@@ -29,7 +30,7 @@ export function TransactionList({
   return (
     <View style={styles.container}>
       <Typography variant="h3" weight="bold" style={styles.title}>
-        Movimientos Recientes
+        {STRINGS.wallet.recentTransactions}
       </Typography>
 
       <FlatList

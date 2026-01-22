@@ -29,25 +29,13 @@ import { Input } from "@/components/atoms/Input";
 import { Typography } from "@/components/atoms/Typography";
 import { TransactionList } from "@/components/organisms/TransactionList";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import STRINGS from "@/i18n/es.json";
 
 import { ThemedView } from "@/components/themed-view";
 import { BorderRadius, Colors, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
-const CATEGORIES = [
-  "🍔 Comida",
-  "🏠 Casa",
-  "🚗 Transporte",
-  "💰 Salario",
-  "🎁 Regalo",
-  "🛒 Supermercado",
-  "💊 Salud",
-  "🎮 Entretenimiento",
-  "🎓 Educación",
-  "✈️ Viajes",
-  "🧾 Servicios",
-  "🔁 Otros",
-];
+const CATEGORIES = STRINGS.wallet.categories;
 
 export default function WalletScreen() {
   const dispatch = useDispatch<AppDispatch>();
@@ -97,21 +85,7 @@ export default function WalletScreen() {
   const currentMonth = currentDate.getMonth();
   const currentYear = currentDate.getFullYear();
 
-  const monthNames = [
-    "Enero",
-    "Febrero",
-    "Marzo",
-    "Abril",
-    "Mayo",
-    "Junio",
-    "Julio",
-    "Agosto",
-    "Septiembre",
-    "Octubre",
-    "Noviembre",
-    "Diciembre",
-  ];
-  const currentMonthName = monthNames[currentMonth];
+  const currentMonthName = STRINGS.wallet.months[currentMonth];
 
   const currentMonthTransactions = transactions.filter((t) => {
     const tDate = new Date(t.date);
@@ -135,12 +109,12 @@ export default function WalletScreen() {
     {
       value: income > 0 ? income : 0.01,
       color: colors.success,
-      text: "Ingresos",
+      text: STRINGS.wallet.incomes,
     },
     {
       value: expense > 0 ? expense : 0.01,
       color: colors.error,
-      text: "Gastos",
+      text: STRINGS.wallet.expenses,
     },
   ];
 
@@ -153,15 +127,15 @@ export default function WalletScreen() {
 
   const handleDeleteTransaction = (id: string) => {
     Alert.alert(
-      "Confirmar eliminación",
-      "¿Estás seguro de que quieres eliminar este movimiento?",
+      STRINGS.wallet.deleteTransactionTitle,
+      STRINGS.wallet.deleteTransactionMessage,
       [
         {
-          text: "Cancelar",
+          text: STRINGS.common.cancel,
           style: "cancel",
         },
         {
-          text: "Eliminar",
+          text: STRINGS.common.delete,
           style: "destructive",
           onPress: () => {
             dispatch(deleteTransaction(id))
@@ -184,7 +158,7 @@ export default function WalletScreen() {
         amount: parseFloat(amount),
         description,
         type,
-        category: selectedCategory || undefined,
+        ...(selectedCategory ? { category: selectedCategory } : {}),
         date: Date.now(),
       }),
     )
@@ -197,7 +171,7 @@ export default function WalletScreen() {
       })
       .catch((error) => {
         console.error("Error adding transaction:", error);
-        alert("Error al guardar: " + error);
+        alert(STRINGS.wallet.saveError + error);
       })
       .finally(() => {
         setIsSaving(false);
@@ -206,20 +180,23 @@ export default function WalletScreen() {
 
   const handleDeleteMonthlyTransactions = () => {
     if (currentMonthTransactions.length === 0) {
-      Alert.alert("Aviso", "No hay transacciones para eliminar en este mes.");
+      Alert.alert(
+        STRINGS.common.warning,
+        STRINGS.wallet.noTransactionsToDelete,
+      );
       return;
     }
 
     Alert.alert(
-      "Eliminar transacciones del mes",
-      `¿Estás seguro de que quieres eliminar TODAS las transacciones de ${currentMonthName}? Esta acción no se puede deshacer.`,
+      STRINGS.wallet.deleteMonthTitle,
+      STRINGS.wallet.deleteMonthMessage.replace("{month}", currentMonthName),
       [
         {
-          text: "Cancelar",
+          text: STRINGS.common.cancel,
           style: "cancel",
         },
         {
-          text: "Eliminar Todo",
+          text: STRINGS.wallet.deleteAll,
           style: "destructive",
           onPress: () => {
             const idsToDelete = currentMonthTransactions.map((t) => t.id);
@@ -227,7 +204,7 @@ export default function WalletScreen() {
               .unwrap()
               .catch((error: any) => {
                 console.error("Error deleting monthly transactions:", error);
-                alert("Error al eliminar: " + error);
+                alert(STRINGS.wallet.deleteError + error);
               });
           },
         },
@@ -263,7 +240,7 @@ export default function WalletScreen() {
       })
       .catch((error: any) => {
         console.error("Error updating transaction:", error);
-        alert("Error al actualizar: " + error);
+        alert(STRINGS.wallet.updateError + error);
       })
       .finally(() => {
         setIsSaving(false);
@@ -310,7 +287,7 @@ export default function WalletScreen() {
             variant="caption"
             style={{ color: colors.text, opacity: 0.7 }}
           >
-            Balance Total
+            {STRINGS.wallet.balanceTotal}
           </Typography>
           <Typography
             variant="h1"
@@ -327,7 +304,7 @@ export default function WalletScreen() {
               innerRadius={45}
               centerLabelComponent={() => (
                 <Typography variant="caption" weight="medium">
-                  Resumen
+                  {STRINGS.wallet.summary}
                 </Typography>
               )}
             />
@@ -337,7 +314,7 @@ export default function WalletScreen() {
         {/* Quick Actions */}
         <View style={styles.actions}>
           <Button
-            title="Ingreso"
+            title={STRINGS.wallet.income}
             variant="secondary"
             onPress={() => {
               console.log("OPENING MODAL: INCOME");
@@ -354,7 +331,7 @@ export default function WalletScreen() {
             }}
           />
           <Button
-            title="Gasto"
+            title={STRINGS.wallet.expense}
             variant="secondary"
             onPress={() => {
               console.log("OPENING MODAL: EXPENSE");
@@ -397,18 +374,20 @@ export default function WalletScreen() {
               weight="bold"
               style={{ marginBottom: Spacing.l }}
             >
-              {type === "income" ? "Nuevo Ingreso" : "Nuevo Gasto"}
+              {type === "income"
+                ? STRINGS.wallet.newIncome
+                : STRINGS.wallet.newExpense}
             </Typography>
 
             <Input
-              label="Descripción"
-              placeholder="Ej: Comida, Salario..."
+              label={STRINGS.wallet.description}
+              placeholder={STRINGS.wallet.descriptionPlaceholder}
               value={description}
               onChangeText={setDescription}
             />
 
             <Input
-              label="Monto"
+              label={STRINGS.wallet.amount}
               placeholder="0.00"
               keyboardType="numeric"
               value={amount}
@@ -419,7 +398,7 @@ export default function WalletScreen() {
               variant="caption"
               style={{ marginBottom: Spacing.xs, color: colors.text }}
             >
-              Categoría
+              {STRINGS.wallet.category}
             </Typography>
 
             <TouchableOpacity
@@ -453,7 +432,7 @@ export default function WalletScreen() {
                     color: selectedCategory ? colors.text : colors.text + "80",
                   }}
                 >
-                  {selectedCategory || "Seleccionar categoría"}
+                  {selectedCategory || STRINGS.wallet.selectCategory}
                 </Typography>
                 <Typography variant="body" style={{ color: colors.text }}>
                   {isCategoryDropdownOpen ? "▲" : "▼"}
@@ -499,13 +478,13 @@ export default function WalletScreen() {
 
             <View style={styles.modalButtons}>
               <Button
-                title="Cancelar"
+                title={STRINGS.common.cancel}
                 variant="ghost"
                 onPress={() => setModalVisible(false)}
                 style={{ flex: 1, marginRight: Spacing.s }}
               />
               <Button
-                title="Guardar"
+                title={STRINGS.common.save}
                 loading={isSaving}
                 onPress={handleAddTransaction}
                 style={{
@@ -573,12 +552,12 @@ export default function WalletScreen() {
                           variant="caption"
                           style={{ color: colors.text, opacity: 0.6 }}
                         >
-                          Descripción
+                          {STRINGS.wallet.description}
                         </Typography>
                         <Input
                           value={editDescription}
                           onChangeText={setEditDescription}
-                          placeholder="Descripción"
+                          placeholder={STRINGS.wallet.description}
                         />
                       </View>
                       <View>
@@ -590,7 +569,7 @@ export default function WalletScreen() {
                             marginBottom: Spacing.xs,
                           }}
                         >
-                          Categoría
+                          {STRINGS.wallet.category}
                         </Typography>
                         <TouchableOpacity
                           onPress={() =>
@@ -631,7 +610,7 @@ export default function WalletScreen() {
                                   : colors.text + "80",
                               }}
                             >
-                              {editCategory || "Seleccionar categoría"}
+                              {editCategory || STRINGS.wallet.selectCategory}
                             </Typography>
                             <Typography
                               variant="body"
@@ -689,7 +668,7 @@ export default function WalletScreen() {
                           variant="caption"
                           style={{ color: colors.text, opacity: 0.6 }}
                         >
-                          Descripción
+                          {STRINGS.wallet.description}
                         </Typography>
                         <Typography variant="body" weight="medium">
                           {selectedTransaction.description}
@@ -700,10 +679,11 @@ export default function WalletScreen() {
                           variant="caption"
                           style={{ color: colors.text, opacity: 0.6 }}
                         >
-                          Categoría
+                          {STRINGS.wallet.category}
                         </Typography>
                         <Typography variant="body" weight="medium">
-                          {selectedTransaction.category || "Sin categoría"}
+                          {selectedTransaction.category ||
+                            STRINGS.wallet.noCategory}
                         </Typography>
                       </View>
                     </>
@@ -713,7 +693,7 @@ export default function WalletScreen() {
                       variant="caption"
                       style={{ color: colors.text, opacity: 0.6 }}
                     >
-                      Fecha
+                      {STRINGS.wallet.date}
                     </Typography>
                     <Typography variant="body" weight="medium">
                       {new Date(selectedTransaction.date).toLocaleString()}
@@ -724,12 +704,12 @@ export default function WalletScreen() {
                       variant="caption"
                       style={{ color: colors.text, opacity: 0.6 }}
                     >
-                      Tipo
+                      {STRINGS.wallet.type}
                     </Typography>
                     <Typography variant="body" weight="medium">
                       {selectedTransaction.type === "income"
-                        ? "Ingreso"
-                        : "Gasto"}
+                        ? STRINGS.wallet.income
+                        : STRINGS.wallet.expense}
                     </Typography>
                   </View>
                 </View>
@@ -738,13 +718,13 @@ export default function WalletScreen() {
                   {isEditing ? (
                     <>
                       <Button
-                        title="Cancelar"
+                        title={STRINGS.common.cancel}
                         variant="ghost"
                         onPress={() => setIsEditing(false)}
                         style={{ flex: 1 }}
                       />
                       <Button
-                        title="Guardar"
+                        title={STRINGS.common.save}
                         variant="primary"
                         loading={isSaving}
                         onPress={handleUpdateTransaction}
@@ -754,19 +734,19 @@ export default function WalletScreen() {
                   ) : (
                     <>
                       <Button
-                        title="Cerrar"
+                        title={STRINGS.common.close}
                         variant="secondary"
                         onPress={() => setDetailModalVisible(false)}
                         style={{ flex: 1 }}
                       />
                       <Button
-                        title="Editar"
+                        title={STRINGS.common.edit}
                         variant="secondary"
                         onPress={() => setIsEditing(true)}
                         style={{ flex: 1, backgroundColor: colors.accent }}
                       />
                       <Button
-                        title="Eliminar"
+                        title={STRINGS.common.delete}
                         variant="primary" // Should be destructive style ideally
                         style={{ flex: 1, backgroundColor: colors.error }}
                         onPress={() => {

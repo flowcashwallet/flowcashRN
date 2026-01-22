@@ -1,0 +1,86 @@
+{
+  "common": {
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "close": "Cerrar",
+    "warning": "Aviso",
+    "error": "Error"
+  },
+  "tabs": {
+    "wallet": "Wallet",
+    "budget": "Presupuesto",
+    "vision": "Visión"
+  },
+  "budget": {
+    "title": "Presupuesto",
+    "description": "Aquí podrás gestionar tus presupuestos."
+  },
+  "vision": {
+    "title": "Visión",
+    "description": "Aquí podrás visualizar tus metas a largo plazo."
+  },
+  "auth": {
+    "welcome": "Bienvenido",
+    "tagline": "Gestiona tus finanzas de forma inteligente",
+    "continueGoogle": "Continuar con Google"
+  },
+  "wallet": {
+    "balanceTotal": "Balance Total",
+    "summary": "Resumen",
+    "income": "Ingreso",
+    "expense": "Gasto",
+    "incomes": "Ingresos",
+    "expenses": "Gastos",
+    "newIncome": "Nuevo Ingreso",
+    "newExpense": "Nuevo Gasto",
+    "description": "Descripción",
+    "descriptionPlaceholder": "Ej: Comida, Salario...",
+    "amount": "Monto",
+    "category": "Categoría",
+    "selectCategory": "Seleccionar categoría",
+    "noCategory": "Sin categoría",
+    "date": "Fecha",
+    "type": "Tipo",
+    "deleteTransactionTitle": "Confirmar eliminación",
+    "deleteTransactionMessage": "¿Estás seguro de que quieres eliminar este movimiento?",
+    "noTransactionsToDelete": "No hay transacciones para eliminar en este mes.",
+    "deleteMonthTitle": "Eliminar transacciones del mes",
+    "deleteMonthMessage": "¿Estás seguro de que quieres eliminar TODAS las transacciones de {month}? Esta acción no se puede deshacer.",
+    "deleteAll": "Eliminar Todo",
+    "saveError": "Error al guardar: ",
+    "deleteError": "Error al eliminar: ",
+    "updateError": "Error al actualizar: ",
+    "recentTransactions": "Movimientos Recientes",
+    "noRecentTransactions": "No hay movimientos recientes",
+    "months": [
+      "Enero",
+      "Febrero",
+      "Marzo",
+      "Abril",
+      "Mayo",
+      "Junio",
+      "Julio",
+      "Agosto",
+      "Septiembre",
+      "Octubre",
+      "Noviembre",
+      "Diciembre"
+    ],
+    "categories": [
+      "🍔 Comida",
+      "🏠 Casa",
+      "🚗 Transporte",
+      "💰 Salario",
+      "🎁 Regalo",
+      "🛒 Supermercado",
+      "💊 Salud",
+      "🎮 Entretenimiento",
+      "🎓 Educación",
+      "✈️ Viajes",
+      "🧾 Servicios",
+      "🔁 Otros"
+    ]
+  }
+}

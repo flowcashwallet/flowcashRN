@@ -16,8 +16,9 @@ import { ThemedView } from "@/components/themed-view";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Colors, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-WebBrowser.maybeCompleteAuthSession();
+import STRINGS from "@/i18n/es.json";
 
+WebBrowser.maybeCompleteAuthSession();
 export default function LoginScreen() {
   const dispatch = useDispatch<AppDispatch>();
   const { loading, error } = useSelector((state: RootState) => state.auth);
@@ -73,13 +74,13 @@ export default function LoginScreen() {
             weight="bold"
             style={{ textAlign: "center", marginBottom: Spacing.s }}
           >
-            Bienvenido
+            {STRINGS.auth.welcome}
           </Typography>
           <Typography
             variant="body"
             style={{ textAlign: "center", color: colors.icon }}
           >
-            Gestiona tus finanzas de forma inteligente
+            {STRINGS.auth.tagline}
           </Typography>
         </View>
 
@@ -102,7 +103,7 @@ export default function LoginScreen() {
             <ActivityIndicator size="large" color={colors.primary} />
           ) : (
             <Button
-              title="Continuar con Google"
+              title={STRINGS.auth.continueGoogle}
               disabled={!request}
               onPress={() => {
                 promptAsync({ showInRecents: true });

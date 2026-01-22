@@ -1,14 +1,15 @@
 import { Typography } from "@/components/atoms/Typography";
 import { ThemedView } from "@/components/themed-view";
+import STRINGS from "@/i18n/es.json";
 import { StyleSheet } from "react-native";
 
 export default function VisionScreen() {
   return (
     <ThemedView style={styles.container}>
       <Typography variant="h1" weight="bold">
-        Visión
+        {STRINGS.vision.title}
       </Typography>
-      <Typography>Aquí podrás visualizar tus metas a largo plazo.</Typography>
+      <Typography>{STRINGS.vision.description}</Typography>
     </ThemedView>
   );
 }

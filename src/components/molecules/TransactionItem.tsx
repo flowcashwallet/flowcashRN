@@ -1,6 +1,7 @@
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Colors, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import STRINGS from "@/i18n/es.json";
 import React from "react";
 import { Alert, StyleSheet, TouchableOpacity, View } from "react-native";
 import { Typography } from "../atoms/Typography";
@@ -38,12 +39,12 @@ export function TransactionItem({
   const handleLongPress = () => {
     if (onDelete) {
       Alert.alert(
-        "Eliminar transacción",
-        "¿Estás seguro de que deseas eliminar este movimiento?",
+        STRINGS.wallet.deleteTransactionTitle,
+        STRINGS.wallet.deleteTransactionMessage,
         [
-          { text: "Cancelar", style: "cancel" },
+          { text: STRINGS.common.cancel, style: "cancel" },
           {
-            text: "Eliminar",
+            text: STRINGS.common.delete,
             style: "destructive",
             onPress: () => onDelete(id),
           },
