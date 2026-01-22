@@ -1,16 +1,21 @@
-import React from 'react';
-import { FlatList, StyleSheet, View } from 'react-native';
-import { TransactionItem } from '../molecules/TransactionItem';
-import { Typography } from '../atoms/Typography';
-import { Spacing } from '@/constants/theme';
-import { Transaction } from '@/features/wallet/walletSlice';
+import { Spacing } from "@/constants/theme";
+import { Transaction } from "@/features/wallet/walletSlice";
+import React from "react";
+import { FlatList, StyleSheet, View } from "react-native";
+import { Typography } from "../atoms/Typography";
+import { TransactionItem } from "../molecules/TransactionItem";
 
 interface TransactionListProps {
   transactions: Transaction[];
   onTransactionPress?: (transaction: Transaction) => void;
+  onDelete?: (id: string) => void;
 }
 
-export function TransactionList({ transactions, onTransactionPress }: TransactionListProps) {
+export function TransactionList({
+  transactions,
+  onTransactionPress,
+  onDelete,
+}: TransactionListProps) {
   if (!transactions || transactions.length === 0) {
     return (
       <View style={styles.emptyContainer}>
@@ -26,16 +31,20 @@ export function TransactionList({ transactions, onTransactionPress }: Transactio
       <Typography variant="h3" weight="bold" style={styles.title}>
         Movimientos Recientes
       </Typography>
-      
+
       <FlatList
         data={transactions}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <TransactionItem
+            id={item.id}
             amount={item.amount}
             description={item.description}
             date={item.date}
             type={item.type}
+            category={item.category}
+            onDelete={onDelete}
+            onPress={() => onTransactionPress?.(item)}
           />
         )}
         contentContainerStyle={styles.listContent}
@@ -54,8 +63,8 @@ const styles = StyleSheet.create({
   },
   emptyContainer: {
     padding: Spacing.l,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   listContent: {
     paddingBottom: Spacing.s,
