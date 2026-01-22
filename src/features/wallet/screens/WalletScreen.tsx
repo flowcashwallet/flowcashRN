@@ -80,14 +80,42 @@ export default function WalletScreen() {
     }
   }, [dispatch, user]);
 
-  const balance = transactions.reduce((acc, curr) => {
+  // Filter transactions for current month
+  const currentDate = new Date();
+  const currentMonth = currentDate.getMonth();
+  const currentYear = currentDate.getFullYear();
+
+  const monthNames = [
+    "Enero",
+    "Febrero",
+    "Marzo",
+    "Abril",
+    "Mayo",
+    "Junio",
+    "Julio",
+    "Agosto",
+    "Septiembre",
+    "Octubre",
+    "Noviembre",
+    "Diciembre",
+  ];
+  const currentMonthName = monthNames[currentMonth];
+
+  const currentMonthTransactions = transactions.filter((t) => {
+    const tDate = new Date(t.date);
+    return (
+      tDate.getMonth() === currentMonth && tDate.getFullYear() === currentYear
+    );
+  });
+
+  const balance = currentMonthTransactions.reduce((acc, curr) => {
     return curr.type === "income" ? acc + curr.amount : acc - curr.amount;
   }, 0);
 
-  const income = transactions
+  const income = currentMonthTransactions
     .filter((t) => t.type === "income")
     .reduce((acc, curr) => acc + curr.amount, 0);
-  const expense = transactions
+  const expense = currentMonthTransactions
     .filter((t) => t.type === "expense")
     .reduce((acc, curr) => acc + curr.amount, 0);
 
@@ -208,6 +236,13 @@ export default function WalletScreen() {
         {/* Header / Balance Card */}
         <Card variant="elevated" style={styles.balanceCard}>
           <Typography
+            variant="h3"
+            weight="bold"
+            style={{ color: colors.primary, marginBottom: Spacing.s }}
+          >
+            {currentMonthName}
+          </Typography>
+          <Typography
             variant="caption"
             style={{ color: colors.text, opacity: 0.7 }}
           >
@@ -269,7 +304,7 @@ export default function WalletScreen() {
 
         {/* Transactions List */}
         <TransactionList
-          transactions={transactions}
+          transactions={currentMonthTransactions}
           onDelete={handleDeleteTransaction}
           onTransactionPress={handleTransactionPress}
         />
