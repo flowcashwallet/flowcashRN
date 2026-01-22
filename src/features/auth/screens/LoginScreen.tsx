@@ -27,9 +27,9 @@ export default function LoginScreen() {
   const [request, response, promptAsync] = Google.useAuthRequest({
     webClientId:
       "635821696580-ivj83nnvshqlvtp14qm9vrgtv9evlrnr.apps.googleusercontent.com",
+
     iosClientId:
       "635821696580-2cra0f8iruo4oblm9ufvf7051egp17kq.apps.googleusercontent.com",
-    redirectUri: "https://auth.expo.io/@juliovargas/beta-1",
   });
 
   useEffect(() => {
@@ -39,6 +39,7 @@ export default function LoginScreen() {
   }, [request]);
 
   useEffect(() => {
+    console.log("Response:", response);
     if (response?.type === "success") {
       const { id_token } = response.params;
       const credential = GoogleAuthProvider.credential(id_token);
@@ -104,7 +105,7 @@ export default function LoginScreen() {
               title="Continuar con Google"
               disabled={!request}
               onPress={() => {
-                promptAsync();
+                promptAsync({ showInRecents: true });
               }}
               icon={<IconSymbol name="g.circle.fill" size={20} color="#fff" />}
               style={{ width: "100%" }}
