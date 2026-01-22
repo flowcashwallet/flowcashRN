@@ -2,6 +2,7 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Colors, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import STRINGS from "@/i18n/es.json";
+import { formatCurrency } from "@/utils/format";
 import React from "react";
 import { Alert, StyleSheet, TouchableOpacity, View } from "react-native";
 import { Typography } from "../atoms/Typography";
@@ -96,7 +97,8 @@ export function TransactionItem({
             marginBottom: 4,
           }}
         >
-          {isIncome ? "+" : "-"}${amount.toFixed(2)}
+          {isIncome ? "+" : "-"}
+          {formatCurrency(amount).replace("$", "")}
         </Typography>
         {onDelete && (
           <TouchableOpacity

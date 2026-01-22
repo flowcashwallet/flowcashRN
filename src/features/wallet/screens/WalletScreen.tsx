@@ -30,6 +30,7 @@ import { Typography } from "@/components/atoms/Typography";
 import { TransactionList } from "@/components/organisms/TransactionList";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import STRINGS from "@/i18n/es.json";
+import { formatAmountInput, formatCurrency, parseAmount } from "@/utils/format";
 
 import { ThemedView } from "@/components/themed-view";
 import { BorderRadius, Colors, Spacing } from "@/constants/theme";
@@ -119,10 +120,7 @@ export default function WalletScreen() {
   ];
 
   const handleAmountChange = (text: string) => {
-    // Only allow numbers and one decimal point
-    if (/^\d*\.?\d*$/.test(text)) {
-      setAmount(text);
-    }
+    setAmount(formatAmountInput(text));
   };
 
   const handleDeleteTransaction = (id: string) => {
@@ -155,7 +153,7 @@ export default function WalletScreen() {
     dispatch(
       addTransaction({
         userId: user.uid,
-        amount: parseFloat(amount),
+        amount: parseAmount(amount),
         description,
         type,
         ...(selectedCategory ? { category: selectedCategory } : {}),
@@ -294,7 +292,7 @@ export default function WalletScreen() {
             weight="bold"
             style={{ color: colors.primary, marginTop: Spacing.xs }}
           >
-            ${balance.toFixed(2)}
+            {formatCurrency(balance)}
           </Typography>
           <View style={styles.chartContainer}>
             <PieChart
