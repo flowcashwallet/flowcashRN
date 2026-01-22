@@ -1,6 +1,10 @@
-import ReactNativeAsyncStorage from "@react-native-async-storage/async-storage";
-import { initializeApp } from "firebase/app";
-import { getReactNativePersistence, initializeAuth } from "firebase/auth";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getApp, getApps, initializeApp } from "firebase/app";
+import {
+  getAuth,
+  getReactNativePersistence,
+  initializeAuth,
+} from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 // TODO: Replace with your actual Firebase configuration
@@ -14,8 +18,15 @@ const firebaseConfig = {
   measurementId: "G-MHRW5V6R5L",
 };
 
-const app = initializeApp(firebaseConfig);
-export const auth = initializeAuth(app, {
-  persistence: getReactNativePersistence(ReactNativeAsyncStorage),
-});
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+export const auth = (() => {
+  try {
+    return initializeAuth(app, {
+      persistence: getReactNativePersistence(AsyncStorage),
+    });
+  } catch (error) {
+    // Si ya fue inicializado (común en EAS update), simplemente lo obtenemos
+    return getAuth(app);
+  }
+})();
 export const db = getFirestore(app);
