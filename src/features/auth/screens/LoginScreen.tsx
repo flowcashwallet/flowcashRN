@@ -32,7 +32,6 @@ export default function LoginScreen() {
     iosClientId:
       "635821696580-2cra0f8iruo4oblm9ufvf7051egp17kq.apps.googleusercontent.com",
     redirectUri: "https://auth.expo.io/@juliotwo1996/beta-1",
-    shouldAutoExchangeCode: true,
   });
 
   useEffect(() => {
