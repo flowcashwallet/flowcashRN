@@ -21,6 +21,7 @@ import STRINGS from "@/i18n/es.json";
 import { fetchCryptoPrices } from "@/services/price/coingecko";
 import { AppDispatch, RootState } from "@/store/store";
 import { formatAmountInput, formatCurrency, parseAmount } from "@/utils/format";
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
 import {
   Alert,
@@ -229,9 +230,6 @@ export default function VisionScreen() {
       return;
     setIsSaving(true);
 
-    // Determine category based on entity type and transaction type automatically?
-    // Or just generic. For now generic.
-
     dispatch(
       addTransaction({
         userId: user.uid,
@@ -314,50 +312,82 @@ export default function VisionScreen() {
     );
   };
 
-  const renderEntityItem = ({ item }: { item: VisionEntity }) => (
-    <TouchableOpacity
-      onPress={() => {
-        if (item.type === "asset") {
-          setTransactionType("income");
-        } else {
-          setTransactionType("expense");
-        }
-        setSelectedEntity(item);
-        setDetailModalVisible(true);
-      }}
-    >
-      <Card style={{ marginBottom: Spacing.s, padding: Spacing.m }}>
-        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-          <View>
-            <Typography variant="body" weight="bold">
-              {item.name}
-            </Typography>
-            {item.isCrypto && item.cryptoAmount && item.cryptoSymbol ? (
-              <Typography variant="caption" style={{ color: colors.primary }}>
-                {item.cryptoAmount} {item.cryptoSymbol}
-              </Typography>
-            ) : null}
-            {item.description ? (
-              <Typography variant="caption" style={{ color: colors.icon }}>
-                {item.description}
-              </Typography>
-            ) : null}
-          </View>
-          <Typography
-            variant="body"
-            weight="bold"
+  const renderEntityItem = ({ item }: { item: VisionEntity }) => {
+    // Vivid colors for item borders/accents
+    const assetGradient = ["#00F260", "#0575E6"] as const; // Green to Blue
+    const liabilityGradient = ["#FF416C", "#FF4B2B"] as const; // Red to Orange
+
+    return (
+      <TouchableOpacity
+        onPress={() => {
+          if (item.type === "asset") {
+            setTransactionType("income");
+          } else {
+            setTransactionType("expense");
+          }
+          setSelectedEntity(item);
+          setDetailModalVisible(true);
+        }}
+        activeOpacity={0.8}
+      >
+        <LinearGradient
+          colors={item.type === "asset" ? assetGradient : liabilityGradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{
+            borderRadius: BorderRadius.l,
+            padding: 2, // Border width
+            marginBottom: Spacing.m,
+          }}
+        >
+          <View
             style={{
-              color: item.type === "asset" ? colors.success : colors.error,
+              backgroundColor: colors.surface,
+              borderRadius: BorderRadius.l - 2,
+              padding: Spacing.m,
             }}
           >
-            {formatCurrency(
-              item.type === "liability" ? -item.amount : item.amount,
-            )}
-          </Typography>
-        </View>
-      </Card>
-    </TouchableOpacity>
-  );
+            <View
+              style={{ flexDirection: "row", justifyContent: "space-between" }}
+            >
+              <View>
+                <Typography variant="body" weight="bold">
+                  {item.name}
+                </Typography>
+                {item.isCrypto && item.cryptoAmount && item.cryptoSymbol ? (
+                  <Typography
+                    variant="caption"
+                    style={{ color: colors.primary, fontWeight: "600" }}
+                  >
+                    {item.cryptoAmount} {item.cryptoSymbol}
+                  </Typography>
+                ) : null}
+                {item.description ? (
+                  <Typography variant="caption" style={{ color: colors.icon }}>
+                    {item.description}
+                  </Typography>
+                ) : null}
+              </View>
+              <Typography
+                variant="body"
+                weight="bold"
+                style={{
+                  color:
+                    item.type === "asset"
+                      ? Colors.light.success
+                      : Colors.light.error, // Use consistent vivid colors
+                }}
+              >
+                {formatCurrency(
+                  item.type === "liability" ? -item.amount : item.amount,
+                )}
+              </Typography>
+            </View>
+          </View>
+        </LinearGradient>
+      </TouchableOpacity>
+    );
+  };
 
   const getEntityTransactions = (entityId: string) => {
     return transactions.filter((t) => t.relatedEntityId === entityId);
@@ -372,28 +402,25 @@ export default function VisionScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
         contentContainerStyle={{ paddingBottom: 100 }}
+        showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
-        <View style={styles.header}>
+        {/* Header - Vivid Gradient Card */}
+        <LinearGradient
+          colors={["#8E2DE2", "#4A00E0"]} // Vivid Purple to Blue
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.headerCard}
+        >
           <Typography
-            variant="h1"
-            weight="bold"
-            style={{ textAlign: "center" }}
+            variant="h3"
+            style={{ color: "rgba(255,255,255,0.8)", marginBottom: Spacing.xs }}
           >
             {STRINGS.vision.netWorth}
           </Typography>
-          <Typography
-            variant="h2"
-            weight="bold"
-            style={{
-              textAlign: "center",
-              color: netWorth >= 0 ? colors.success : colors.error,
-              marginTop: Spacing.xs,
-            }}
-          >
+          <Typography variant="h1" weight="bold" style={{ color: "#FFF" }}>
             {formatCurrency(netWorth)}
           </Typography>
-        </View>
+        </LinearGradient>
 
         {/* Assets Section */}
         <View style={styles.section}>
@@ -407,11 +434,14 @@ export default function VisionScreen() {
                 setAddModalVisible(true);
               }}
             >
-              <IconSymbol
-                name="plus.circle.fill"
-                size={24}
-                color={colors.primary}
-              />
+              <LinearGradient
+                colors={["#00F260", "#0575E6"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.addButton}
+              >
+                <IconSymbol name="plus" size={20} color="#FFF" />
+              </LinearGradient>
             </TouchableOpacity>
           </View>
           {assets.length === 0 ? (
@@ -437,11 +467,14 @@ export default function VisionScreen() {
                 setAddModalVisible(true);
               }}
             >
-              <IconSymbol
-                name="plus.circle.fill"
-                size={24}
-                color={colors.primary}
-              />
+              <LinearGradient
+                colors={["#FF416C", "#FF4B2B"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.addButton}
+              >
+                <IconSymbol name="plus" size={20} color="#FFF" />
+              </LinearGradient>
             </TouchableOpacity>
           </View>
           {liabilities.length === 0 ? (
@@ -835,10 +868,19 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: Spacing.m,
   },
-  header: {
+  headerCard: {
+    padding: Spacing.l,
+    borderRadius: BorderRadius.xl,
     alignItems: "center",
     marginBottom: Spacing.l,
-    marginTop: Spacing.m,
+    shadowColor: "#8E2DE2",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
   section: {
     marginBottom: Spacing.l,
@@ -848,6 +890,18 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: Spacing.s,
+  },
+  addButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
   },
   modalOverlay: {
     flex: 1,

@@ -3,6 +3,7 @@ import {
   updateVisionEntity,
 } from "@/features/vision/visionSlice";
 import { AppDispatch, RootState } from "@/store/store";
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
 import {
   Alert,
@@ -28,7 +29,6 @@ import {
 
 // Atomic Components
 import { Button } from "@/components/atoms/Button";
-import { Card } from "@/components/atoms/Card";
 import { Input } from "@/components/atoms/Input";
 import { Typography } from "@/components/atoms/Typography";
 import { TransactionList } from "@/components/organisms/TransactionList";
@@ -302,7 +302,15 @@ export default function WalletScreen() {
         }
       >
         {/* Header / Balance Card */}
-        <Card variant="elevated" style={styles.balanceCard}>
+        <LinearGradient
+          colors={["#8E2DE2", "#4A00E0"]} // Vivid Purple to Blue
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[
+            styles.balanceCard,
+            { padding: Spacing.l, borderRadius: BorderRadius.xl },
+          ]}
+        >
           <View
             style={{
               flexDirection: "row",
@@ -315,24 +323,28 @@ export default function WalletScreen() {
             <Typography
               variant="h3"
               weight="bold"
-              style={{ color: colors.primary }}
+              style={{ color: "rgba(255,255,255,0.9)" }}
             >
               {currentMonthName}
             </Typography>
             <TouchableOpacity onPress={handleDeleteMonthlyTransactions}>
-              <IconSymbol name="trash.fill" size={24} color={colors.error} />
+              <IconSymbol
+                name="trash.fill"
+                size={24}
+                color="rgba(255,255,255,0.7)"
+              />
             </TouchableOpacity>
           </View>
           <Typography
             variant="caption"
-            style={{ color: colors.text, opacity: 0.7 }}
+            style={{ color: "rgba(255,255,255,0.7)" }}
           >
             {STRINGS.wallet.balanceTotal}
           </Typography>
           <Typography
             variant="h1"
             weight="bold"
-            style={{ color: colors.primary, marginTop: Spacing.xs }}
+            style={{ color: "#FFF", marginTop: Spacing.xs }}
           >
             {formatCurrency(balance)}
           </Typography>
@@ -342,20 +354,23 @@ export default function WalletScreen() {
               donut
               radius={60}
               innerRadius={45}
+              backgroundColor="transparent"
               centerLabelComponent={() => (
-                <Typography variant="caption" weight="medium">
+                <Typography
+                  variant="caption"
+                  weight="medium"
+                  style={{ color: "#FFF" }}
+                >
                   {STRINGS.wallet.summary}
                 </Typography>
               )}
             />
           </View>
-        </Card>
+        </LinearGradient>
 
         {/* Quick Actions */}
         <View style={styles.actions}>
-          <Button
-            title={STRINGS.wallet.income}
-            variant="secondary"
+          <TouchableOpacity
             onPress={() => {
               console.log("OPENING MODAL: INCOME");
               setType("income");
@@ -365,15 +380,40 @@ export default function WalletScreen() {
               setSelectedEntityId(null);
               setModalVisible(true);
             }}
-            style={{
-              flex: 1,
-              marginRight: Spacing.s,
-              backgroundColor: colors.success,
-            }}
-          />
-          <Button
-            title={STRINGS.wallet.expense}
-            variant="secondary"
+            style={{ flex: 1, marginRight: Spacing.s }}
+            activeOpacity={0.8}
+          >
+            <LinearGradient
+              colors={["#00F260", "#0575E6"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{
+                paddingVertical: Spacing.m,
+                alignItems: "center",
+                borderRadius: BorderRadius.m,
+                shadowColor: "#00F260",
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.3,
+                shadowRadius: 4,
+                elevation: 4,
+              }}
+            >
+              <View
+                style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+              >
+                <IconSymbol name="arrow.down.left" size={20} color="#FFF" />
+                <Typography
+                  variant="body"
+                  weight="bold"
+                  style={{ color: "#FFF" }}
+                >
+                  {STRINGS.wallet.income}
+                </Typography>
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
+
+          <TouchableOpacity
             onPress={() => {
               console.log("OPENING MODAL: EXPENSE");
               setType("expense");
@@ -383,12 +423,38 @@ export default function WalletScreen() {
               setSelectedEntityId(null);
               setModalVisible(true);
             }}
-            style={{
-              flex: 1,
-              marginLeft: Spacing.s,
-              backgroundColor: colors.error,
-            }}
-          />
+            style={{ flex: 1, marginLeft: Spacing.s }}
+            activeOpacity={0.8}
+          >
+            <LinearGradient
+              colors={["#FF416C", "#FF4B2B"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{
+                paddingVertical: Spacing.m,
+                alignItems: "center",
+                borderRadius: BorderRadius.m,
+                shadowColor: "#FF416C",
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.3,
+                shadowRadius: 4,
+                elevation: 4,
+              }}
+            >
+              <View
+                style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+              >
+                <IconSymbol name="arrow.up.right" size={20} color="#FFF" />
+                <Typography
+                  variant="body"
+                  weight="bold"
+                  style={{ color: "#FFF" }}
+                >
+                  {STRINGS.wallet.expense}
+                </Typography>
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
         </View>
 
         {/* Transactions List */}
@@ -946,7 +1012,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: Spacing.m,
-    paddingTop: 60,
+    paddingTop: 10,
   },
   balanceCard: {
     alignItems: "center",

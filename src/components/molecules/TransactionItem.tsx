@@ -1,8 +1,9 @@
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { Colors, Spacing } from "@/constants/theme";
+import { BorderRadius, Colors, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import STRINGS from "@/i18n/es.json";
 import { formatCurrency } from "@/utils/format";
+import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import { Alert, StyleSheet, TouchableOpacity, View } from "react-native";
 import { Typography } from "../atoms/Typography";
@@ -34,6 +35,10 @@ export function TransactionItem({
   const isIncome = type === "income";
   const iconColor = isIncome ? colors.success : colors.error;
 
+  // Vivid colors for item borders/accents
+  const incomeGradient = ["#00F260", "#0575E6"] as const; // Green to Blue
+  const expenseGradient = ["#FF416C", "#FF4B2B"] as const; // Red to Orange
+
   // Extract emoji from category string (e.g. "🍔 Comida" -> "🍔")
   const emoji = category ? category.split(" ")[0] : null;
 
@@ -56,59 +61,72 @@ export function TransactionItem({
 
   return (
     <TouchableOpacity
-      style={[styles.container, { borderBottomColor: colors.border }]}
       onPress={onPress}
       onLongPress={handleLongPress}
-      activeOpacity={0.7}
+      activeOpacity={0.8}
       delayLongPress={500}
     >
-      <View
-        style={[
-          styles.iconContainer,
-          { backgroundColor: isIncome ? "#E6F8EF" : "#FFEBE6" },
-        ]}
+      <LinearGradient
+        colors={isIncome ? incomeGradient : expenseGradient}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{
+          borderRadius: BorderRadius.m,
+          padding: 1.5, // Thin gradient border
+          marginBottom: Spacing.s,
+        }}
       >
-        {emoji ? (
-          <Typography variant="h3">{emoji}</Typography>
-        ) : (
-          <IconSymbol
-            name={isIncome ? "arrow.down.left" : "arrow.up.right"}
-            size={24}
-            color={iconColor}
-          />
-        )}
-      </View>
-
-      <View style={styles.content}>
-        <Typography variant="body" weight="medium">
-          {description}
-        </Typography>
-        <Typography variant="caption" style={{ color: colors.icon }}>
-          {category ? category : new Date(date).toLocaleDateString()}
-        </Typography>
-      </View>
-
-      <View style={styles.rightContainer}>
-        <Typography
-          variant="body"
-          weight="bold"
-          style={{
-            color: isIncome ? colors.success : colors.error,
-            marginBottom: 4,
-          }}
+        <View
+          style={[
+            styles.container,
+            {
+              backgroundColor: colors.background, // Use background/surface color
+              borderRadius: BorderRadius.m - 1.5,
+              borderBottomWidth: 0, // Remove old border
+            },
+          ]}
         >
-          {isIncome ? "+" : "-"}
-          {formatCurrency(amount).replace("$", "")}
-        </Typography>
-        {onDelete && (
-          <TouchableOpacity
-            onPress={() => onDelete(id)}
-            style={styles.deleteButton}
+          <View
+            style={[
+              styles.iconContainer,
+              { backgroundColor: isIncome ? "#E6F8EF" : "#FFEBE6" },
+            ]}
           >
-            <IconSymbol name="trash.fill" size={20} color={colors.icon} />
-          </TouchableOpacity>
-        )}
-      </View>
+            {emoji ? (
+              <Typography variant="h3">{emoji}</Typography>
+            ) : (
+              <IconSymbol
+                name={isIncome ? "arrow.down.left" : "arrow.up.right"}
+                size={24}
+                color={iconColor}
+              />
+            )}
+          </View>
+
+          <View style={styles.content}>
+            <Typography variant="body" weight="medium">
+              {description}
+            </Typography>
+            <Typography variant="caption" style={{ color: colors.icon }}>
+              {category ? category : new Date(date).toLocaleDateString()}
+            </Typography>
+          </View>
+
+          <View style={styles.rightContainer}>
+            <Typography
+              variant="body"
+              weight="bold"
+              style={{
+                color: isIncome ? colors.success : colors.error,
+                marginBottom: 4,
+              }}
+            >
+              {isIncome ? "+" : "-"}
+              {formatCurrency(amount)}
+            </Typography>
+          </View>
+        </View>
+      </LinearGradient>
     </TouchableOpacity>
   );
 }
@@ -118,6 +136,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: Spacing.m,
+    paddingHorizontal: Spacing.m, // Add horizontal padding since we are inside a card now
     borderBottomWidth: 1,
   },
   iconContainer: {
