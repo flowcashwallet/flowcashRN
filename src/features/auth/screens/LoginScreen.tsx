@@ -28,10 +28,8 @@ export default function LoginScreen() {
   const [request, response, promptAsync] = Google.useAuthRequest({
     webClientId:
       "635821696580-ivj83nnvshqlvtp14qm9vrgtv9evlrnr.apps.googleusercontent.com",
-
     iosClientId:
       "635821696580-2cra0f8iruo4oblm9ufvf7051egp17kq.apps.googleusercontent.com",
-    redirectUri: "https://auth.expo.io/@juliotwo1996/beta-1",
   });
 
   useEffect(() => {
