@@ -16,9 +16,12 @@ export interface VisionEntity {
   userId: string;
   name: string;
   description?: string;
-  amount: number; // Manual valuation
+  amount: number; // Manual valuation or Calculated Fiat Value
   type: "asset" | "liability";
   createdAt: number;
+  isCrypto?: boolean;
+  cryptoSymbol?: string;
+  cryptoAmount?: number;
 }
 
 interface VisionState {
@@ -50,6 +53,9 @@ export const fetchVisionEntities = createAsyncThunk(
           amount: data.amount || 0,
           type: data.type,
           createdAt: data.createdAt,
+          isCrypto: data.isCrypto,
+          cryptoSymbol: data.cryptoSymbol,
+          cryptoAmount: data.cryptoAmount,
         });
       });
       return entities;

@@ -18,6 +18,7 @@ import {
 } from "@/features/wallet/walletSlice";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import STRINGS from "@/i18n/es.json";
+import { fetchCryptoPrices } from "@/services/price/coingecko";
 import { AppDispatch, RootState } from "@/store/store";
 import { formatAmountInput, formatCurrency, parseAmount } from "@/utils/format";
 import React, { useEffect, useState } from "react";
@@ -61,6 +62,14 @@ export default function VisionScreen() {
   const [amount, setAmount] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
+  // Crypto State
+  const [isCrypto, setIsCrypto] = useState(false);
+  const [selectedCrypto, setSelectedCrypto] = useState<"BTC" | "ETH" | "USDT">(
+    "BTC",
+  );
+  const [cryptoAmount, setCryptoAmount] = useState("");
+  const [cryptoPrice, setCryptoPrice] = useState<number | null>(null);
+
   // Add Transaction Form State (inside Detail Modal)
   const [showAddTransaction, setShowAddTransaction] = useState(false);
   const [transactionAmount, setTransactionAmount] = useState("");
@@ -98,6 +107,84 @@ export default function VisionScreen() {
   );
   const netWorth = totalAssets - totalLiabilities;
 
+  const fetchPriceForSymbol = async (symbol: string) => {
+    const coinIdMap: Record<string, string> = {
+      BTC: "bitcoin",
+      ETH: "ethereum",
+      USDT: "tether",
+    };
+
+    const coinId = coinIdMap[symbol];
+    const prices = await fetchCryptoPrices(coinId);
+
+    if (prices && prices[coinId]) {
+      const price = prices[coinId];
+      setCryptoPrice(price);
+      return price;
+    }
+    return null;
+  };
+
+  useEffect(() => {
+    if (isCrypto && addModalVisible) {
+      fetchPriceForSymbol(selectedCrypto);
+    }
+  }, [isCrypto, selectedCrypto, addModalVisible]);
+
+  const handleCryptoAmountChange = (qty: string) => {
+    const formattedQty = formatAmountInput(qty);
+    setCryptoAmount(formattedQty);
+
+    const numericQty = parseAmount(formattedQty);
+    if (cryptoPrice && !isNaN(numericQty) && numericQty > 0) {
+      const totalFiat = numericQty * cryptoPrice;
+      setAmount(totalFiat.toString());
+    } else {
+      setAmount("");
+    }
+  };
+
+  const handleUpdateCryptoPrice = async (entity: VisionEntity) => {
+    if (!entity.cryptoSymbol || !entity.cryptoAmount) return;
+
+    setIsSaving(true);
+    const coinIdMap: Record<string, string> = {
+      BTC: "bitcoin",
+      ETH: "ethereum",
+      USDT: "tether",
+    };
+
+    const coinId = coinIdMap[entity.cryptoSymbol];
+    const prices = await fetchCryptoPrices(coinId);
+
+    if (prices && prices[coinId]) {
+      const price = prices[coinId];
+      const newFiatAmount = entity.cryptoAmount * price;
+
+      dispatch(
+        updateVisionEntity({
+          ...entity,
+          amount: newFiatAmount,
+        }),
+      )
+        .unwrap()
+        .then((updatedEntity) => {
+          setSelectedEntity(updatedEntity);
+          Alert.alert(
+            "Actualizado",
+            `Precio actualizado a ${formatCurrency(price)} MXN`,
+          );
+        })
+        .catch((error) => {
+          Alert.alert(STRINGS.common.error, error);
+        })
+        .finally(() => setIsSaving(false));
+    } else {
+      setIsSaving(false);
+      Alert.alert(STRINGS.common.error, "No se pudo obtener el precio actual.");
+    }
+  };
+
   const handleAddEntity = () => {
     if (!name || !amount || !user?.uid) return;
     setIsSaving(true);
@@ -109,6 +196,9 @@ export default function VisionScreen() {
         amount: parseAmount(amount),
         type: selectedType,
         createdAt: Date.now(),
+        isCrypto: selectedType === "asset" && isCrypto,
+        cryptoSymbol: isCrypto ? selectedCrypto : undefined,
+        cryptoAmount: isCrypto ? parseAmount(cryptoAmount) : undefined,
       }),
     )
       .unwrap()
@@ -117,6 +207,9 @@ export default function VisionScreen() {
         setName("");
         setDescription("");
         setAmount("");
+        setIsCrypto(false);
+        setCryptoAmount("");
+        setCryptoPrice(null);
       })
       .catch((error) => {
         Alert.alert(STRINGS.common.error, error);
@@ -239,6 +332,11 @@ export default function VisionScreen() {
             <Typography variant="body" weight="bold">
               {item.name}
             </Typography>
+            {item.isCrypto && item.cryptoAmount && item.cryptoSymbol ? (
+              <Typography variant="caption" style={{ color: colors.primary }}>
+                {item.cryptoAmount} {item.cryptoSymbol}
+              </Typography>
+            ) : null}
             {item.description ? (
               <Typography variant="caption" style={{ color: colors.icon }}>
                 {item.description}
@@ -382,6 +480,113 @@ export default function VisionScreen() {
                 : STRINGS.vision.addLiability}
             </Typography>
 
+            {selectedType === "asset" && (
+              <View style={{ flexDirection: "row", marginBottom: Spacing.m }}>
+                <TouchableOpacity
+                  style={{
+                    flex: 1,
+                    padding: Spacing.s,
+                    backgroundColor: !isCrypto
+                      ? colors.primary
+                      : colors.surface,
+                    alignItems: "center",
+                    borderTopLeftRadius: BorderRadius.m,
+                    borderBottomLeftRadius: BorderRadius.m,
+                  }}
+                  onPress={() => {
+                    setIsCrypto(false);
+                    setAmount("");
+                  }}
+                >
+                  <Typography
+                    variant="caption"
+                    style={{ color: !isCrypto ? "#FFF" : colors.text }}
+                  >
+                    Dinero Fiat
+                  </Typography>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={{
+                    flex: 1,
+                    padding: Spacing.s,
+                    backgroundColor: isCrypto ? colors.primary : colors.surface,
+                    alignItems: "center",
+                    borderTopRightRadius: BorderRadius.m,
+                    borderBottomRightRadius: BorderRadius.m,
+                  }}
+                  onPress={() => {
+                    setIsCrypto(true);
+                    setAmount("");
+                  }}
+                >
+                  <Typography
+                    variant="caption"
+                    style={{ color: isCrypto ? "#FFF" : colors.text }}
+                  >
+                    Criptomoneda
+                  </Typography>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {isCrypto && selectedType === "asset" ? (
+              <>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-around",
+                    marginBottom: Spacing.m,
+                  }}
+                >
+                  {(["BTC", "ETH", "USDT"] as const).map((symbol) => (
+                    <TouchableOpacity
+                      key={symbol}
+                      onPress={() => {
+                        setSelectedCrypto(symbol);
+                        // useEffect will trigger fetchPriceForSymbol
+                      }}
+                      style={{
+                        padding: Spacing.s,
+                        borderRadius: BorderRadius.m,
+                        backgroundColor:
+                          selectedCrypto === symbol
+                            ? colors.primary
+                            : colors.surface,
+                        borderWidth: 1,
+                        borderColor: colors.border,
+                      }}
+                    >
+                      <Typography
+                        style={{
+                          color:
+                            selectedCrypto === symbol ? "#FFF" : colors.text,
+                        }}
+                      >
+                        {symbol}
+                      </Typography>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <Input
+                  label="Cantidad Cripto"
+                  value={cryptoAmount}
+                  onChangeText={handleCryptoAmountChange}
+                  placeholder="0.00"
+                  keyboardType="numeric"
+                />
+
+                {cryptoPrice && (
+                  <Typography
+                    variant="caption"
+                    style={{ marginBottom: Spacing.m, textAlign: "center" }}
+                  >
+                    Precio actual: {formatCurrency(cryptoPrice)} MXN
+                  </Typography>
+                )}
+              </>
+            ) : null}
+
             <Input
               label={STRINGS.vision.name}
               value={name}
@@ -396,10 +601,19 @@ export default function VisionScreen() {
             />
             <Input
               label={STRINGS.wallet.amount}
-              value={amount}
-              onChangeText={(text) => setAmount(formatAmountInput(text))}
+              value={
+                isCrypto
+                  ? amount
+                    ? formatCurrency(Number(amount)).replace("$", "").trim()
+                    : ""
+                  : amount
+              }
+              onChangeText={(text) =>
+                !isCrypto && setAmount(formatAmountInput(text))
+              }
               keyboardType="numeric"
               placeholder="0.00"
+              editable={!isCrypto}
             />
 
             <View style={styles.modalActions}>
@@ -459,6 +673,26 @@ export default function VisionScreen() {
               <Typography variant="h2" style={{ color: colors.primary }}>
                 {formatCurrency(selectedEntity.amount)}
               </Typography>
+
+              {selectedEntity.isCrypto &&
+              selectedEntity.cryptoAmount &&
+              selectedEntity.cryptoSymbol ? (
+                <View
+                  style={{ alignItems: "flex-start", marginTop: Spacing.s }}
+                >
+                  <Typography variant="body" weight="bold">
+                    {selectedEntity.cryptoAmount} {selectedEntity.cryptoSymbol}
+                  </Typography>
+                  <Button
+                    title="Actualizar Precio"
+                    variant="outline"
+                    onPress={() => handleUpdateCryptoPrice(selectedEntity)}
+                    loading={isSaving}
+                    style={{ marginTop: Spacing.xs, alignSelf: "flex-start" }}
+                  />
+                </View>
+              ) : null}
+
               {selectedEntity.description ? (
                 <Typography variant="body" style={{ marginTop: Spacing.xs }}>
                   {selectedEntity.description}
