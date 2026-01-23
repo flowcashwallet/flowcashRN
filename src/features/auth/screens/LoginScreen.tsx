@@ -30,6 +30,8 @@ export default function LoginScreen() {
       "635821696580-ivj83nnvshqlvtp14qm9vrgtv9evlrnr.apps.googleusercontent.com",
     iosClientId:
       "635821696580-2cra0f8iruo4oblm9ufvf7051egp17kq.apps.googleusercontent.com",
+    androidClientId:
+      "635821696580-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com", // TODO: Reemplazar con tu Client ID de Android
   });
 
   useEffect(() => {
@@ -42,10 +44,21 @@ export default function LoginScreen() {
     console.log("Response:", response);
     if (response?.type === "success") {
       const { id_token } = response.params;
+
+      if (!id_token) {
+        dispatch(setError("No se pudo obtener el token de Google."));
+        return;
+      }
+
       const credential = GoogleAuthProvider.credential(id_token);
       dispatch(setLoading(true));
       signInWithCredential(auth, credential)
+        .then((userCredential) => {
+          console.log("User logged in:", userCredential.user.uid);
+          // El _layout.tsx escuchará el cambio de estado y actualizará Redux
+        })
         .catch((error) => {
+          console.error("Firebase Auth Error:", error);
           dispatch(setError(error.message));
         })
         .finally(() => {

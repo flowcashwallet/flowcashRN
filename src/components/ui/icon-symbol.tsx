@@ -24,6 +24,7 @@ const MAPPING = {
   'trash.fill': 'delete',
   'arrow.down.left': 'call-received',
   'arrow.up.right': 'call-made',
+  'line.3.horizontal': 'menu',
 } as IconMapping;
 
 /**
