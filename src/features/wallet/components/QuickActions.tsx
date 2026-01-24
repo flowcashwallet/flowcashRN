@@ -9,11 +9,13 @@ import { StyleSheet, TouchableOpacity, View } from "react-native";
 interface QuickActionsProps {
   onPressIncome: () => void;
   onPressExpense: () => void;
+  onPressCategories: () => void;
 }
 
 export const QuickActions: React.FC<QuickActionsProps> = ({
   onPressIncome,
   onPressExpense,
+  onPressCategories,
 }) => {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
@@ -54,7 +56,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
 
       <TouchableOpacity
         onPress={onPressExpense}
-        style={{ flex: 1, marginLeft: Spacing.s }}
+        style={{ flex: 1, marginHorizontal: Spacing.s }}
         activeOpacity={0.8}
       >
         <View
@@ -77,6 +79,25 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
               {STRINGS.wallet.expense}
             </Typography>
           </View>
+        </View>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        onPress={onPressCategories}
+        style={{ flex: 0.5, marginLeft: Spacing.s }}
+        activeOpacity={0.8}
+      >
+        <View
+          style={{
+            backgroundColor: "rgba(76, 201, 240, 0.1)",
+            borderColor: colors.primary,
+            borderWidth: 1,
+            paddingVertical: Spacing.m,
+            alignItems: "center",
+            borderRadius: BorderRadius.m,
+          }}
+        >
+          <IconSymbol name="list.bullet" size={20} color={colors.primary} />
         </View>
       </TouchableOpacity>
     </View>

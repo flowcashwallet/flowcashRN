@@ -1,6 +1,7 @@
 import { TransactionList } from "@/components/organisms/TransactionList";
 import { ThemedView } from "@/components/themed-view";
 import { Spacing } from "@/constants/theme";
+import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet } from "react-native";
 import { QuickActions } from "../components/QuickActions";
@@ -12,6 +13,7 @@ import { useWalletData } from "../hooks/useWalletData";
 import { useWalletTransactions } from "../hooks/useWalletTransactions";
 
 export default function WalletScreen() {
+  const router = useRouter();
   const {
     currentMonthTransactions,
     balance,
@@ -79,6 +81,9 @@ export default function WalletScreen() {
           onPressExpense={() => {
             setTransactionType("expense");
             setModalVisible(true);
+          }}
+          onPressCategories={() => {
+            router.push("/wallet/categories");
           }}
         />
 

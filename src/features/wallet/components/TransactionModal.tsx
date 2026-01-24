@@ -3,8 +3,10 @@ import { Input } from "@/components/atoms/Input";
 import { Typography } from "@/components/atoms/Typography";
 import { BorderRadius, Colors, Spacing } from "@/constants/theme";
 import { VisionEntity } from "@/features/vision/data/visionSlice";
+import { fetchCategories } from "@/features/wallet/data/categoriesSlice";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import STRINGS from "@/i18n/es.json";
+import { AppDispatch, RootState } from "@/store/store";
 import { formatAmountInput } from "@/utils/format";
 import React, { useEffect, useState } from "react";
 import {
@@ -18,8 +20,7 @@ import {
   TouchableWithoutFeedback,
   View,
 } from "react-native";
-
-const CATEGORIES = STRINGS.wallet.categories;
+import { useDispatch, useSelector } from "react-redux";
 
 interface TransactionData {
   amount: string;
@@ -46,6 +47,9 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   visionEntities,
   isSaving,
 }) => {
+  const dispatch = useDispatch<AppDispatch>();
+  const { user } = useSelector((state: RootState) => state.auth);
+  const { categories } = useSelector((state: RootState) => state.categories);
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
 
@@ -56,6 +60,12 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
   const [isEntityDropdownOpen, setIsEntityDropdownOpen] = useState(false);
+
+  useEffect(() => {
+    if (visible && user?.uid && categories.length === 0) {
+      dispatch(fetchCategories(user.uid));
+    }
+  }, [visible, user, dispatch, categories.length]);
 
   useEffect(() => {
     if (visible) {
@@ -185,11 +195,11 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                   ]}
                 >
                   <ScrollView nestedScrollEnabled>
-                    {CATEGORIES.map((cat, index) => (
+                    {categories.map((cat, index) => (
                       <TouchableOpacity
-                        key={cat}
+                        key={cat.id}
                         onPress={() => {
-                          setSelectedCategory(cat);
+                          setSelectedCategory(cat.name);
                           setIsCategoryDropdownOpen(false);
                         }}
                         style={{
@@ -198,12 +208,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                           borderTopColor: colors.border,
                         }}
                       >
-                        <Typography
-                          variant="body"
-                          style={{ color: colors.text }}
-                        >
-                          {cat}
-                        </Typography>
+                        <Typography variant="body">{cat.name}</Typography>
                       </TouchableOpacity>
                     ))}
                   </ScrollView>

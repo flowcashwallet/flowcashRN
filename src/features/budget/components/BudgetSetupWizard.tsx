@@ -4,27 +4,29 @@ import { Input } from "@/components/atoms/Input";
 import { Typography } from "@/components/atoms/Typography";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { BorderRadius, Colors, Spacing } from "@/constants/theme";
-import { CATEGORIES } from "@/features/budget/components/BudgetHelpers";
 import { useBudgetSetup } from "@/features/budget/hooks/useBudgetSetup";
+import { fetchCategories } from "@/features/wallet/data/categoriesSlice";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { RootState } from "@/store/store";
+import { AppDispatch, RootState } from "@/store/store";
 import { formatCurrency } from "@/utils/format";
-import React from "react";
+import React, { useEffect } from "react";
 import {
-    Alert,
-    Keyboard,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    TouchableOpacity,
-    TouchableWithoutFeedback,
-    View,
+  Alert,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
 } from "react-native";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 
 export const BudgetSetupWizard = () => {
+  const dispatch = useDispatch<AppDispatch>();
   const { user } = useSelector((state: RootState) => state.auth);
+  const { categories } = useSelector((state: RootState) => state.categories);
   const {
     step,
     setStep,
@@ -48,6 +50,12 @@ export const BudgetSetupWizard = () => {
 
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
+
+  useEffect(() => {
+    if (user?.uid && categories.length === 0) {
+      dispatch(fetchCategories(user.uid));
+    }
+  }, [user, dispatch, categories.length]);
 
   return (
     <KeyboardAvoidingView
@@ -188,11 +196,11 @@ export const BudgetSetupWizard = () => {
                     }}
                   >
                     <ScrollView nestedScrollEnabled>
-                      {CATEGORIES.map((cat: string, index: number) => (
+                      {categories.map((cat, index) => (
                         <TouchableOpacity
-                          key={cat}
+                          key={cat.id}
                           onPress={() => {
-                            setExpenseCategory(cat);
+                            setExpenseCategory(cat.name);
                             setIsCategoryDropdownOpen(false);
                           }}
                           style={{
@@ -205,7 +213,7 @@ export const BudgetSetupWizard = () => {
                             variant="body"
                             style={{ color: colors.text }}
                           >
-                            {cat}
+                            {cat.name}
                           </Typography>
                         </TouchableOpacity>
                       ))}

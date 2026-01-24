@@ -3,20 +3,21 @@ import { Input } from "@/components/atoms/Input";
 import { Typography } from "@/components/atoms/Typography";
 import { BorderRadius, Colors, Spacing } from "@/constants/theme";
 import { VisionEntity } from "@/features/vision/data/visionSlice";
+import { fetchCategories } from "@/features/wallet/data/categoriesSlice";
 import { Transaction } from "@/features/wallet/data/walletSlice";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import STRINGS from "@/i18n/es.json";
+import { AppDispatch, RootState } from "@/store/store";
 import { formatAmountInput, formatCurrency } from "@/utils/format";
 import React, { useEffect, useState } from "react";
 import {
-  Modal,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  View,
+    Modal,
+    ScrollView,
+    StyleSheet,
+    TouchableOpacity,
+    View,
 } from "react-native";
-
-const CATEGORIES = STRINGS.wallet.categories;
+import { useDispatch, useSelector } from "react-redux";
 
 interface UpdateTransactionData {
   id: string;
@@ -50,6 +51,9 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
   visionEntities,
   isSaving,
 }) => {
+  const dispatch = useDispatch<AppDispatch>();
+  const { user } = useSelector((state: RootState) => state.auth);
+  const { categories } = useSelector((state: RootState) => state.categories);
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
 
@@ -64,16 +68,25 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
     useState(false);
 
   useEffect(() => {
+    if (visible && user?.uid && categories.length === 0) {
+      dispatch(fetchCategories(user.uid));
+    }
+  }, [visible, user, dispatch, categories.length]);
+
+  useEffect(() => {
     if (visible && transaction) {
       setEditDescription(transaction.description);
-      setEditCategory(transaction.category || CATEGORIES[0]);
+      setEditCategory(
+        transaction.category ||
+          (categories.length > 0 ? categories[0].name : ""),
+      );
       setEditAmount(formatAmountInput(transaction.amount.toFixed(2)));
       setEditEntityId(transaction.relatedEntityId || null);
       setIsEditing(false);
       setIsEditCategoryDropdownOpen(false);
       setIsEditEntityDropdownOpen(false);
     }
-  }, [visible, transaction]);
+  }, [visible, transaction, categories]);
 
   const handleUpdate = async () => {
     if (!transaction) return;
@@ -233,11 +246,11 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                       ]}
                     >
                       <ScrollView nestedScrollEnabled>
-                        {CATEGORIES.map((cat, index) => (
+                        {categories.map((cat, index) => (
                           <TouchableOpacity
-                            key={cat}
+                            key={cat.id}
                             onPress={() => {
-                              setEditCategory(cat);
+                              setEditCategory(cat.name);
                               setIsEditCategoryDropdownOpen(false);
                             }}
                             style={{
@@ -246,12 +259,7 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                               borderTopColor: colors.border,
                             }}
                           >
-                            <Typography
-                              variant="body"
-                              style={{ color: colors.text }}
-                            >
-                              {cat}
-                            </Typography>
+                            <Typography variant="body">{cat.name}</Typography>
                           </TouchableOpacity>
                         ))}
                       </ScrollView>
