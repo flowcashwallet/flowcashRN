@@ -800,11 +800,20 @@ export default function WalletScreen() {
                     title={STRINGS.common.save}
                     loading={isSaving}
                     onPress={handleAddTransaction}
+                    gradient={
+                      type === "income"
+                        ? (colors.gradients.success as unknown as readonly [
+                            string,
+                            string,
+                          ])
+                        : (colors.gradients.error as unknown as readonly [
+                            string,
+                            string,
+                          ])
+                    }
                     style={{
                       flex: 1,
                       marginLeft: Spacing.s,
-                      backgroundColor:
-                        type === "income" ? colors.success : colors.error,
                     }}
                   />
                 </View>
@@ -1217,6 +1226,17 @@ export default function WalletScreen() {
                         variant="primary"
                         loading={isSaving}
                         onPress={handleUpdateTransaction}
+                        gradient={
+                          selectedTransaction.type === "income"
+                            ? (colors.gradients.success as unknown as readonly [
+                                string,
+                                string,
+                              ])
+                            : (colors.gradients.error as unknown as readonly [
+                                string,
+                                string,
+                              ])
+                        }
                         style={{ flex: 1 }}
                       />
                     </>
@@ -1237,7 +1257,13 @@ export default function WalletScreen() {
                       <Button
                         title={STRINGS.common.delete}
                         variant="primary" // Should be destructive style ideally
-                        style={{ flex: 1, backgroundColor: colors.error }}
+                        gradient={
+                          colors.gradients.error as unknown as readonly [
+                            string,
+                            string,
+                          ]
+                        }
+                        style={{ flex: 1 }}
                         onPress={() => {
                           setDetailModalVisible(false);
                           setTimeout(

@@ -5,7 +5,7 @@
 import { Platform } from "react-native";
 
 const palette = {
-  primary: "#0056D2", // Deep Blue
+  primary: "#4A00E0", // Vivid Purple (matching gradient end)
   secondary: "#007AFF", // Bright Blue
   accent: "#4CC9F0", // Light Blue/Cyan
   backgroundLight: "#F0F4F8", // Very Light Blueish Grey

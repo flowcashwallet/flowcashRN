@@ -5,9 +5,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as WebBrowser from "expo-web-browser";
 import {
   GoogleAuthProvider,
-  createUserWithEmailAndPassword,
   signInWithCredential,
-  signInWithEmailAndPassword,
+  signInWithEmailAndPassword
 } from "firebase/auth";
 import React, { useEffect, useState } from "react";
 import {
@@ -32,10 +31,12 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Colors, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import STRINGS from "@/i18n/es.json";
+import { useRouter } from "expo-router";
 
 WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen() {
+  const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
   const { loading, error } = useSelector((state: RootState) => state.auth);
   const colorScheme = useColorScheme();
@@ -43,7 +44,6 @@ export default function LoginScreen() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isRegistering, setIsRegistering] = useState(false);
 
   const [request, response, promptAsync] = Google.useAuthRequest({
     webClientId:
@@ -97,11 +97,7 @@ export default function LoginScreen() {
     dispatch(setError(null));
 
     try {
-      if (isRegistering) {
-        await createUserWithEmailAndPassword(auth, email, password);
-      } else {
-        await signInWithEmailAndPassword(auth, email, password);
-      }
+      await signInWithEmailAndPassword(auth, email, password);
       // _layout.tsx handles auth state change
     } catch (err: any) {
       console.error("Auth Error:", err);
@@ -134,7 +130,12 @@ export default function LoginScreen() {
           <Card variant="flat" style={styles.card}>
             <View style={styles.header}>
               <LinearGradient
-                colors={colors.gradients.primary}
+                colors={
+                  colors.gradients.primary as unknown as readonly [
+                    string,
+                    string,
+                  ]
+                }
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.logoPlaceholder}
@@ -196,9 +197,7 @@ export default function LoginScreen() {
                 />
               ) : (
                 <Button
-                  title={
-                    isRegistering ? STRINGS.auth.register : STRINGS.auth.login
-                  }
+                  title={STRINGS.auth.login}
                   onPress={handleEmailAuth}
                   style={{ marginTop: Spacing.m }}
                 />
@@ -240,15 +239,13 @@ export default function LoginScreen() {
 
               <TouchableOpacity
                 onPress={() => {
-                  setIsRegistering(!isRegistering);
+                  router.push("/register");
                   dispatch(setError(null));
                 }}
                 style={{ marginTop: Spacing.l, alignItems: "center" }}
               >
                 <Typography variant="body" style={{ color: colors.primary }}>
-                  {isRegistering
-                    ? STRINGS.auth.haveAccount
-                    : STRINGS.auth.noAccount}
+                  {STRINGS.auth.noAccount}
                 </Typography>
               </TouchableOpacity>
             </View>

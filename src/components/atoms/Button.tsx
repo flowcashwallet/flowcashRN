@@ -1,13 +1,14 @@
 import { BorderRadius, Colors, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import {
-    ActivityIndicator,
-    StyleProp,
-    StyleSheet,
-    TextStyle,
-    TouchableOpacity,
-    ViewStyle,
+  ActivityIndicator,
+  StyleProp,
+  StyleSheet,
+  TextStyle,
+  TouchableOpacity,
+  ViewStyle,
 } from "react-native";
 import { Typography } from "./Typography";
 
@@ -21,6 +22,7 @@ interface ButtonProps {
   style?: StyleProp<ViewStyle>;
   textStyle?: StyleProp<TextStyle>;
   icon?: React.ReactNode;
+  gradient?: readonly [string, string];
 }
 
 export function Button({
@@ -33,15 +35,17 @@ export function Button({
   style,
   textStyle,
   icon,
+  gradient,
 }: ButtonProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
 
   const getBackgroundColor = () => {
     if (disabled) return colors.icon; // Greyish
+    if (gradient) return "transparent";
     switch (variant) {
       case "primary":
-        return colors.primary;
+        return "transparent"; // We'll use LinearGradient for primary
       case "secondary":
         return colors.secondary;
       case "outline":
@@ -49,7 +53,7 @@ export function Button({
       case "ghost":
         return "transparent";
       default:
-        return colors.primary;
+        return "transparent";
     }
   };
 
@@ -79,13 +83,8 @@ export function Button({
     style,
   ];
 
-  return (
-    <TouchableOpacity
-      style={containerStyles}
-      onPress={onPress}
-      disabled={disabled || loading}
-      activeOpacity={0.7}
-    >
+  const Content = () => (
+    <>
       {loading ? (
         <ActivityIndicator color={getTextColor()} />
       ) : (
@@ -103,6 +102,44 @@ export function Button({
           </Typography>
         </>
       )}
+    </>
+  );
+
+  if (variant === "primary" && !disabled) {
+    return (
+      <TouchableOpacity
+        onPress={onPress}
+        disabled={disabled || loading}
+        activeOpacity={0.8}
+        style={[style, { borderRadius: BorderRadius.m }]} // Apply outer style/radius
+      >
+        <LinearGradient
+          colors={
+            colors.gradients.primary as unknown as readonly [string, string]
+          }
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[
+            styles.container,
+            size === "small" && styles.small,
+            size === "medium" && styles.medium,
+            size === "large" && styles.large,
+          ]}
+        >
+          <Content />
+        </LinearGradient>
+      </TouchableOpacity>
+    );
+  }
+
+  return (
+    <TouchableOpacity
+      style={containerStyles}
+      onPress={onPress}
+      disabled={disabled || loading}
+      activeOpacity={0.7}
+    >
+      <Content />
     </TouchableOpacity>
   );
 }
