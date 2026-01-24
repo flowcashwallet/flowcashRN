@@ -36,7 +36,17 @@
   "auth": {
     "welcome": "Bienvenido",
     "tagline": "Gestiona tus finanzas de forma inteligente",
-    "continueGoogle": "Continuar con Google"
+    "continueGoogle": "Continuar con Google",
+    "email": "Correo Electrónico",
+    "password": "Contraseña",
+    "login": "Iniciar Sesión",
+    "register": "Registrarse",
+    "haveAccount": "¿Ya tienes cuenta? Inicia Sesión",
+    "noAccount": "¿No tienes cuenta? Regístrate",
+    "emailPlaceholder": "correo@ejemplo.com",
+    "passwordPlaceholder": "******",
+    "invalidEmail": "Correo electrónico inválido",
+    "weakPassword": "La contraseña es muy débil (mínimo 6 caracteres)"
   },
   "wallet": {
     "balanceTotal": "Balance Total",

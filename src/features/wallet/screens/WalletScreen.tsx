@@ -355,7 +355,9 @@ export default function WalletScreen() {
       >
         {/* Header / Balance Card */}
         <LinearGradient
-          colors={["#8E2DE2", "#4A00E0"]} // Vivid Purple to Blue
+          colors={
+            colors.gradients.primary as unknown as readonly [string, string]
+          }
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={[
@@ -436,7 +438,9 @@ export default function WalletScreen() {
             activeOpacity={0.8}
           >
             <LinearGradient
-              colors={["#00F260", "#0575E6"]}
+              colors={
+                colors.gradients.success as unknown as readonly [string, string]
+              }
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={{
@@ -479,7 +483,9 @@ export default function WalletScreen() {
             activeOpacity={0.8}
           >
             <LinearGradient
-              colors={["#FF416C", "#FF4B2B"]}
+              colors={
+                colors.gradients.error as unknown as readonly [string, string]
+              }
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={{

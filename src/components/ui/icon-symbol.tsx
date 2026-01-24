@@ -31,6 +31,7 @@ const MAPPING = {
   plus: "add",
   "plus.circle.fill": "add-circle",
   "minus.circle.fill": "remove-circle",
+  "g.circle.fill": "public",
 } as IconMapping;
 
 /**
