@@ -6,11 +6,11 @@ import { ThemedView } from "@/components/themed-view";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { BorderRadius, Colors, Spacing } from "@/constants/theme";
 import {
-    FixedExpense,
-    fetchBudgetConfig,
-    processMonthlyBudget,
-    resetBudgetConfig,
-    saveBudgetConfig,
+  FixedExpense,
+  fetchBudgetConfig,
+  processMonthlyBudget,
+  resetBudgetConfig,
+  saveBudgetConfig,
 } from "@/features/budget/budgetSlice";
 import { fetchTransactions } from "@/features/wallet/walletSlice";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -20,16 +20,16 @@ import { formatCurrency } from "@/utils/format";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Keyboard,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    TouchableOpacity,
-    TouchableWithoutFeedback,
-    View,
+  ActivityIndicator,
+  Alert,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
 } from "react-native";
 import { BarChart, PieChart } from "react-native-gifted-charts";
 import { useDispatch, useSelector } from "react-redux";
@@ -329,7 +329,9 @@ function BudgetSetupWizard() {
                   placeholder="0.00"
                   keyboardType="numeric"
                   value={expenseAmount}
-                  onChangeText={(text) => setExpenseAmount(formatAmountInput(text))}
+                  onChangeText={(text) =>
+                    setExpenseAmount(formatAmountInput(text))
+                  }
                 />
                 <Button
                   title="Agregar Gasto"
@@ -681,6 +683,7 @@ function BudgetDashboard() {
         </Typography>
         <View style={{ alignItems: "center" }}>
           <BarChart
+            key={`${monthlyIncome}-${totalActualExpense}-${totalActualIncome}`}
             data={barData}
             barWidth={50}
             spacing={40}
@@ -694,6 +697,14 @@ function BudgetDashboard() {
             width={300}
             isAnimated
             hideRules
+            maxValue={
+              Math.max(
+                monthlyIncome,
+                totalActualExpense,
+                totalActualIncome,
+                100,
+              ) * 1.2
+            }
             yAxisTextStyle={{ color: colors.text, fontSize: 10 }}
             xAxisLabelTextStyle={{ color: colors.text, fontSize: 10 }}
           />
