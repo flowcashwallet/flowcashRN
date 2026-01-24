@@ -60,6 +60,7 @@ export default function VisionScreen() {
   const [selectedEntity, setSelectedEntity] = useState<VisionEntity | null>(
     null,
   );
+  const [activeTab, setActiveTab] = useState<"asset" | "liability">("asset");
 
   // Form State
   const [name, setName] = useState("");
@@ -428,71 +429,129 @@ export default function VisionScreen() {
           </Typography>
         </LinearGradient>
 
-        {/* Assets Section */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Typography variant="h3" weight="bold">
+        {/* Tabs Selector */}
+        <View
+          style={{
+            flexDirection: "row",
+            marginBottom: Spacing.m,
+            backgroundColor: colors.surface,
+            borderRadius: BorderRadius.l,
+            padding: 4,
+          }}
+        >
+          <TouchableOpacity
+            style={{
+              flex: 1,
+              paddingVertical: Spacing.s,
+              alignItems: "center",
+              borderRadius: BorderRadius.m,
+              backgroundColor:
+                activeTab === "asset" ? colors.primary : "transparent",
+            }}
+            onPress={() => setActiveTab("asset")}
+          >
+            <Typography
+              variant="body"
+              weight="bold"
+              style={{
+                color: activeTab === "asset" ? "#FFF" : colors.text,
+              }}
+            >
               {STRINGS.vision.assets}
             </Typography>
-            <TouchableOpacity
-              onPress={() => {
-                setSelectedType("asset");
-                setAddModalVisible(true);
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={{
+              flex: 1,
+              paddingVertical: Spacing.s,
+              alignItems: "center",
+              borderRadius: BorderRadius.m,
+              backgroundColor:
+                activeTab === "liability" ? colors.primary : "transparent",
+            }}
+            onPress={() => setActiveTab("liability")}
+          >
+            <Typography
+              variant="body"
+              weight="bold"
+              style={{
+                color: activeTab === "liability" ? "#FFF" : colors.text,
               }}
             >
-              <LinearGradient
-                colors={["#00F260", "#0575E6"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.addButton}
-              >
-                <IconSymbol name="plus" size={20} color="#FFF" />
-              </LinearGradient>
-            </TouchableOpacity>
-          </View>
-          {assets.length === 0 ? (
-            <Typography variant="caption" style={{ fontStyle: "italic" }}>
-              {STRINGS.vision.noAssets}
-            </Typography>
-          ) : (
-            assets.map((item) => (
-              <View key={item.id}>{renderEntityItem({ item })}</View>
-            ))
-          )}
-        </View>
-
-        {/* Liabilities Section */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Typography variant="h3" weight="bold">
               {STRINGS.vision.liabilities}
             </Typography>
-            <TouchableOpacity
-              onPress={() => {
-                setSelectedType("liability");
-                setAddModalVisible(true);
-              }}
-            >
-              <LinearGradient
-                colors={["#FF416C", "#FF4B2B"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.addButton}
-              >
-                <IconSymbol name="plus" size={20} color="#FFF" />
-              </LinearGradient>
-            </TouchableOpacity>
-          </View>
-          {liabilities.length === 0 ? (
-            <Typography variant="caption" style={{ fontStyle: "italic" }}>
-              {STRINGS.vision.noLiabilities}
-            </Typography>
-          ) : (
-            liabilities.map((item) => (
-              <View key={item.id}>{renderEntityItem({ item })}</View>
-            ))
-          )}
+          </TouchableOpacity>
         </View>
+
+        {/* Assets Section */}
+        {activeTab === "asset" && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Typography variant="h3" weight="bold">
+                {STRINGS.vision.assets}
+              </Typography>
+              <TouchableOpacity
+                onPress={() => {
+                  setSelectedType("asset");
+                  setAddModalVisible(true);
+                }}
+              >
+                <LinearGradient
+                  colors={["#00F260", "#0575E6"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.addButton}
+                >
+                  <IconSymbol name="plus" size={20} color="#FFF" />
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+            {assets.length === 0 ? (
+              <Typography variant="caption" style={{ fontStyle: "italic" }}>
+                {STRINGS.vision.noAssets}
+              </Typography>
+            ) : (
+              assets.map((item) => (
+                <View key={item.id}>{renderEntityItem({ item })}</View>
+              ))
+            )}
+          </View>
+        )}
+
+        {/* Liabilities Section */}
+        {activeTab === "liability" && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Typography variant="h3" weight="bold">
+                {STRINGS.vision.liabilities}
+              </Typography>
+              <TouchableOpacity
+                onPress={() => {
+                  setSelectedType("liability");
+                  setAddModalVisible(true);
+                }}
+              >
+                <LinearGradient
+                  colors={["#FF416C", "#FF4B2B"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.addButton}
+                >
+                  <IconSymbol name="plus" size={20} color="#FFF" />
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+            {liabilities.length === 0 ? (
+              <Typography variant="caption" style={{ fontStyle: "italic" }}>
+                {STRINGS.vision.noLiabilities}
+              </Typography>
+            ) : (
+              liabilities.map((item) => (
+                <View key={item.id}>{renderEntityItem({ item })}</View>
+              ))
+            )}
+          </View>
+        )}
       </ScrollView>
 
       {/* Add Entity Modal */}
