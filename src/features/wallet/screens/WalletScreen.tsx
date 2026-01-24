@@ -844,8 +844,8 @@ export default function WalletScreen() {
                           : colors.error,
                     }}
                   >
-                    {selectedTransaction.type === "income" ? "+" : "-"}$
-                    {selectedTransaction.amount.toFixed(2)}
+                    {selectedTransaction.type === "income" ? "+" : "-"}
+                    {formatCurrency(selectedTransaction.amount)}
                   </Typography>
                   <Typography
                     variant="body"
