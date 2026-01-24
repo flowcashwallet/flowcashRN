@@ -402,9 +402,7 @@ export default function VisionScreen() {
   };
 
   return (
-    <ThemedView
-      style={[styles.container, { paddingTop: insets.top + Spacing.m }]}
-    >
+    <ThemedView style={[styles.container, { paddingTop: Spacing.s }]}>
       <ScrollView
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -414,7 +412,7 @@ export default function VisionScreen() {
       >
         {/* Header - Vivid Gradient Card */}
         <LinearGradient
-          colors={["#8E2DE2", "#4A00E0"]} // Vivid Purple to Blue
+          colors={[...colors.gradients.primary]} // Primary Gradient
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.headerCard}
@@ -923,7 +921,7 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.xl,
     alignItems: "center",
     marginBottom: Spacing.l,
-    shadowColor: "#8E2DE2",
+    shadowColor: Colors.light.primary,
     shadowOffset: {
       width: 0,
       height: 4,

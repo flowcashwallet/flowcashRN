@@ -23,7 +23,7 @@ export default function TabLayout() {
         tabBarButton: HapticTab,
         headerBackground: () => (
           <LinearGradient
-            colors={["#8E2DE2", "#4A00E0"]}
+            colors={[...colors.gradients.primary]}
             style={StyleSheet.absoluteFill}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
@@ -35,7 +35,7 @@ export default function TabLayout() {
         },
         tabBarBackground: () => (
           <LinearGradient
-            colors={["#8E2DE2", "#4A00E0"]}
+            colors={[...colors.gradients.primary]}
             style={StyleSheet.absoluteFill}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
@@ -51,7 +51,7 @@ export default function TabLayout() {
           paddingBottom: 0, // Remove default padding for icon centering
           borderTopWidth: 0,
           elevation: 10,
-          shadowColor: "#4A00E0",
+          shadowColor: colors.primary,
           shadowOffset: { width: 0, height: 4 },
           shadowOpacity: 0.3,
           shadowRadius: 8,

@@ -176,7 +176,7 @@ function BudgetSetupWizard() {
           contentContainerStyle={{ padding: Spacing.m, paddingBottom: 100 }}
         >
           <LinearGradient
-            colors={["#8E2DE2", "#4A00E0"]}
+            colors={[...colors.gradients.primary]}
             style={styles.headerGradient}
           >
             <Typography variant="h2" weight="bold" style={{ color: "#FFF" }}>
@@ -579,7 +579,7 @@ function BudgetDashboard() {
     {
       value: Math.max(0, monthlyIncome - totalActualExpense),
       label: "Restante",
-      frontColor: "#4A00E0",
+      frontColor: colors.primary,
       topLabelComponent: () => (
         <Typography
           variant="caption"
@@ -601,7 +601,7 @@ function BudgetDashboard() {
       contentContainerStyle={{ padding: Spacing.m, paddingBottom: 100 }}
     >
       <LinearGradient
-        colors={["#8E2DE2", "#4A00E0"]}
+        colors={[...colors.gradients.primary]}
         style={styles.headerGradient}
       >
         <Typography variant="h2" weight="bold" style={{ color: "#FFF" }}>

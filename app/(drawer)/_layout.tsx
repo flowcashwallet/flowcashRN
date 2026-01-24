@@ -40,7 +40,7 @@ function CustomDrawerContent(props: any) {
         contentContainerStyle={{ paddingTop: 0 }}
       >
         <LinearGradient
-          colors={["#8E2DE2", "#4A00E0"]}
+          colors={[...colors.gradients.primary]}
           style={[styles.userInfoSection, { paddingTop: insets.top + 20 }]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
@@ -95,8 +95,8 @@ export default function DrawerLayout() {
       drawerContent={(props) => <CustomDrawerContent {...props} />}
       screenOptions={{
         headerShown: false,
-        drawerActiveTintColor: "#4A00E0",
-        drawerActiveBackgroundColor: "#F0E6FF",
+        drawerActiveTintColor: colors.primary,
+        drawerActiveBackgroundColor: "#E6F0FF",
         drawerInactiveTintColor: colors.text,
         drawerLabelStyle: {
           fontWeight: "600",
