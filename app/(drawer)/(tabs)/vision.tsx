@@ -38,6 +38,7 @@ import {
   View,
 } from "react-native";
 import Swipeable from "react-native-gesture-handler/Swipeable";
+import { PieChart } from "react-native-gifted-charts";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useDispatch, useSelector } from "react-redux";
 
@@ -115,6 +116,10 @@ export default function VisionScreen() {
     0,
   );
   const netWorth = totalAssets - totalLiabilities;
+  const pieData = [
+    { value: totalAssets || 1, color: "#00F260" }, // Success Green
+    { value: totalLiabilities || 0, color: "#FF416C" }, // Error Red
+  ];
 
   const fetchPriceForSymbol = async (symbol: string) => {
     const coinIdMap: Record<string, string> = {
@@ -402,16 +407,16 @@ export default function VisionScreen() {
           activeOpacity={0.7}
           style={{
             borderRadius: BorderRadius.l,
-            backgroundColor: colors.surface,
+            backgroundColor: "#1A1D3D", // Dark card background
             ...Platform.select({
               ios: {
                 shadowColor: "#000",
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.05,
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.3,
                 shadowRadius: 8,
               },
               android: {
-                elevation: 2,
+                elevation: 4,
               },
             }),
           }}
@@ -419,69 +424,81 @@ export default function VisionScreen() {
           <View
             style={{
               flexDirection: "row",
+              alignItems: "center",
+              padding: Spacing.m,
               overflow: "hidden",
               borderRadius: BorderRadius.l,
             }}
           >
-            {/* Side Indicator */}
-            <View style={{ width: 6, backgroundColor: indicatorColor }} />
-
-            <View style={{ flex: 1, padding: Spacing.m }}>
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
-                <View>
-                  <Typography variant="body" weight="bold">
-                    {item.name}
-                  </Typography>
-                  {item.category && (
-                    <Typography
-                      variant="caption"
-                      style={{ color: colors.text, opacity: 0.6, marginTop: 2 }}
-                    >
-                      {item.category}
-                    </Typography>
-                  )}
-                  {item.isCrypto && item.cryptoAmount && item.cryptoSymbol ? (
-                    <Typography
-                      variant="caption"
-                      style={{
-                        color: colors.primary,
-                        fontWeight: "600",
-                        marginTop: 2,
-                      }}
-                    >
-                      {item.cryptoAmount} {item.cryptoSymbol}
-                    </Typography>
-                  ) : null}
-                </View>
-
-                <View style={{ alignItems: "flex-end" }}>
-                  <Typography
-                    variant="body"
-                    weight="bold"
-                    style={{ color: indicatorColor }}
-                  >
-                    {formatCurrency(
-                      item.type === "liability" ? -item.amount : item.amount,
-                    )}
-                  </Typography>
-                  {item.description ? (
-                    <Typography
-                      variant="caption"
-                      style={{ color: colors.icon, maxWidth: 120 }}
-                      numberOfLines={1}
-                    >
-                      {item.description}
-                    </Typography>
-                  ) : null}
-                </View>
-              </View>
+            {/* Icon */}
+            <View
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                backgroundColor: isAsset
+                  ? "rgba(0, 242, 96, 0.1)"
+                  : "rgba(255, 65, 108, 0.1)",
+                justifyContent: "center",
+                alignItems: "center",
+                marginRight: Spacing.m,
+              }}
+            >
+              <IconSymbol
+                name={isAsset ? "building.columns.fill" : "creditcard.fill"}
+                size={20}
+                color={indicatorColor}
+              />
             </View>
+
+            {/* Content */}
+            <View style={{ flex: 1 }}>
+              <Typography
+                variant="body"
+                weight="bold"
+                style={{ color: "#FFF" }}
+              >
+                {item.name}
+              </Typography>
+              {item.category && (
+                <Typography
+                  variant="caption"
+                  style={{ color: "#A0A0A0", marginTop: 2 }}
+                >
+                  {item.category}
+                </Typography>
+              )}
+            </View>
+
+            {/* Amount */}
+            <View style={{ alignItems: "flex-end", marginRight: Spacing.s }}>
+              <Typography
+                variant="body"
+                weight="bold"
+                style={{ color: "#FFF" }}
+              >
+                {formatCurrency(item.amount)}
+              </Typography>
+              {item.description ? (
+                <Typography
+                  variant="caption"
+                  style={{ color: "#A0A0A0", maxWidth: 100 }}
+                  numberOfLines={1}
+                >
+                  {item.description}
+                </Typography>
+              ) : null}
+            </View>
+
+            {/* Right Edge Indicator */}
+            <View
+              style={{
+                width: 4,
+                height: 24,
+                backgroundColor: indicatorColor,
+                borderRadius: 2,
+              }}
+            />
           </View>
         </TouchableOpacity>
       </Swipeable>
@@ -493,7 +510,12 @@ export default function VisionScreen() {
   };
 
   return (
-    <ThemedView style={[styles.container, { paddingTop: Spacing.s }]}>
+    <ThemedView
+      style={[
+        styles.container,
+        { paddingTop: Spacing.s, backgroundColor: "#0B0D17" },
+      ]}
+    >
       <ScrollView
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -501,30 +523,60 @@ export default function VisionScreen() {
         contentContainerStyle={{ paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header - Vivid Gradient Card */}
-        <LinearGradient
-          colors={[...colors.gradients.primary]} // Primary Gradient
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.headerCard}
+        {/* Header - Dark Glassy Dashboard */}
+        <View
+          style={{
+            backgroundColor: "#101223",
+            marginHorizontal: Spacing.m,
+            marginBottom: Spacing.m,
+            borderRadius: BorderRadius.xl,
+            padding: Spacing.l,
+            alignItems: "center",
+            ...Platform.select({
+              ios: {
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 10 },
+                shadowOpacity: 0.3,
+                shadowRadius: 20,
+              },
+              android: { elevation: 10 },
+            }),
+          }}
         >
-          <View style={{ alignItems: "center", marginBottom: Spacing.m }}>
-            <Typography
-              variant="h3"
-              style={{
-                color: "rgba(255,255,255,0.8)",
-                marginBottom: Spacing.xs,
+          <Typography
+            variant="h3"
+            style={{ color: "#A0A0A0", marginBottom: Spacing.xs }}
+          >
+            {STRINGS.vision.netWorth}
+          </Typography>
+          <Typography
+            variant="h1"
+            weight="bold"
+            style={{ color: "#FFF", fontSize: 32, marginBottom: Spacing.l }}
+          >
+            {formatCurrency(netWorth)}
+          </Typography>
+
+          <View style={{ alignItems: "center", marginBottom: Spacing.l }}>
+            <PieChart
+              data={pieData}
+              donut
+              radius={80}
+              innerRadius={60}
+              innerCircleColor="#101223"
+              centerLabelComponent={() => {
+                return (
+                  <View style={{ alignItems: "center" }}>
+                    <Typography
+                      variant="caption"
+                      style={{ color: "#A0A0A0", fontSize: 10 }}
+                    >
+                      Balance
+                    </Typography>
+                  </View>
+                );
               }}
-            >
-              {STRINGS.vision.netWorth}
-            </Typography>
-            <Typography
-              variant="h1"
-              weight="bold"
-              style={{ color: "#FFF", fontSize: 36 }}
-            >
-              {formatCurrency(netWorth)}
-            </Typography>
+            />
           </View>
 
           <View
@@ -532,68 +584,70 @@ export default function VisionScreen() {
               flexDirection: "row",
               justifyContent: "space-between",
               width: "100%",
-              paddingTop: Spacing.s,
+              paddingTop: Spacing.m,
               borderTopWidth: 1,
-              borderTopColor: "rgba(255,255,255,0.2)",
+              borderTopColor: "rgba(255,255,255,0.1)",
             }}
           >
-            <View style={{ alignItems: "center", flex: 1 }}>
-              <Typography
-                variant="caption"
-                style={{ color: "rgba(255,255,255,0.8)" }}
-              >
-                {STRINGS.vision.assets}
-              </Typography>
-              <Typography
-                variant="body"
-                weight="bold"
-                style={{ color: "#FFF" }}
-              >
-                ↑ {formatCurrency(totalAssets)}
-              </Typography>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <View
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: 4,
+                  backgroundColor: "#00F260",
+                  marginRight: 8,
+                }}
+              />
+              <View>
+                <Typography variant="caption" style={{ color: "#A0A0A0" }}>
+                  {STRINGS.vision.assets}
+                </Typography>
+                <Typography
+                  variant="body"
+                  weight="bold"
+                  style={{ color: "#FFF" }}
+                >
+                  {formatCurrency(totalAssets)}
+                </Typography>
+              </View>
             </View>
-            <View
-              style={{
-                width: 1,
-                height: "100%",
-                backgroundColor: "rgba(255,255,255,0.2)",
-              }}
-            />
-            <View style={{ alignItems: "center", flex: 1 }}>
-              <Typography
-                variant="caption"
-                style={{ color: "rgba(255,255,255,0.8)" }}
-              >
-                {STRINGS.vision.liabilities}
-              </Typography>
-              <Typography
-                variant="body"
-                weight="bold"
-                style={{ color: "#FFF" }}
-              >
-                ↓ {formatCurrency(totalLiabilities)}
-              </Typography>
+
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <View
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: 4,
+                  backgroundColor: "#FF416C",
+                  marginRight: 8,
+                }}
+              />
+              <View>
+                <Typography variant="caption" style={{ color: "#A0A0A0" }}>
+                  {STRINGS.vision.liabilities}
+                </Typography>
+                <Typography
+                  variant="body"
+                  weight="bold"
+                  style={{ color: "#FFF" }}
+                >
+                  {formatCurrency(totalLiabilities)}
+                </Typography>
+              </View>
             </View>
           </View>
-        </LinearGradient>
+        </View>
 
-        {/* Tabs Selector */}
+        {/* Tabs Selector - Clean Pills */}
         <View
           style={{
             flexDirection: "row",
             marginBottom: Spacing.m,
-            backgroundColor: colors.surface,
-            borderRadius: BorderRadius.xl,
+            marginHorizontal: Spacing.m,
+            backgroundColor: "#1A1D3D",
+            borderRadius: BorderRadius.l,
             padding: 4,
-            ...Platform.select({
-              ios: {
-                shadowColor: "#000",
-                shadowOpacity: 0.05,
-                shadowRadius: 4,
-                shadowOffset: { width: 0, height: 2 },
-              },
-              android: { elevation: 2 },
-            }),
           }}
         >
           <TouchableOpacity
@@ -601,9 +655,9 @@ export default function VisionScreen() {
               flex: 1,
               paddingVertical: Spacing.s,
               alignItems: "center",
-              borderRadius: BorderRadius.l,
+              borderRadius: BorderRadius.m,
               backgroundColor:
-                activeTab === "asset" ? colors.primary : "transparent",
+                activeTab === "asset" ? "#2D3456" : "transparent",
             }}
             onPress={() => setActiveTab("asset")}
           >
@@ -611,7 +665,7 @@ export default function VisionScreen() {
               variant="body"
               weight="bold"
               style={{
-                color: activeTab === "asset" ? "#FFF" : colors.text,
+                color: activeTab === "asset" ? "#FFF" : "#A0A0A0",
               }}
             >
               {STRINGS.vision.assets}
@@ -623,9 +677,9 @@ export default function VisionScreen() {
               flex: 1,
               paddingVertical: Spacing.s,
               alignItems: "center",
-              borderRadius: BorderRadius.l,
+              borderRadius: BorderRadius.m,
               backgroundColor:
-                activeTab === "liability" ? colors.primary : "transparent",
+                activeTab === "liability" ? "#2D3456" : "transparent",
             }}
             onPress={() => setActiveTab("liability")}
           >
@@ -633,7 +687,7 @@ export default function VisionScreen() {
               variant="body"
               weight="bold"
               style={{
-                color: activeTab === "liability" ? "#FFF" : colors.text,
+                color: activeTab === "liability" ? "#FFF" : "#A0A0A0",
               }}
             >
               {STRINGS.vision.liabilities}
@@ -645,7 +699,7 @@ export default function VisionScreen() {
         {activeTab === "asset" && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Typography variant="h3" weight="bold">
+              <Typography variant="h3" weight="bold" style={{ color: "#FFF" }}>
                 {STRINGS.vision.assets}
               </Typography>
               <TouchableOpacity
@@ -666,7 +720,10 @@ export default function VisionScreen() {
               </TouchableOpacity>
             </View>
             {assets.length === 0 ? (
-              <Typography variant="caption" style={{ fontStyle: "italic" }}>
+              <Typography
+                variant="caption"
+                style={{ fontStyle: "italic", color: "#A0A0A0" }}
+              >
                 {STRINGS.vision.noAssets}
               </Typography>
             ) : (
@@ -681,7 +738,7 @@ export default function VisionScreen() {
         {activeTab === "liability" && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Typography variant="h3" weight="bold">
+              <Typography variant="h3" weight="bold" style={{ color: "#FFF" }}>
                 {STRINGS.vision.liabilities}
               </Typography>
               <TouchableOpacity
@@ -702,7 +759,10 @@ export default function VisionScreen() {
               </TouchableOpacity>
             </View>
             {liabilities.length === 0 ? (
-              <Typography variant="caption" style={{ fontStyle: "italic" }}>
+              <Typography
+                variant="caption"
+                style={{ fontStyle: "italic", color: "#A0A0A0" }}
+              >
                 {STRINGS.vision.noLiabilities}
               </Typography>
             ) : (
