@@ -74,6 +74,43 @@ export default function BudgetScreen() {
 
 const CATEGORIES = STRINGS.wallet.categories;
 
+// Helper to format amount input with commas
+const formatAmountInput = (text: string) => {
+  // Remove existing commas to get raw input
+  let rawText = text.replace(/,/g, "");
+
+  // Allow empty string
+  if (rawText === "") return "";
+
+  // Remove non-numeric chars except dot
+  rawText = rawText.replace(/[^0-9.]/g, "");
+
+  // Handle multiple dots: keep only the first one
+  const dots = rawText.match(/\./g) || [];
+  if (dots.length > 1) {
+    const firstDotIndex = rawText.indexOf(".");
+    rawText =
+      rawText.slice(0, firstDotIndex + 1) +
+      rawText.slice(firstDotIndex + 1).replace(/\./g, "");
+  }
+
+  // Split into integer and decimal parts
+  const parts = rawText.split(".");
+  // Format integer part with commas
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  // Limit decimal places to 2
+  if (parts.length > 1) {
+    parts[1] = parts[1].slice(0, 2);
+  }
+
+  return parts.join(".");
+};
+
+// Helper to get raw number from formatted string
+const getRawAmount = (formattedText: string) => {
+  return parseFloat(formattedText.replace(/,/g, ""));
+};
+
 function BudgetSetupWizard() {
   const dispatch = useDispatch<AppDispatch>();
   const { user } = useSelector((state: RootState) => state.auth);
@@ -98,7 +135,7 @@ function BudgetSetupWizard() {
     const newExpense: FixedExpense = {
       id: Date.now().toString(),
       name: expenseName,
-      amount: parseFloat(expenseAmount),
+      amount: getRawAmount(expenseAmount),
       category: expenseCategory,
     };
     setExpenses([...expenses, newExpense]);
@@ -117,7 +154,7 @@ function BudgetSetupWizard() {
       await dispatch(
         saveBudgetConfig({
           userId: user.uid,
-          monthlyIncome: parseFloat(income),
+          monthlyIncome: getRawAmount(income),
           fixedExpenses: expenses,
         }),
       ).unwrap();
@@ -162,10 +199,10 @@ function BudgetSetupWizard() {
               </Typography>
               <Input
                 label="Ingreso Mensual"
-                placeholder="Ej. 2500.00"
+                placeholder="Ej. 2,500.00"
                 keyboardType="numeric"
                 value={income}
-                onChangeText={setIncome}
+                onChangeText={(text) => setIncome(formatAmountInput(text))}
               />
               <Button
                 title="Siguiente"
@@ -292,7 +329,7 @@ function BudgetSetupWizard() {
                   placeholder="0.00"
                   keyboardType="numeric"
                   value={expenseAmount}
-                  onChangeText={setExpenseAmount}
+                  onChangeText={(text) => setExpenseAmount(formatAmountInput(text))}
                 />
                 <Button
                   title="Agregar Gasto"
@@ -380,7 +417,7 @@ function BudgetSetupWizard() {
                   weight="bold"
                   style={{ color: colors.success }}
                 >
-                  {formatCurrency(parseFloat(income))}
+                  {formatCurrency(getRawAmount(income))}
                 </Typography>
               </Card>
 
@@ -506,7 +543,15 @@ function BudgetDashboard() {
       label: "Ingreso",
       frontColor: colors.success,
       topLabelComponent: () => (
-        <Typography variant="caption" style={{ fontSize: 10, width: 80, textAlign: 'center', marginBottom: 6 }}>
+        <Typography
+          variant="caption"
+          style={{
+            fontSize: 10,
+            width: 80,
+            textAlign: "center",
+            marginBottom: 6,
+          }}
+        >
           {formatCurrency(monthlyIncome)}
         </Typography>
       ),
@@ -516,7 +561,15 @@ function BudgetDashboard() {
       label: "Gasto",
       frontColor: colors.error,
       topLabelComponent: () => (
-        <Typography variant="caption" style={{ fontSize: 10, width: 80, textAlign: 'center', marginBottom: 6 }}>
+        <Typography
+          variant="caption"
+          style={{
+            fontSize: 10,
+            width: 80,
+            textAlign: "center",
+            marginBottom: 6,
+          }}
+        >
           {formatCurrency(totalActualExpense)}
         </Typography>
       ),
@@ -526,7 +579,15 @@ function BudgetDashboard() {
       label: "Restante",
       frontColor: "#4A00E0",
       topLabelComponent: () => (
-        <Typography variant="caption" style={{ fontSize: 10, width: 80, textAlign: 'center', marginBottom: 6 }}>
+        <Typography
+          variant="caption"
+          style={{
+            fontSize: 10,
+            width: 80,
+            textAlign: "center",
+            marginBottom: 6,
+          }}
+        >
           {formatCurrency(Math.max(0, monthlyIncome - totalActualExpense))}
         </Typography>
       ),
@@ -618,7 +679,7 @@ function BudgetDashboard() {
         >
           Resumen Mensual (Real vs Presupuesto)
         </Typography>
-        <View style={{ alignItems: 'center' }}>
+        <View style={{ alignItems: "center" }}>
           <BarChart
             data={barData}
             barWidth={50}
