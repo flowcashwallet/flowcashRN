@@ -10,7 +10,6 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import STRINGS from "@/i18n/es.json";
 import { auth, db } from "@/services/firebaseConfig";
 import { AppDispatch, RootState } from "@/store/store";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
@@ -148,16 +147,11 @@ export default function RegisterScreen() {
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <Card variant="flat" style={styles.card}>
             <View style={styles.header}>
-              <LinearGradient
-                colors={
-                  colors.gradients.primary as unknown as readonly [
-                    string,
-                    string,
-                  ]
-                }
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.logoPlaceholder}
+              <View
+                style={[
+                  styles.logoPlaceholder,
+                  { backgroundColor: colors.primary }, // Solid primary color
+                ]}
               >
                 <Typography
                   variant="h2"
@@ -166,7 +160,7 @@ export default function RegisterScreen() {
                 >
                   +
                 </Typography>
-              </LinearGradient>
+              </View>
 
               <Typography
                 variant="h1"

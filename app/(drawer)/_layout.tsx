@@ -5,11 +5,10 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { auth } from "@/services/firebaseConfig";
 import { RootState } from "@/store/store";
 import {
-    DrawerContentScrollView,
-    DrawerItem,
-    DrawerItemList,
+  DrawerContentScrollView,
+  DrawerItem,
+  DrawerItemList,
 } from "@react-navigation/drawer";
-import { LinearGradient } from "expo-linear-gradient";
 import { Drawer } from "expo-router/drawer";
 import { signOut } from "firebase/auth";
 import React from "react";
@@ -39,22 +38,29 @@ function CustomDrawerContent(props: any) {
         {...props}
         contentContainerStyle={{ paddingTop: 0 }}
       >
-        <LinearGradient
-          colors={[...colors.gradients.primary]}
-          style={[styles.userInfoSection, { paddingTop: insets.top + 20 }]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
+        <View
+          style={[
+            styles.userInfoSection,
+            {
+              paddingTop: insets.top + 20,
+              backgroundColor: colors.surfaceHighlight, // Solid dark header
+            },
+          ]}
         >
           <View style={styles.userIcon}>
-            <IconSymbol name="person.circle.fill" size={60} color="#FFF" />
+            <IconSymbol
+              name="person.circle.fill"
+              size={60}
+              color={colors.primary}
+            />
           </View>
-          <Text style={[styles.userName, { color: "#FFF" }]}>
+          <Text style={[styles.userName, { color: colors.text }]}>
             {user?.email || "Usuario"}
           </Text>
-          <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 12 }}>
+          <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
             Bienvenido de nuevo
           </Text>
-        </LinearGradient>
+        </View>
 
         <View style={{ paddingVertical: 10 }}>
           <DrawerItemList {...props} />
@@ -96,7 +102,7 @@ export default function DrawerLayout() {
       screenOptions={{
         headerShown: false,
         drawerActiveTintColor: colors.primary,
-        drawerActiveBackgroundColor: "#E6F0FF",
+        drawerActiveBackgroundColor: colors.surfaceActive, // Dark active state
         drawerInactiveTintColor: colors.text,
         drawerLabelStyle: {
           fontWeight: "600",

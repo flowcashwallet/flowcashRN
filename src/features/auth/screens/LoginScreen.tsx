@@ -1,12 +1,11 @@
 import { auth } from "@/services/firebaseConfig";
 import { AppDispatch, RootState } from "@/store/store";
 import * as Google from "expo-auth-session/providers/google";
-import { LinearGradient } from "expo-linear-gradient";
 import * as WebBrowser from "expo-web-browser";
 import {
   GoogleAuthProvider,
   signInWithCredential,
-  signInWithEmailAndPassword
+  signInWithEmailAndPassword,
 } from "firebase/auth";
 import React, { useEffect, useState } from "react";
 import {
@@ -129,19 +128,14 @@ export default function LoginScreen() {
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <Card variant="flat" style={styles.card}>
             <View style={styles.header}>
-              <LinearGradient
-                colors={
-                  colors.gradients.primary as unknown as readonly [
-                    string,
-                    string,
-                  ]
-                }
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.logoPlaceholder}
+              <View
+                style={[
+                  styles.logoPlaceholder,
+                  { backgroundColor: colors.primary }, // Solid primary color
+                ]}
               >
                 <IconSymbol name="wallet.pass" size={40} color="#fff" />
-              </LinearGradient>
+              </View>
 
               <Typography
                 variant="h1"

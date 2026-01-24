@@ -1,6 +1,5 @@
 import { BorderRadius, Colors, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import {
   ActivityIndicator,
@@ -111,23 +110,16 @@ export function Button({
         onPress={onPress}
         disabled={disabled || loading}
         activeOpacity={0.8}
-        style={[style, { borderRadius: BorderRadius.m }]} // Apply outer style/radius
+        style={[
+          styles.container,
+          { backgroundColor: colors.primary }, // Solid primary color (Light Blue)
+          size === "small" && styles.small,
+          size === "medium" && styles.medium,
+          size === "large" && styles.large,
+          style,
+        ]}
       >
-        <LinearGradient
-          colors={
-            colors.gradients.primary as unknown as readonly [string, string]
-          }
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={[
-            styles.container,
-            size === "small" && styles.small,
-            size === "medium" && styles.medium,
-            size === "large" && styles.large,
-          ]}
-        >
-          <Content />
-        </LinearGradient>
+        <Content />
       </TouchableOpacity>
     );
   }

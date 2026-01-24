@@ -4,10 +4,9 @@ import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import STRINGS from "@/i18n/es.json";
 import { DrawerActions } from "@react-navigation/native";
-import { LinearGradient } from "expo-linear-gradient";
 import { Tabs, useNavigation } from "expo-router";
 import React from "react";
-import { StyleSheet, TouchableOpacity } from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -17,28 +16,28 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: "#FFF",
-        tabBarInactiveTintColor: "rgba(255,255,255,0.6)",
+        tabBarActiveTintColor: colors.primary, // Use theme primary (Light Blue in Dark Mode)
+        tabBarInactiveTintColor: colors.textSecondary,
         headerShown: true,
         tabBarButton: HapticTab,
         headerBackground: () => (
-          <LinearGradient
-            colors={[...colors.gradients.primary]}
-            style={StyleSheet.absoluteFill}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
+          <View
+            style={[
+              StyleSheet.absoluteFill,
+              { backgroundColor: colors.surfaceHighlight }, // Solid dark header
+            ]}
           />
         ),
-        headerTintColor: "#FFF",
+        headerTintColor: colors.text,
         headerTitleStyle: {
           fontWeight: "bold",
         },
         tabBarBackground: () => (
-          <LinearGradient
-            colors={[...colors.gradients.primary]}
-            style={StyleSheet.absoluteFill}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
+          <View
+            style={[
+              StyleSheet.absoluteFill,
+              { backgroundColor: colors.surfaceHighlight || colors.surface }, // Solid dark tab bar
+            ]}
           />
         ),
         tabBarStyle: {
@@ -46,26 +45,30 @@ export default function TabLayout() {
           bottom: 0,
           left: 16,
           right: 16,
-          borderRadius: 15,
+          borderRadius: 20,
           height: 80,
-          paddingBottom: 0, // Remove default padding for icon centering
+          paddingBottom: 0,
           borderTopWidth: 0,
-          elevation: 10,
-          shadowColor: colors.primary,
+          backgroundColor: colors.surfaceHighlight || colors.surface, // Ensure background is set
+          elevation: 0, // Flat design
+          shadowColor: "#000",
           shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.3,
-          shadowRadius: 8,
-          overflow: "hidden", // Clip the gradient to border radius
+          shadowOpacity: 0.2,
+          shadowRadius: 10,
         },
         tabBarItemStyle: {
-          paddingVertical: 8,
+          paddingVertical: 10,
         },
         headerLeft: () => (
           <TouchableOpacity
             onPress={() => navigation.dispatch(DrawerActions.toggleDrawer())}
             style={{ marginLeft: 16 }}
           >
-            <IconSymbol name="line.3.horizontal" size={24} color="#FFF" />
+            <IconSymbol
+              name="line.3.horizontal"
+              size={24}
+              color={colors.text}
+            />
           </TouchableOpacity>
         ),
       }}
