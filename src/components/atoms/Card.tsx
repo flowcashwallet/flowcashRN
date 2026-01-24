@@ -46,10 +46,10 @@ const styles = StyleSheet.create({
     padding: Spacing.m,
   },
   elevated: {
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
     shadowRadius: 8,
-    elevation: 3,
+    elevation: 4,
   },
   outlined: {
     borderWidth: 1,

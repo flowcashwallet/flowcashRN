@@ -3,7 +3,6 @@ import {
   updateVisionEntity,
 } from "@/features/vision/visionSlice";
 import { AppDispatch, RootState } from "@/store/store";
-import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
 import {
   Alert,
@@ -390,15 +389,23 @@ export default function WalletScreen() {
         }
       >
         {/* Header / Balance Card */}
-        <LinearGradient
-          colors={
-            colors.gradients.primary as unknown as readonly [string, string]
-          }
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
+        <View
           style={[
             styles.balanceCard,
-            { padding: Spacing.l, borderRadius: BorderRadius.xl },
+            {
+              padding: Spacing.l,
+              borderRadius: BorderRadius.xl,
+              backgroundColor: colors.surfaceHighlight,
+              ...Platform.select({
+                ios: {
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 10 },
+                  shadowOpacity: 0.3,
+                  shadowRadius: 20,
+                },
+                android: { elevation: 10 },
+              }),
+            },
           ]}
         >
           <View
@@ -413,7 +420,7 @@ export default function WalletScreen() {
             <Typography
               variant="h3"
               weight="bold"
-              style={{ color: "rgba(255,255,255,0.9)" }}
+              style={{ color: colors.textSecondary }}
             >
               {currentMonthName}
             </Typography>
@@ -421,20 +428,17 @@ export default function WalletScreen() {
               <IconSymbol
                 name="trash.fill"
                 size={24}
-                color="rgba(255,255,255,0.7)"
+                color={colors.textSecondary}
               />
             </TouchableOpacity>
           </View>
-          <Typography
-            variant="caption"
-            style={{ color: "rgba(255,255,255,0.7)" }}
-          >
+          <Typography variant="caption" style={{ color: colors.textSecondary }}>
             {STRINGS.wallet.balanceTotal}
           </Typography>
           <Typography
             variant="h1"
             weight="bold"
-            style={{ color: "#FFF", marginTop: Spacing.xs }}
+            style={{ color: colors.text, marginTop: Spacing.xs }}
           >
             {formatCurrency(balance)}
           </Typography>
@@ -449,14 +453,14 @@ export default function WalletScreen() {
                 <Typography
                   variant="caption"
                   weight="medium"
-                  style={{ color: "#FFF" }}
+                  style={{ color: colors.textSecondary }}
                 >
                   {STRINGS.wallet.summary}
                 </Typography>
               )}
             />
           </View>
-        </LinearGradient>
+        </View>
 
         {/* Quick Actions */}
         <View style={styles.actions}>
@@ -473,36 +477,33 @@ export default function WalletScreen() {
             style={{ flex: 1, marginRight: Spacing.s }}
             activeOpacity={0.8}
           >
-            <LinearGradient
-              colors={
-                colors.gradients.success as unknown as readonly [string, string]
-              }
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
+            <View
               style={{
+                backgroundColor: "rgba(0, 242, 96, 0.1)",
+                borderColor: colors.success,
+                borderWidth: 1,
                 paddingVertical: Spacing.m,
                 alignItems: "center",
                 borderRadius: BorderRadius.m,
-                shadowColor: "#00F260",
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.3,
-                shadowRadius: 4,
-                elevation: 4,
               }}
             >
               <View
                 style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
               >
-                <IconSymbol name="arrow.down.left" size={20} color="#FFF" />
+                <IconSymbol
+                  name="arrow.down.left"
+                  size={20}
+                  color={colors.success}
+                />
                 <Typography
                   variant="body"
                   weight="bold"
-                  style={{ color: "#FFF" }}
+                  style={{ color: colors.success }}
                 >
                   {STRINGS.wallet.income}
                 </Typography>
               </View>
-            </LinearGradient>
+            </View>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -518,36 +519,33 @@ export default function WalletScreen() {
             style={{ flex: 1, marginLeft: Spacing.s }}
             activeOpacity={0.8}
           >
-            <LinearGradient
-              colors={
-                colors.gradients.error as unknown as readonly [string, string]
-              }
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
+            <View
               style={{
+                backgroundColor: "rgba(255, 65, 108, 0.1)",
+                borderColor: colors.error,
+                borderWidth: 1,
                 paddingVertical: Spacing.m,
                 alignItems: "center",
                 borderRadius: BorderRadius.m,
-                shadowColor: "#FF416C",
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.3,
-                shadowRadius: 4,
-                elevation: 4,
               }}
             >
               <View
                 style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
               >
-                <IconSymbol name="arrow.up.right" size={20} color="#FFF" />
+                <IconSymbol
+                  name="arrow.up.right"
+                  size={20}
+                  color={colors.error}
+                />
                 <Typography
                   variant="body"
                   weight="bold"
-                  style={{ color: "#FFF" }}
+                  style={{ color: colors.error }}
                 >
                   {STRINGS.wallet.expense}
                 </Typography>
               </View>
-            </LinearGradient>
+            </View>
           </TouchableOpacity>
         </View>
 

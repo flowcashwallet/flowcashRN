@@ -17,7 +17,6 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import STRINGS from "@/i18n/es.json";
 import { AppDispatch, RootState } from "@/store/store";
 import { formatCurrency } from "@/utils/format";
-import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -175,21 +174,27 @@ function BudgetSetupWizard() {
         <ScrollView
           contentContainerStyle={{ padding: Spacing.m, paddingBottom: 100 }}
         >
-          <LinearGradient
-            colors={[...colors.gradients.primary]}
-            style={styles.headerGradient}
+          <View
+            style={[
+              styles.headerGradient,
+              { backgroundColor: colors.surfaceHighlight },
+            ]}
           >
-            <Typography variant="h2" weight="bold" style={{ color: "#FFF" }}>
+            <Typography
+              variant="h2"
+              weight="bold"
+              style={{ color: colors.text }}
+            >
               {step === 1
                 ? "Configura tu Presupuesto"
                 : step === 2
                   ? "Gastos Fijos"
                   : "Resumen"}
             </Typography>
-            <Typography style={{ color: "rgba(255,255,255,0.8)" }}>
+            <Typography style={{ color: colors.textSecondary }}>
               Paso {step} de 3
             </Typography>
-          </LinearGradient>
+          </View>
 
           {step === 1 && (
             <View style={styles.stepContainer}>
@@ -600,17 +605,19 @@ function BudgetDashboard() {
     <ScrollView
       contentContainerStyle={{ padding: Spacing.m, paddingBottom: 100 }}
     >
-      <LinearGradient
-        colors={[...colors.gradients.primary]}
-        style={styles.headerGradient}
+      <View
+        style={[
+          styles.headerGradient,
+          { backgroundColor: colors.surfaceHighlight },
+        ]}
       >
-        <Typography variant="h2" weight="bold" style={{ color: "#FFF" }}>
+        <Typography variant="h2" weight="bold" style={{ color: colors.text }}>
           Tu Presupuesto
         </Typography>
-        <Typography style={{ color: "rgba(255,255,255,0.8)" }}>
+        <Typography style={{ color: colors.textSecondary }}>
           {STRINGS.wallet.months[currentMonth]} {currentYear}
         </Typography>
-      </LinearGradient>
+      </View>
 
       <Card style={{ marginBottom: Spacing.l, paddingVertical: Spacing.l }}>
         <Typography

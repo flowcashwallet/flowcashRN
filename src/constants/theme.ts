@@ -9,13 +9,16 @@ const palette = {
   secondary: "#007AFF", // Bright Blue
   accent: "#4CC9F0", // Light Blue/Cyan
   backgroundLight: "#F0F4F8", // Very Light Blueish Grey
-  backgroundDark: "#0A1929", // Very Dark Blue
+  backgroundDark: "#0B0D17", // Deep Dark Blue (New Vision)
   surfaceLight: "#FFFFFF",
-  surfaceDark: "#132F4C", // Dark Blue Surface
+  surfaceDark: "#1A1D3D", // Dark Card (New Vision)
+  surfaceDarkHighlight: "#101223", // Header Card (New Vision)
+  surfaceDarkActive: "#2D3456", // Active Tab (New Vision)
   textLight: "#172B4D",
-  textDark: "#E3F2FD",
-  success: "#36B37E",
-  error: "#FF5630",
+  textDark: "#FFFFFF",
+  textGrey: "#A0A0A0",
+  success: "#00F260", // Bright Green (New Vision)
+  error: "#FF416C", // Bright Pink/Red (New Vision)
   warning: "#FFAB00",
   grey: "#97A0AF",
   gradients: {
@@ -27,35 +30,41 @@ const palette = {
 
 export const Colors = {
   light: {
-    text: palette.textLight,
-    background: palette.backgroundLight,
-    surface: palette.surfaceLight,
-    tint: palette.primary,
-    icon: palette.grey,
+    text: palette.textDark, // Force white text for dark blue theme
+    textSecondary: palette.textGrey,
+    background: palette.backgroundDark, // Force dark background
+    surface: palette.surfaceDark,
+    surfaceHighlight: palette.surfaceDarkHighlight,
+    surfaceActive: palette.surfaceDarkActive,
+    tint: palette.accent,
+    icon: palette.textGrey,
     tabIconDefault: palette.grey,
-    tabIconSelected: palette.primary,
-    border: "#E1E4E8",
-    primary: palette.primary,
+    tabIconSelected: palette.accent,
+    border: "#1E4976", // Dark blue border
+    primary: palette.accent, // Lighter blue for better contrast on dark
     secondary: palette.secondary,
-    accent: palette.accent,
+    accent: palette.primary,
     error: palette.error,
     success: palette.success,
     gradients: palette.gradients,
   },
   dark: {
     text: palette.textDark,
+    textSecondary: palette.textGrey,
     background: palette.backgroundDark,
     surface: palette.surfaceDark,
+    surfaceHighlight: palette.surfaceDarkHighlight,
+    surfaceActive: palette.surfaceDarkActive,
     tint: palette.accent,
-    icon: "#6B7D8C",
+    icon: palette.textGrey,
     tabIconDefault: "#6B7D8C",
     tabIconSelected: palette.accent,
     border: "#1E4976",
     primary: palette.accent, // Lighter blue for dark mode
     secondary: palette.secondary,
     accent: palette.primary,
-    error: "#FF8F73",
-    success: "#57D9A3",
+    error: palette.error,
+    success: palette.success,
     gradients: palette.gradients,
   },
 };

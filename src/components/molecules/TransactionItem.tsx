@@ -101,12 +101,12 @@ export function TransactionItem({
           ...Platform.select({
             ios: {
               shadowColor: "#000",
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.05,
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
               shadowRadius: 8,
             },
             android: {
-              elevation: 2,
+              elevation: 4,
             },
           }),
         }}
@@ -139,7 +139,11 @@ export function TransactionItem({
             <View
               style={[
                 styles.iconContainer,
-                { backgroundColor: isIncome ? "#E6F8EF" : "#FFEBE6" },
+                {
+                  backgroundColor: isIncome
+                    ? "rgba(0, 242, 96, 0.1)"
+                    : "rgba(255, 65, 108, 0.1)",
+                },
               ]}
             >
               {emoji ? (
