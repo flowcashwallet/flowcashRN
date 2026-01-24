@@ -70,7 +70,11 @@ export const addVisionEntity = createAsyncThunk(
   "vision/addEntity",
   async (entity: Omit<VisionEntity, "id">, { rejectWithValue }) => {
     try {
-      const docRef = await addDoc(collection(db, "vision"), entity);
+      // Remove undefined fields to avoid Firestore errors
+      const cleanEntity = Object.fromEntries(
+        Object.entries(entity).filter(([_, v]) => v !== undefined),
+      );
+      const docRef = await addDoc(collection(db, "vision"), cleanEntity);
       return { ...entity, id: docRef.id };
     } catch (error: any) {
       console.error("Error adding vision entity:", error);
@@ -97,7 +101,11 @@ export const updateVisionEntity = createAsyncThunk(
   async (entity: VisionEntity, { rejectWithValue }) => {
     try {
       const { id, ...data } = entity;
-      await updateDoc(doc(db, "vision", id), data as any);
+      // Remove undefined fields to avoid Firestore errors
+      const cleanData = Object.fromEntries(
+        Object.entries(data).filter(([_, v]) => v !== undefined),
+      );
+      await updateDoc(doc(db, "vision", id), cleanData as any);
       return entity;
     } catch (error: any) {
       console.error("Error updating vision entity:", error);

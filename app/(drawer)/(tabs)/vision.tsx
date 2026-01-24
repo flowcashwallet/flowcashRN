@@ -202,8 +202,12 @@ export default function VisionScreen() {
         type: selectedType,
         createdAt: Date.now(),
         isCrypto: selectedType === "asset" && isCrypto,
-        cryptoSymbol: isCrypto ? selectedCrypto : undefined,
-        cryptoAmount: isCrypto ? parseAmount(cryptoAmount) : undefined,
+        ...(isCrypto && selectedType === "asset"
+          ? {
+              cryptoSymbol: selectedCrypto,
+              cryptoAmount: parseAmount(cryptoAmount),
+            }
+          : {}),
       }),
     )
       .unwrap()

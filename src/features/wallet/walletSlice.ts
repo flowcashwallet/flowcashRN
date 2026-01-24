@@ -19,7 +19,7 @@ export interface Transaction {
   type: "income" | "expense";
   description: string;
   category?: string; // e.g. "🍔 Comida"
-  relatedEntityId?: string; // ID of the Asset or Liability
+  relatedEntityId?: string | null; // ID of the Asset or Liability
   date: number; // timestamp
 }
 

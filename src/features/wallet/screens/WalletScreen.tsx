@@ -65,7 +65,10 @@ export default function WalletScreen() {
   const [isEditing, setIsEditing] = useState(false);
   const [editDescription, setEditDescription] = useState("");
   const [editCategory, setEditCategory] = useState("");
+  const [editEntityId, setEditEntityId] = useState<string | null>(null);
   const [isEditCategoryDropdownOpen, setIsEditCategoryDropdownOpen] =
+    useState(false);
+  const [isEditEntityDropdownOpen, setIsEditEntityDropdownOpen] =
     useState(false);
 
   const [amount, setAmount] = useState("");
@@ -259,6 +262,7 @@ export default function WalletScreen() {
     setSelectedTransaction(transaction);
     setEditDescription(transaction.description);
     setEditCategory(transaction.category || CATEGORIES[0]);
+    setEditEntityId(transaction.relatedEntityId || null);
     setIsEditing(false);
     setDetailModalVisible(true);
   };
@@ -266,12 +270,58 @@ export default function WalletScreen() {
   const handleUpdateTransaction = () => {
     if (!selectedTransaction || !user?.uid) return;
     setIsSaving(true);
+
+    // Handle Entity Updates if changed
+    if (selectedTransaction.relatedEntityId !== editEntityId) {
+      const amount = selectedTransaction.amount;
+      const type = selectedTransaction.type;
+
+      // 1. Revert Old Entity
+      if (selectedTransaction.relatedEntityId) {
+        const oldEntity = visionEntities.find(
+          (e) => e.id === selectedTransaction.relatedEntityId,
+        );
+        if (oldEntity) {
+          let newAmount = oldEntity.amount;
+          if (oldEntity.type === "asset") {
+            // Revert logic: Income added, so subtract. Expense subtracted, so add.
+            if (type === "income") newAmount -= amount;
+            else newAmount += amount;
+          } else {
+            // Liability
+            // Revert logic: Income subtracted, so add. Expense added, so subtract.
+            if (type === "income") newAmount += amount;
+            else newAmount -= amount;
+          }
+          dispatch(updateVisionEntity({ ...oldEntity, amount: newAmount }));
+        }
+      }
+
+      // 2. Apply New Entity
+      if (editEntityId) {
+        const newEntity = visionEntities.find((e) => e.id === editEntityId);
+        if (newEntity) {
+          let newAmount = newEntity.amount;
+          if (newEntity.type === "asset") {
+            if (type === "income") newAmount += amount;
+            else newAmount -= amount;
+          } else {
+            // Liability
+            if (type === "income") newAmount -= amount;
+            else newAmount += amount;
+          }
+          dispatch(updateVisionEntity({ ...newEntity, amount: newAmount }));
+        }
+      }
+    }
+
     dispatch(
       updateTransaction({
         id: selectedTransaction.id,
         updates: {
           description: editDescription,
           category: editCategory,
+          relatedEntityId: editEntityId || null,
         },
       }),
     )
@@ -925,6 +975,159 @@ export default function WalletScreen() {
                           </View>
                         )}
                       </View>
+
+                      {/* Entity Selector (Edit Mode) */}
+                      <View style={{ marginTop: Spacing.m }}>
+                        <Typography
+                          variant="caption"
+                          style={{
+                            color: colors.text,
+                            opacity: 0.6,
+                            marginBottom: Spacing.xs,
+                          }}
+                        >
+                          {STRINGS.vision.selectEntity}
+                        </Typography>
+                        <TouchableOpacity
+                          onPress={() =>
+                            setIsEditEntityDropdownOpen(
+                              !isEditEntityDropdownOpen,
+                            )
+                          }
+                          style={{
+                            paddingHorizontal: Spacing.m,
+                            paddingVertical: Spacing.m,
+                            borderRadius: BorderRadius.m,
+                            backgroundColor: colors.surface,
+                            borderWidth: 1,
+                            borderColor: colors.border,
+                            marginBottom: isEditEntityDropdownOpen
+                              ? 0
+                              : Spacing.m,
+                            borderBottomLeftRadius: isEditEntityDropdownOpen
+                              ? 0
+                              : BorderRadius.m,
+                            borderBottomRightRadius: isEditEntityDropdownOpen
+                              ? 0
+                              : BorderRadius.m,
+                          }}
+                        >
+                          <View
+                            style={{
+                              flexDirection: "row",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                            }}
+                          >
+                            <Typography
+                              variant="body"
+                              style={{
+                                color: editEntityId
+                                  ? colors.text
+                                  : colors.text + "80",
+                              }}
+                            >
+                              {editEntityId
+                                ? visionEntities.find(
+                                    (e) => e.id === editEntityId,
+                                  )?.name || STRINGS.vision.entityPlaceholder
+                                : STRINGS.vision.entityPlaceholder}
+                            </Typography>
+                            <Typography
+                              variant="body"
+                              style={{ color: colors.text }}
+                            >
+                              {isEditEntityDropdownOpen ? "▲" : "▼"}
+                            </Typography>
+                          </View>
+                        </TouchableOpacity>
+
+                        {isEditEntityDropdownOpen && (
+                          <View
+                            style={{
+                              borderWidth: 1,
+                              borderColor: colors.border,
+                              borderTopWidth: 0,
+                              borderBottomLeftRadius: BorderRadius.m,
+                              borderBottomRightRadius: BorderRadius.m,
+                              backgroundColor: colors.surface,
+                              marginBottom: Spacing.m,
+                              maxHeight: 200,
+                            }}
+                          >
+                            <ScrollView nestedScrollEnabled>
+                              <TouchableOpacity
+                                onPress={() => {
+                                  setEditEntityId(null);
+                                  setIsEditEntityDropdownOpen(false);
+                                }}
+                                style={{
+                                  padding: Spacing.m,
+                                  borderBottomWidth: 1,
+                                  borderBottomColor: colors.border,
+                                }}
+                              >
+                                <Typography
+                                  variant="body"
+                                  style={{
+                                    color: colors.text,
+                                    fontStyle: "italic",
+                                  }}
+                                >
+                                  Ninguno
+                                </Typography>
+                              </TouchableOpacity>
+                              {visionEntities
+                                .filter((e) =>
+                                  selectedTransaction.type === "income"
+                                    ? e.type === "asset"
+                                    : e.type === "liability",
+                                )
+                                .map((entity, index) => (
+                                  <TouchableOpacity
+                                    key={entity.id}
+                                    onPress={() => {
+                                      setEditEntityId(entity.id);
+                                      setIsEditEntityDropdownOpen(false);
+                                    }}
+                                    style={{
+                                      padding: Spacing.m,
+                                      borderTopWidth: index > 0 ? 1 : 0,
+                                      borderTopColor: colors.border,
+                                    }}
+                                  >
+                                    <View
+                                      style={{
+                                        flexDirection: "row",
+                                        justifyContent: "space-between",
+                                      }}
+                                    >
+                                      <Typography
+                                        variant="body"
+                                        style={{ color: colors.text }}
+                                      >
+                                        {entity.name}
+                                      </Typography>
+                                      <Typography
+                                        variant="caption"
+                                        style={{
+                                          color:
+                                            entity.type === "asset"
+                                              ? colors.success
+                                              : colors.error,
+                                        }}
+                                      >
+                                        {entity.type === "asset"
+                                          ? STRINGS.vision.assets
+                                          : STRINGS.vision.liabilities}
+                                      </Typography>
+                                    </View>
+                                  </TouchableOpacity>
+                                ))}
+                            </ScrollView>
+                          </View>
+                        )}
+                      </View>
                     </>
                   ) : (
                     <>
@@ -977,6 +1180,21 @@ export default function WalletScreen() {
                         : STRINGS.wallet.expense}
                     </Typography>
                   </View>
+                  {selectedTransaction.relatedEntityId && (
+                    <View>
+                      <Typography
+                        variant="caption"
+                        style={{ color: colors.text, opacity: 0.6 }}
+                      >
+                        Asociado a
+                      </Typography>
+                      <Typography variant="body" weight="medium">
+                        {visionEntities.find(
+                          (e) => e.id === selectedTransaction.relatedEntityId,
+                        )?.name || "Entidad desconocida"}
+                      </Typography>
+                    </View>
+                  )}
                 </View>
 
                 <View style={{ flexDirection: "row", gap: Spacing.m }}>
