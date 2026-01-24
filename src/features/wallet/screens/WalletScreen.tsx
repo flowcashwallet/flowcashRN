@@ -65,6 +65,7 @@ export default function WalletScreen() {
   const [isEditing, setIsEditing] = useState(false);
   const [editDescription, setEditDescription] = useState("");
   const [editCategory, setEditCategory] = useState("");
+  const [editAmount, setEditAmount] = useState("");
   const [editEntityId, setEditEntityId] = useState<string | null>(null);
   const [isEditCategoryDropdownOpen, setIsEditCategoryDropdownOpen] =
     useState(false);
@@ -262,6 +263,7 @@ export default function WalletScreen() {
     setSelectedTransaction(transaction);
     setEditDescription(transaction.description);
     setEditCategory(transaction.category || CATEGORIES[0]);
+    setEditAmount(transaction.amount.toString());
     setEditEntityId(transaction.relatedEntityId || null);
     setIsEditing(false);
     setDetailModalVisible(true);
@@ -271,46 +273,79 @@ export default function WalletScreen() {
     if (!selectedTransaction || !user?.uid) return;
     setIsSaving(true);
 
-    // Handle Entity Updates if changed
-    if (selectedTransaction.relatedEntityId !== editEntityId) {
-      const amount = selectedTransaction.amount;
-      const type = selectedTransaction.type;
+    const newAmount = parseAmount(editAmount);
+    const oldAmount = selectedTransaction.amount;
+    const type = selectedTransaction.type;
+    const oldEntityId = selectedTransaction.relatedEntityId;
+    const newEntityId = editEntityId;
 
-      // 1. Revert Old Entity
-      if (selectedTransaction.relatedEntityId) {
-        const oldEntity = visionEntities.find(
-          (e) => e.id === selectedTransaction.relatedEntityId,
-        );
-        if (oldEntity) {
-          let newAmount = oldEntity.amount;
-          if (oldEntity.type === "asset") {
-            // Revert logic: Income added, so subtract. Expense subtracted, so add.
-            if (type === "income") newAmount -= amount;
-            else newAmount += amount;
-          } else {
-            // Liability
-            // Revert logic: Income subtracted, so add. Expense added, so subtract.
-            if (type === "income") newAmount += amount;
-            else newAmount -= amount;
+    // Handle Entity Updates if changed or amount changed
+    if (oldEntityId !== newEntityId || oldAmount !== newAmount) {
+      // Case 1: Entity Changed (A -> B) or (A -> null) or (null -> B)
+      if (oldEntityId !== newEntityId) {
+        // Revert Old Entity
+        if (oldEntityId) {
+          const oldEntity = visionEntities.find((e) => e.id === oldEntityId);
+          if (oldEntity) {
+            let updatedOldAmount = oldEntity.amount;
+            if (oldEntity.type === "asset") {
+              if (type === "income") updatedOldAmount -= oldAmount;
+              else updatedOldAmount += oldAmount;
+            } else {
+              // Liability
+              if (type === "income") updatedOldAmount += oldAmount;
+              else updatedOldAmount -= oldAmount;
+            }
+            dispatch(
+              updateVisionEntity({ ...oldEntity, amount: updatedOldAmount }),
+            );
           }
-          dispatch(updateVisionEntity({ ...oldEntity, amount: newAmount }));
+        }
+
+        // Apply New Entity
+        if (newEntityId) {
+          const newEntity = visionEntities.find((e) => e.id === newEntityId);
+          if (newEntity) {
+            let updatedNewAmount = newEntity.amount;
+            if (newEntity.type === "asset") {
+              if (type === "income") updatedNewAmount += newAmount;
+              else updatedNewAmount -= newAmount;
+            } else {
+              // Liability
+              if (type === "income") updatedNewAmount -= newAmount;
+              else updatedNewAmount += newAmount;
+            }
+            dispatch(
+              updateVisionEntity({ ...newEntity, amount: updatedNewAmount }),
+            );
+          }
         }
       }
+      // Case 2: Entity Same (A -> A), but Amount Changed
+      else if (oldEntityId && newEntityId) {
+        const entity = visionEntities.find((e) => e.id === oldEntityId);
+        if (entity) {
+          let finalAmount = entity.amount;
 
-      // 2. Apply New Entity
-      if (editEntityId) {
-        const newEntity = visionEntities.find((e) => e.id === editEntityId);
-        if (newEntity) {
-          let newAmount = newEntity.amount;
-          if (newEntity.type === "asset") {
-            if (type === "income") newAmount += amount;
-            else newAmount -= amount;
+          // Revert old
+          if (entity.type === "asset") {
+            if (type === "income") finalAmount -= oldAmount;
+            else finalAmount += oldAmount;
           } else {
-            // Liability
-            if (type === "income") newAmount -= amount;
-            else newAmount += amount;
+            if (type === "income") finalAmount += oldAmount;
+            else finalAmount -= oldAmount;
           }
-          dispatch(updateVisionEntity({ ...newEntity, amount: newAmount }));
+
+          // Apply new
+          if (entity.type === "asset") {
+            if (type === "income") finalAmount += newAmount;
+            else finalAmount -= newAmount;
+          } else {
+            if (type === "income") finalAmount -= newAmount;
+            else finalAmount += newAmount;
+          }
+
+          dispatch(updateVisionEntity({ ...entity, amount: finalAmount }));
         }
       }
     }
@@ -322,6 +357,7 @@ export default function WalletScreen() {
           description: editDescription,
           category: editCategory,
           relatedEntityId: editEntityId || null,
+          amount: newAmount,
         },
       }),
     )
@@ -877,6 +913,22 @@ export default function WalletScreen() {
                 <View style={{ gap: Spacing.m, marginBottom: Spacing.xl }}>
                   {isEditing ? (
                     <>
+                      <View>
+                        <Typography
+                          variant="caption"
+                          style={{ color: colors.text, opacity: 0.6 }}
+                        >
+                          {STRINGS.wallet.amount}
+                        </Typography>
+                        <Input
+                          value={editAmount}
+                          onChangeText={(text) =>
+                            setEditAmount(formatAmountInput(text))
+                          }
+                          placeholder="0.00"
+                          keyboardType="numeric"
+                        />
+                      </View>
                       <View>
                         <Typography
                           variant="caption"
