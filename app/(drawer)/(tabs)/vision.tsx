@@ -37,6 +37,7 @@ import {
   TouchableWithoutFeedback,
   View,
 } from "react-native";
+import Swipeable from "react-native-gesture-handler/Swipeable";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useDispatch, useSelector } from "react-redux";
 
@@ -364,103 +365,126 @@ export default function VisionScreen() {
     const isAsset = item.type === "asset";
     const indicatorColor = isAsset ? colors.success : colors.error;
 
-    return (
-      <TouchableOpacity
-        onPress={() => {
-          if (item.type === "asset") {
-            setTransactionType("income");
-          } else {
-            setTransactionType("expense");
-          }
-          setSelectedEntity(item);
-          setDetailModalVisible(true);
-        }}
-        activeOpacity={0.7}
-        style={{
-          marginBottom: Spacing.m,
-          borderRadius: BorderRadius.l,
-          backgroundColor: colors.surface,
-          ...Platform.select({
-            ios: {
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.05,
-              shadowRadius: 8,
-            },
-            android: {
-              elevation: 2,
-            },
-          }),
-        }}
-      >
-        <View
+    const renderRightActions = () => {
+      return (
+        <TouchableOpacity
+          onPress={() => handleDeleteEntity(item.id)}
           style={{
-            flexDirection: "row",
-            overflow: "hidden",
-            borderRadius: BorderRadius.l,
+            backgroundColor: colors.error,
+            justifyContent: "center",
+            alignItems: "center",
+            width: 80,
+            height: "100%",
+            borderTopRightRadius: BorderRadius.l,
+            borderBottomRightRadius: BorderRadius.l,
           }}
         >
-          {/* Side Indicator */}
-          <View style={{ width: 6, backgroundColor: indicatorColor }} />
+          <IconSymbol name="trash.fill" size={24} color="#FFF" />
+        </TouchableOpacity>
+      );
+    };
 
-          <View style={{ flex: 1, padding: Spacing.m }}>
-            <View
-              style={{
-                flexDirection: "row",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <View>
-                <Typography variant="body" weight="bold">
-                  {item.name}
-                </Typography>
-                {item.category && (
-                  <Typography
-                    variant="caption"
-                    style={{ color: colors.text, opacity: 0.6, marginTop: 2 }}
-                  >
-                    {item.category}
-                  </Typography>
-                )}
-                {item.isCrypto && item.cryptoAmount && item.cryptoSymbol ? (
-                  <Typography
-                    variant="caption"
-                    style={{
-                      color: colors.primary,
-                      fontWeight: "600",
-                      marginTop: 2,
-                    }}
-                  >
-                    {item.cryptoAmount} {item.cryptoSymbol}
-                  </Typography>
-                ) : null}
-              </View>
+    return (
+      <Swipeable
+        renderRightActions={renderRightActions}
+        containerStyle={{ marginBottom: Spacing.m }}
+      >
+        <TouchableOpacity
+          onPress={() => {
+            if (item.type === "asset") {
+              setTransactionType("income");
+            } else {
+              setTransactionType("expense");
+            }
+            setSelectedEntity(item);
+            setDetailModalVisible(true);
+          }}
+          activeOpacity={0.7}
+          style={{
+            borderRadius: BorderRadius.l,
+            backgroundColor: colors.surface,
+            ...Platform.select({
+              ios: {
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.05,
+                shadowRadius: 8,
+              },
+              android: {
+                elevation: 2,
+              },
+            }),
+          }}
+        >
+          <View
+            style={{
+              flexDirection: "row",
+              overflow: "hidden",
+              borderRadius: BorderRadius.l,
+            }}
+          >
+            {/* Side Indicator */}
+            <View style={{ width: 6, backgroundColor: indicatorColor }} />
 
-              <View style={{ alignItems: "flex-end" }}>
-                <Typography
-                  variant="body"
-                  weight="bold"
-                  style={{ color: indicatorColor }}
-                >
-                  {formatCurrency(
-                    item.type === "liability" ? -item.amount : item.amount,
+            <View style={{ flex: 1, padding: Spacing.m }}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <View>
+                  <Typography variant="body" weight="bold">
+                    {item.name}
+                  </Typography>
+                  {item.category && (
+                    <Typography
+                      variant="caption"
+                      style={{ color: colors.text, opacity: 0.6, marginTop: 2 }}
+                    >
+                      {item.category}
+                    </Typography>
                   )}
-                </Typography>
-                {item.description ? (
+                  {item.isCrypto && item.cryptoAmount && item.cryptoSymbol ? (
+                    <Typography
+                      variant="caption"
+                      style={{
+                        color: colors.primary,
+                        fontWeight: "600",
+                        marginTop: 2,
+                      }}
+                    >
+                      {item.cryptoAmount} {item.cryptoSymbol}
+                    </Typography>
+                  ) : null}
+                </View>
+
+                <View style={{ alignItems: "flex-end" }}>
                   <Typography
-                    variant="caption"
-                    style={{ color: colors.icon, maxWidth: 120 }}
-                    numberOfLines={1}
+                    variant="body"
+                    weight="bold"
+                    style={{ color: indicatorColor }}
                   >
-                    {item.description}
+                    {formatCurrency(
+                      item.type === "liability" ? -item.amount : item.amount,
+                    )}
                   </Typography>
-                ) : null}
+                  {item.description ? (
+                    <Typography
+                      variant="caption"
+                      style={{ color: colors.icon, maxWidth: 120 }}
+                      numberOfLines={1}
+                    >
+                      {item.description}
+                    </Typography>
+                  ) : null}
+                </View>
               </View>
             </View>
           </View>
-        </View>
-      </TouchableOpacity>
+        </TouchableOpacity>
+      </Swipeable>
     );
   };
 

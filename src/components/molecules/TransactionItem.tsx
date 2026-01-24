@@ -3,9 +3,15 @@ import { BorderRadius, Colors, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import STRINGS from "@/i18n/es.json";
 import { formatCurrency } from "@/utils/format";
-import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
-import { Alert, StyleSheet, TouchableOpacity, View } from "react-native";
+import {
+    Alert,
+    Platform,
+    StyleSheet,
+    TouchableOpacity,
+    View,
+} from "react-native";
+import Swipeable from "react-native-gesture-handler/Swipeable";
 import { Typography } from "../atoms/Typography";
 
 interface TransactionItemProps {
@@ -59,75 +65,120 @@ export function TransactionItem({
     }
   };
 
+  const renderRightActions = () => {
+    if (!onDelete) return null;
+    return (
+      <TouchableOpacity
+        onPress={() => onDelete(id)}
+        style={{
+          backgroundColor: colors.error,
+          justifyContent: "center",
+          alignItems: "center",
+          width: 80,
+          height: "100%",
+          borderTopRightRadius: BorderRadius.m,
+          borderBottomRightRadius: BorderRadius.m,
+        }}
+      >
+        <IconSymbol name="trash.fill" size={24} color="#FFF" />
+      </TouchableOpacity>
+    );
+  };
+
   return (
-    <TouchableOpacity
-      onPress={onPress}
-      onLongPress={handleLongPress}
-      activeOpacity={0.8}
-      delayLongPress={500}
+    <Swipeable
+      renderRightActions={renderRightActions}
+      containerStyle={{ marginBottom: Spacing.s }}
     >
-      <LinearGradient
-        colors={isIncome ? incomeGradient : expenseGradient}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+      <TouchableOpacity
+        onPress={onPress}
+        onLongPress={handleLongPress}
+        activeOpacity={0.7}
+        delayLongPress={500}
         style={{
           borderRadius: BorderRadius.m,
-          padding: 1.5, // Thin gradient border
-          marginBottom: Spacing.s,
+          backgroundColor: colors.surface,
+          ...Platform.select({
+            ios: {
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.05,
+              shadowRadius: 8,
+            },
+            android: {
+              elevation: 2,
+            },
+          }),
         }}
       >
         <View
-          style={[
-            styles.container,
-            {
-              backgroundColor: colors.background, // Use background/surface color
-              borderRadius: BorderRadius.m - 1.5,
-              borderBottomWidth: 0, // Remove old border
-            },
-          ]}
+          style={{
+            flexDirection: "row",
+            overflow: "hidden",
+            borderRadius: BorderRadius.m,
+          }}
         >
+          {/* Side Indicator */}
+          <View
+            style={{
+              width: 6,
+              backgroundColor: isIncome ? colors.success : colors.error,
+            }}
+          />
+
           <View
             style={[
-              styles.iconContainer,
-              { backgroundColor: isIncome ? "#E6F8EF" : "#FFEBE6" },
+              styles.container,
+              {
+                backgroundColor: colors.surface,
+                flex: 1,
+                borderBottomWidth: 0,
+              },
             ]}
           >
-            {emoji ? (
-              <Typography variant="h3">{emoji}</Typography>
-            ) : (
-              <IconSymbol
-                name={isIncome ? "arrow.down.left" : "arrow.up.right"}
-                size={24}
-                color={iconColor}
-              />
-            )}
-          </View>
-
-          <View style={styles.content}>
-            <Typography variant="body" weight="medium">
-              {description}
-            </Typography>
-            <Typography variant="caption" style={{ color: colors.icon }}>
-              {category ? category : new Date(date).toLocaleDateString()}
-            </Typography>
-          </View>
-
-          <View style={styles.rightContainer}>
-            <Typography
-              variant="body"
-              weight="bold"
-              style={{
-                color: isIncome ? colors.success : colors.error,
-                marginBottom: 4,
-              }}
+            <View
+              style={[
+                styles.iconContainer,
+                { backgroundColor: isIncome ? "#E6F8EF" : "#FFEBE6" },
+              ]}
             >
-              {isIncome ? "+" : "-"}
-              {formatCurrency(amount)}
-            </Typography>
+              {emoji ? (
+                <Typography variant="h3">{emoji}</Typography>
+              ) : (
+                <IconSymbol
+                  name={isIncome ? "arrow.down.left" : "arrow.up.right"}
+                  size={24}
+                  color={iconColor}
+                />
+              )}
+            </View>
+
+            <View style={styles.content}>
+              <Typography variant="body" weight="medium">
+                {description}
+              </Typography>
+              <Typography variant="caption" style={{ color: colors.icon }}>
+                {category ? category : new Date(date).toLocaleDateString()}
+              </Typography>
+            </View>
+
+            <View style={styles.rightContainer}>
+              <Typography
+                variant="body"
+                weight="bold"
+                style={{
+                  color: isIncome ? colors.success : colors.error,
+                  marginBottom: 4,
+                }}
+              >
+                {isIncome ? "+" : "-"}
+                {formatCurrency(amount)}
+              </Typography>
+            </View>
           </View>
         </View>
-      </LinearGradient>
-    </TouchableOpacity>
+      </TouchableOpacity>
+    </Swipeable>
   );
 }
 
