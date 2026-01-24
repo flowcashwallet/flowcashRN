@@ -7,6 +7,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
 import {
   Alert,
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -14,6 +15,7 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from "react-native";
 import { PieChart } from "react-native-gifted-charts";
@@ -471,209 +473,115 @@ export default function WalletScreen() {
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={styles.modalOverlay}
         >
-          <View
-            style={[
-              styles.modalContent,
-              { backgroundColor: colors.background },
-            ]}
+          <TouchableOpacity
+            style={{ flex: 1, justifyContent: "flex-end" }}
+            activeOpacity={1}
+            onPress={() => setModalVisible(false)}
           >
-            <Typography
-              variant="h3"
-              weight="bold"
-              style={{ marginBottom: Spacing.l }}
-            >
-              {type === "income"
-                ? STRINGS.wallet.newIncome
-                : STRINGS.wallet.newExpense}
-            </Typography>
-
-            <Input
-              label={STRINGS.wallet.description}
-              placeholder={STRINGS.wallet.descriptionPlaceholder}
-              value={description}
-              onChangeText={setDescription}
-            />
-
-            <Input
-              label={STRINGS.wallet.amount}
-              placeholder="0.00"
-              keyboardType="numeric"
-              value={amount}
-              onChangeText={handleAmountChange}
-            />
-
-            <Typography
-              variant="caption"
-              style={{ marginBottom: Spacing.xs, color: colors.text }}
-            >
-              {STRINGS.wallet.category}
-            </Typography>
-
-            <TouchableOpacity
-              onPress={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
-              style={{
-                paddingHorizontal: Spacing.m,
-                paddingVertical: Spacing.m,
-                borderRadius: BorderRadius.m,
-                backgroundColor: colors.surface,
-                borderWidth: 1,
-                borderColor: colors.border,
-                marginBottom: isCategoryDropdownOpen ? 0 : Spacing.m,
-                borderBottomLeftRadius: isCategoryDropdownOpen
-                  ? 0
-                  : BorderRadius.m,
-                borderBottomRightRadius: isCategoryDropdownOpen
-                  ? 0
-                  : BorderRadius.m,
-              }}
-            >
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
+            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+              <TouchableOpacity
+                activeOpacity={1}
+                onPress={(e) => e.stopPropagation()}
+                style={[
+                  styles.modalContent,
+                  { backgroundColor: colors.background },
+                ]}
               >
                 <Typography
-                  variant="body"
-                  style={{
-                    color: selectedCategory ? colors.text : colors.text + "80",
-                  }}
+                  variant="h3"
+                  weight="bold"
+                  style={{ marginBottom: Spacing.l }}
                 >
-                  {selectedCategory || STRINGS.wallet.selectCategory}
+                  {type === "income"
+                    ? STRINGS.wallet.newIncome
+                    : STRINGS.wallet.newExpense}
                 </Typography>
-                <Typography variant="body" style={{ color: colors.text }}>
-                  {isCategoryDropdownOpen ? "▲" : "▼"}
-                </Typography>
-              </View>
-            </TouchableOpacity>
 
-            {isCategoryDropdownOpen && (
-              <View
-                style={{
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  borderTopWidth: 0,
-                  borderBottomLeftRadius: BorderRadius.m,
-                  borderBottomRightRadius: BorderRadius.m,
-                  backgroundColor: colors.surface,
-                  marginBottom: Spacing.m,
-                  maxHeight: 200,
-                }}
-              >
-                <ScrollView nestedScrollEnabled>
-                  {CATEGORIES.map((cat, index) => (
-                    <TouchableOpacity
-                      key={cat}
-                      onPress={() => {
-                        setSelectedCategory(cat);
-                        setIsCategoryDropdownOpen(false);
-                      }}
-                      style={{
-                        padding: Spacing.m,
-                        borderTopWidth: index > 0 ? 1 : 0,
-                        borderTopColor: colors.border,
-                      }}
-                    >
-                      <Typography variant="body" style={{ color: colors.text }}>
-                        {cat}
-                      </Typography>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </View>
-            )}
+                <Input
+                  label={STRINGS.wallet.description}
+                  placeholder={STRINGS.wallet.descriptionPlaceholder}
+                  value={description}
+                  onChangeText={setDescription}
+                />
 
-            {/* Entity Selector */}
-            <Typography
-              variant="caption"
-              style={{ marginBottom: Spacing.xs, color: colors.text }}
-            >
-              {STRINGS.vision.selectEntity}
-            </Typography>
+                <Input
+                  label={STRINGS.wallet.amount}
+                  placeholder="0.00"
+                  keyboardType="numeric"
+                  value={amount}
+                  onChangeText={handleAmountChange}
+                />
 
-            <TouchableOpacity
-              onPress={() => setIsEntityDropdownOpen(!isEntityDropdownOpen)}
-              style={{
-                paddingHorizontal: Spacing.m,
-                paddingVertical: Spacing.m,
-                borderRadius: BorderRadius.m,
-                backgroundColor: colors.surface,
-                borderWidth: 1,
-                borderColor: colors.border,
-                marginBottom: isEntityDropdownOpen ? 0 : Spacing.m,
-                borderBottomLeftRadius: isEntityDropdownOpen
-                  ? 0
-                  : BorderRadius.m,
-                borderBottomRightRadius: isEntityDropdownOpen
-                  ? 0
-                  : BorderRadius.m,
-              }}
-            >
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
                 <Typography
-                  variant="body"
+                  variant="caption"
+                  style={{ marginBottom: Spacing.xs, color: colors.text }}
+                >
+                  {STRINGS.wallet.category}
+                </Typography>
+
+                <TouchableOpacity
+                  onPress={() =>
+                    setIsCategoryDropdownOpen(!isCategoryDropdownOpen)
+                  }
                   style={{
-                    color: selectedEntityId ? colors.text : colors.text + "80",
+                    paddingHorizontal: Spacing.m,
+                    paddingVertical: Spacing.m,
+                    borderRadius: BorderRadius.m,
+                    backgroundColor: colors.surface,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    marginBottom: isCategoryDropdownOpen ? 0 : Spacing.m,
+                    borderBottomLeftRadius: isCategoryDropdownOpen
+                      ? 0
+                      : BorderRadius.m,
+                    borderBottomRightRadius: isCategoryDropdownOpen
+                      ? 0
+                      : BorderRadius.m,
                   }}
                 >
-                  {selectedEntityId
-                    ? visionEntities.find((e) => e.id === selectedEntityId)
-                        ?.name || STRINGS.vision.entityPlaceholder
-                    : STRINGS.vision.entityPlaceholder}
-                </Typography>
-                <Typography variant="body" style={{ color: colors.text }}>
-                  {isEntityDropdownOpen ? "▲" : "▼"}
-                </Typography>
-              </View>
-            </TouchableOpacity>
-
-            {isEntityDropdownOpen && (
-              <View
-                style={{
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  borderTopWidth: 0,
-                  borderBottomLeftRadius: BorderRadius.m,
-                  borderBottomRightRadius: BorderRadius.m,
-                  backgroundColor: colors.surface,
-                  marginBottom: Spacing.m,
-                  maxHeight: 200,
-                }}
-              >
-                <ScrollView nestedScrollEnabled>
-                  {visionEntities.filter((e) =>
-                    type === "income"
-                      ? e.type === "asset"
-                      : e.type === "liability",
-                  ).length === 0 ? (
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
                     <Typography
                       variant="body"
-                      style={{ padding: Spacing.m, color: colors.icon }}
+                      style={{
+                        color: selectedCategory
+                          ? colors.text
+                          : colors.text + "80",
+                      }}
                     >
-                      {type === "income"
-                        ? "No hay activos disponibles"
-                        : "No hay pasivos disponibles"}
+                      {selectedCategory || STRINGS.wallet.selectCategory}
                     </Typography>
-                  ) : (
-                    visionEntities
-                      .filter((e) =>
-                        type === "income"
-                          ? e.type === "asset"
-                          : e.type === "liability",
-                      )
-                      .map((entity, index) => (
+                    <Typography variant="body" style={{ color: colors.text }}>
+                      {isCategoryDropdownOpen ? "▲" : "▼"}
+                    </Typography>
+                  </View>
+                </TouchableOpacity>
+
+                {isCategoryDropdownOpen && (
+                  <View
+                    style={{
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                      borderTopWidth: 0,
+                      borderBottomLeftRadius: BorderRadius.m,
+                      borderBottomRightRadius: BorderRadius.m,
+                      backgroundColor: colors.surface,
+                      marginBottom: Spacing.m,
+                      maxHeight: 200,
+                    }}
+                  >
+                    <ScrollView nestedScrollEnabled>
+                      {CATEGORIES.map((cat, index) => (
                         <TouchableOpacity
-                          key={entity.id}
+                          key={cat}
                           onPress={() => {
-                            setSelectedEntityId(entity.id);
-                            setIsEntityDropdownOpen(false);
+                            setSelectedCategory(cat);
+                            setIsCategoryDropdownOpen(false);
                           }}
                           style={{
                             padding: Spacing.m,
@@ -681,66 +589,185 @@ export default function WalletScreen() {
                             borderTopColor: colors.border,
                           }}
                         >
-                          <View
-                            style={{
-                              flexDirection: "row",
-                              justifyContent: "space-between",
-                            }}
+                          <Typography
+                            variant="body"
+                            style={{ color: colors.text }}
                           >
-                            <Typography
-                              variant="body"
-                              style={{ color: colors.text }}
-                            >
-                              {entity.name}
-                            </Typography>
-                            <Typography
-                              variant="caption"
+                            {cat}
+                          </Typography>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+                )}
+
+                {/* Entity Selector */}
+                <Typography
+                  variant="caption"
+                  style={{ marginBottom: Spacing.xs, color: colors.text }}
+                >
+                  {STRINGS.vision.selectEntity}
+                </Typography>
+
+                <TouchableOpacity
+                  onPress={() => setIsEntityDropdownOpen(!isEntityDropdownOpen)}
+                  style={{
+                    paddingHorizontal: Spacing.m,
+                    paddingVertical: Spacing.m,
+                    borderRadius: BorderRadius.m,
+                    backgroundColor: colors.surface,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    marginBottom: isEntityDropdownOpen ? 0 : Spacing.m,
+                    borderBottomLeftRadius: isEntityDropdownOpen
+                      ? 0
+                      : BorderRadius.m,
+                    borderBottomRightRadius: isEntityDropdownOpen
+                      ? 0
+                      : BorderRadius.m,
+                  }}
+                >
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
+                    <Typography
+                      variant="body"
+                      style={{
+                        color: selectedEntityId
+                          ? colors.text
+                          : colors.text + "80",
+                      }}
+                    >
+                      {selectedEntityId
+                        ? visionEntities.find((e) => e.id === selectedEntityId)
+                            ?.name || STRINGS.vision.entityPlaceholder
+                        : STRINGS.vision.entityPlaceholder}
+                    </Typography>
+                    <Typography variant="body" style={{ color: colors.text }}>
+                      {isEntityDropdownOpen ? "▲" : "▼"}
+                    </Typography>
+                  </View>
+                </TouchableOpacity>
+
+                {isEntityDropdownOpen && (
+                  <View
+                    style={{
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                      borderTopWidth: 0,
+                      borderBottomLeftRadius: BorderRadius.m,
+                      borderBottomRightRadius: BorderRadius.m,
+                      backgroundColor: colors.surface,
+                      marginBottom: Spacing.m,
+                      maxHeight: 200,
+                    }}
+                  >
+                    <ScrollView nestedScrollEnabled>
+                      {visionEntities.filter((e) =>
+                        type === "income"
+                          ? e.type === "asset"
+                          : e.type === "liability",
+                      ).length === 0 ? (
+                        <Typography
+                          variant="body"
+                          style={{ padding: Spacing.m, color: colors.icon }}
+                        >
+                          {type === "income"
+                            ? "No hay activos disponibles"
+                            : "No hay pasivos disponibles"}
+                        </Typography>
+                      ) : (
+                        visionEntities
+                          .filter((e) =>
+                            type === "income"
+                              ? e.type === "asset"
+                              : e.type === "liability",
+                          )
+                          .map((entity, index) => (
+                            <TouchableOpacity
+                              key={entity.id}
+                              onPress={() => {
+                                setSelectedEntityId(entity.id);
+                                setIsEntityDropdownOpen(false);
+                              }}
                               style={{
-                                color:
-                                  entity.type === "asset"
-                                    ? colors.success
-                                    : colors.error,
+                                padding: Spacing.m,
+                                borderTopWidth: index > 0 ? 1 : 0,
+                                borderTopColor: colors.border,
                               }}
                             >
-                              {entity.type === "asset"
-                                ? STRINGS.vision.assets
-                                : STRINGS.vision.liabilities}
-                            </Typography>
-                          </View>
-                        </TouchableOpacity>
-                      ))
-                  )}
-                </ScrollView>
-              </View>
-            )}
+                              <View
+                                style={{
+                                  flexDirection: "row",
+                                  justifyContent: "space-between",
+                                }}
+                              >
+                                <Typography
+                                  variant="body"
+                                  style={{ color: colors.text }}
+                                >
+                                  {entity.name}
+                                </Typography>
+                                <Typography
+                                  variant="caption"
+                                  style={{
+                                    color:
+                                      entity.type === "asset"
+                                        ? colors.success
+                                        : colors.error,
+                                  }}
+                                >
+                                  {entity.type === "asset"
+                                    ? STRINGS.vision.assets
+                                    : STRINGS.vision.liabilities}
+                                </Typography>
+                              </View>
+                            </TouchableOpacity>
+                          ))
+                      )}
+                    </ScrollView>
+                  </View>
+                )}
 
-            <View style={styles.modalButtons}>
-              <Button
-                title={STRINGS.common.cancel}
-                variant="ghost"
-                onPress={() => setModalVisible(false)}
-                style={{ flex: 1, marginRight: Spacing.s }}
-              />
-              <Button
-                title={STRINGS.common.save}
-                loading={isSaving}
-                onPress={handleAddTransaction}
-                style={{
-                  flex: 1,
-                  marginLeft: Spacing.s,
-                  backgroundColor:
-                    type === "income" ? colors.success : colors.error,
-                }}
-              />
-            </View>
-          </View>
+                <View style={styles.modalButtons}>
+                  <Button
+                    title={STRINGS.common.cancel}
+                    variant="ghost"
+                    onPress={() => setModalVisible(false)}
+                    style={{ flex: 1, marginRight: Spacing.s }}
+                  />
+                  <Button
+                    title={STRINGS.common.save}
+                    loading={isSaving}
+                    onPress={handleAddTransaction}
+                    style={{
+                      flex: 1,
+                      marginLeft: Spacing.s,
+                      backgroundColor:
+                        type === "income" ? colors.success : colors.error,
+                    }}
+                  />
+                </View>
+              </TouchableOpacity>
+            </TouchableWithoutFeedback>
+          </TouchableOpacity>
         </KeyboardAvoidingView>
       </Modal>
 
       {/* Transaction Detail Modal */}
       <Modal visible={detailModalVisible} animationType="fade" transparent>
-        <View style={styles.modalOverlay}>
-          <View
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setDetailModalVisible(false)}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
             style={[
               styles.modalContent,
               { backgroundColor: colors.background, paddingBottom: Spacing.l },
@@ -1001,8 +1028,8 @@ export default function WalletScreen() {
                 </View>
               </>
             )}
-          </View>
-        </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Modal>
     </ThemedView>
   );

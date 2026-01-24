@@ -26,11 +26,15 @@ import React, { useEffect, useState } from "react";
 import {
   Alert,
   FlatList,
+  Keyboard,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   RefreshControl,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -496,368 +500,410 @@ export default function VisionScreen() {
         visible={addModalVisible}
         onRequestClose={() => setAddModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View
-            style={[
-              styles.modalContent,
-              { backgroundColor: colors.background },
-            ]}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={{ flex: 1 }}
+        >
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setAddModalVisible(false)}
           >
-            <Typography
-              variant="h3"
-              weight="bold"
-              style={{ marginBottom: Spacing.m }}
-            >
-              {selectedType === "asset"
-                ? STRINGS.vision.addAsset
-                : STRINGS.vision.addLiability}
-            </Typography>
+            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+              <TouchableOpacity
+                activeOpacity={1}
+                onPress={(e) => e.stopPropagation()}
+                style={[
+                  styles.modalContent,
+                  { backgroundColor: colors.background },
+                ]}
+              >
+                <Typography
+                  variant="h3"
+                  weight="bold"
+                  style={{ marginBottom: Spacing.m }}
+                >
+                  {selectedType === "asset"
+                    ? STRINGS.vision.addAsset
+                    : STRINGS.vision.addLiability}
+                </Typography>
 
-            {selectedType === "asset" && (
-              <View style={{ flexDirection: "row", marginBottom: Spacing.m }}>
-                <TouchableOpacity
-                  style={{
-                    flex: 1,
-                    padding: Spacing.s,
-                    backgroundColor: !isCrypto
-                      ? colors.primary
-                      : colors.surface,
-                    alignItems: "center",
-                    borderTopLeftRadius: BorderRadius.m,
-                    borderBottomLeftRadius: BorderRadius.m,
-                  }}
-                  onPress={() => {
-                    setIsCrypto(false);
-                    setAmount("");
-                  }}
-                >
-                  <Typography
-                    variant="caption"
-                    style={{ color: !isCrypto ? "#FFF" : colors.text }}
+                {selectedType === "asset" && (
+                  <View
+                    style={{ flexDirection: "row", marginBottom: Spacing.m }}
                   >
-                    Dinero Fiat
-                  </Typography>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={{
-                    flex: 1,
-                    padding: Spacing.s,
-                    backgroundColor: isCrypto ? colors.primary : colors.surface,
-                    alignItems: "center",
-                    borderTopRightRadius: BorderRadius.m,
-                    borderBottomRightRadius: BorderRadius.m,
-                  }}
-                  onPress={() => {
-                    setIsCrypto(true);
-                    setAmount("");
-                  }}
-                >
-                  <Typography
-                    variant="caption"
-                    style={{ color: isCrypto ? "#FFF" : colors.text }}
-                  >
-                    Criptomoneda
-                  </Typography>
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {isCrypto && selectedType === "asset" ? (
-              <>
-                <View
-                  style={{
-                    flexDirection: "row",
-                    justifyContent: "space-around",
-                    marginBottom: Spacing.m,
-                  }}
-                >
-                  {(["BTC", "ETH", "USDT"] as const).map((symbol) => (
                     <TouchableOpacity
-                      key={symbol}
-                      onPress={() => {
-                        setSelectedCrypto(symbol);
-                        // useEffect will trigger fetchPriceForSymbol
-                      }}
                       style={{
+                        flex: 1,
                         padding: Spacing.s,
-                        borderRadius: BorderRadius.m,
-                        backgroundColor:
-                          selectedCrypto === symbol
-                            ? colors.primary
-                            : colors.surface,
-                        borderWidth: 1,
-                        borderColor: colors.border,
+                        backgroundColor: !isCrypto
+                          ? colors.primary
+                          : colors.surface,
+                        alignItems: "center",
+                        borderTopLeftRadius: BorderRadius.m,
+                        borderBottomLeftRadius: BorderRadius.m,
+                      }}
+                      onPress={() => {
+                        setIsCrypto(false);
+                        setAmount("");
                       }}
                     >
                       <Typography
-                        style={{
-                          color:
-                            selectedCrypto === symbol ? "#FFF" : colors.text,
-                        }}
+                        variant="caption"
+                        style={{ color: !isCrypto ? "#FFF" : colors.text }}
                       >
-                        {symbol}
+                        Dinero Fiat
                       </Typography>
                     </TouchableOpacity>
-                  ))}
-                </View>
+                    <TouchableOpacity
+                      style={{
+                        flex: 1,
+                        padding: Spacing.s,
+                        backgroundColor: isCrypto
+                          ? colors.primary
+                          : colors.surface,
+                        alignItems: "center",
+                        borderTopRightRadius: BorderRadius.m,
+                        borderBottomRightRadius: BorderRadius.m,
+                      }}
+                      onPress={() => {
+                        setIsCrypto(true);
+                        setAmount("");
+                      }}
+                    >
+                      <Typography
+                        variant="caption"
+                        style={{ color: isCrypto ? "#FFF" : colors.text }}
+                      >
+                        Criptomoneda
+                      </Typography>
+                    </TouchableOpacity>
+                  </View>
+                )}
+
+                {isCrypto && selectedType === "asset" ? (
+                  <>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        justifyContent: "space-around",
+                        marginBottom: Spacing.m,
+                      }}
+                    >
+                      {(["BTC", "ETH", "USDT"] as const).map((symbol) => (
+                        <TouchableOpacity
+                          key={symbol}
+                          onPress={() => {
+                            setSelectedCrypto(symbol);
+                            // useEffect will trigger fetchPriceForSymbol
+                          }}
+                          style={{
+                            padding: Spacing.s,
+                            borderRadius: BorderRadius.m,
+                            backgroundColor:
+                              selectedCrypto === symbol
+                                ? colors.primary
+                                : colors.surface,
+                            borderWidth: 1,
+                            borderColor: colors.border,
+                          }}
+                        >
+                          <Typography
+                            style={{
+                              color:
+                                selectedCrypto === symbol
+                                  ? "#FFF"
+                                  : colors.text,
+                            }}
+                          >
+                            {symbol}
+                          </Typography>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+
+                    <Input
+                      label="Cantidad Cripto"
+                      value={cryptoAmount}
+                      onChangeText={handleCryptoAmountChange}
+                      placeholder="0.00"
+                      keyboardType="numeric"
+                    />
+
+                    {cryptoPrice && (
+                      <Typography
+                        variant="caption"
+                        style={{ marginBottom: Spacing.m, textAlign: "center" }}
+                      >
+                        Precio actual: {formatCurrency(cryptoPrice)} MXN
+                      </Typography>
+                    )}
+                  </>
+                ) : null}
 
                 <Input
-                  label="Cantidad Cripto"
-                  value={cryptoAmount}
-                  onChangeText={handleCryptoAmountChange}
-                  placeholder="0.00"
+                  label={STRINGS.vision.name}
+                  value={name}
+                  onChangeText={setName}
+                  placeholder="Ej: Casa, Préstamo..."
+                />
+                <Input
+                  label={STRINGS.vision.description}
+                  value={description}
+                  onChangeText={setDescription}
+                  placeholder="Opcional"
+                />
+                <Input
+                  label={STRINGS.wallet.amount}
+                  value={
+                    isCrypto
+                      ? amount
+                        ? formatCurrency(Number(amount)).replace("$", "").trim()
+                        : ""
+                      : amount
+                  }
+                  onChangeText={(text) =>
+                    !isCrypto && setAmount(formatAmountInput(text))
+                  }
                   keyboardType="numeric"
+                  placeholder="0.00"
+                  editable={!isCrypto}
                 />
 
-                {cryptoPrice && (
-                  <Typography
-                    variant="caption"
-                    style={{ marginBottom: Spacing.m, textAlign: "center" }}
-                  >
-                    Precio actual: {formatCurrency(cryptoPrice)} MXN
-                  </Typography>
-                )}
-              </>
-            ) : null}
-
-            <Input
-              label={STRINGS.vision.name}
-              value={name}
-              onChangeText={setName}
-              placeholder="Ej: Casa, Préstamo..."
-            />
-            <Input
-              label={STRINGS.vision.description}
-              value={description}
-              onChangeText={setDescription}
-              placeholder="Opcional"
-            />
-            <Input
-              label={STRINGS.wallet.amount}
-              value={
-                isCrypto
-                  ? amount
-                    ? formatCurrency(Number(amount)).replace("$", "").trim()
-                    : ""
-                  : amount
-              }
-              onChangeText={(text) =>
-                !isCrypto && setAmount(formatAmountInput(text))
-              }
-              keyboardType="numeric"
-              placeholder="0.00"
-              editable={!isCrypto}
-            />
-
-            <View style={styles.modalActions}>
-              <Button
-                title={STRINGS.common.cancel}
-                variant="outline"
-                onPress={() => setAddModalVisible(false)}
-                style={{ flex: 1, marginRight: Spacing.s }}
-              />
-              <Button
-                title={STRINGS.common.save}
-                onPress={handleAddEntity}
-                loading={isSaving}
-                style={{ flex: 1, marginLeft: Spacing.s }}
-              />
-            </View>
-          </View>
-        </View>
+                <View style={styles.modalActions}>
+                  <Button
+                    title={STRINGS.common.cancel}
+                    variant="outline"
+                    onPress={() => setAddModalVisible(false)}
+                    style={{ flex: 1, marginRight: Spacing.s }}
+                  />
+                  <Button
+                    title={STRINGS.common.save}
+                    onPress={handleAddEntity}
+                    loading={isSaving}
+                    style={{ flex: 1, marginLeft: Spacing.s }}
+                  />
+                </View>
+              </TouchableOpacity>
+            </TouchableWithoutFeedback>
+          </TouchableOpacity>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Detail Modal */}
       <Modal
         animationType="slide"
+        transparent={true}
         visible={detailModalVisible}
         onRequestClose={() => setDetailModalVisible(false)}
       >
-        <ThemedView style={{ flex: 1, paddingTop: 50 }}>
-          {selectedEntity && (
-            <View style={{ flex: 1, padding: Spacing.m }}>
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: Spacing.m,
-                }}
-              >
-                <TouchableOpacity onPress={() => setDetailModalVisible(false)}>
-                  <Typography variant="body" style={{ color: colors.primary }}>
-                    {STRINGS.common.close}
-                  </Typography>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => handleDeleteEntity(selectedEntity.id)}
-                >
-                  <IconSymbol
-                    name="trash.fill"
-                    size={24}
-                    color={colors.error}
-                  />
-                </TouchableOpacity>
-              </View>
-
-              <Typography variant="h1" weight="bold">
-                {selectedEntity.name}
-              </Typography>
-              <Typography variant="h2" style={{ color: colors.primary }}>
-                {formatCurrency(selectedEntity.amount)}
-              </Typography>
-
-              {selectedEntity.isCrypto &&
-              selectedEntity.cryptoAmount &&
-              selectedEntity.cryptoSymbol ? (
-                <View
-                  style={{ alignItems: "flex-start", marginTop: Spacing.s }}
-                >
-                  <Typography variant="body" weight="bold">
-                    {selectedEntity.cryptoAmount} {selectedEntity.cryptoSymbol}
-                  </Typography>
-                  <Button
-                    title="Actualizar Precio"
-                    variant="outline"
-                    onPress={() => handleUpdateCryptoPrice(selectedEntity)}
-                    loading={isSaving}
-                    style={{ marginTop: Spacing.xs, alignSelf: "flex-start" }}
-                  />
-                </View>
-              ) : null}
-
-              {selectedEntity.description ? (
-                <Typography variant="body" style={{ marginTop: Spacing.xs }}>
-                  {selectedEntity.description}
-                </Typography>
-              ) : null}
-
-              <View style={{ marginTop: Spacing.l, flex: 1 }}>
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setDetailModalVisible(false)}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+            style={[
+              styles.modalContent,
+              { backgroundColor: colors.background, height: "85%" },
+            ]}
+          >
+            {selectedEntity && (
+              <View style={{ flex: 1, padding: Spacing.m }}>
                 <View
                   style={{
                     flexDirection: "row",
                     justifyContent: "space-between",
                     alignItems: "center",
-                    marginBottom: Spacing.s,
+                    marginBottom: Spacing.m,
                   }}
                 >
-                  <Typography variant="h3" weight="bold">
-                    {STRINGS.vision.transactionHistory}
-                  </Typography>
                   <TouchableOpacity
-                    onPress={() => setShowAddTransaction(!showAddTransaction)}
+                    onPress={() => setDetailModalVisible(false)}
+                  >
+                    <Typography
+                      variant="body"
+                      style={{ color: colors.primary }}
+                    >
+                      {STRINGS.common.close}
+                    </Typography>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => handleDeleteEntity(selectedEntity.id)}
                   >
                     <IconSymbol
-                      name={
-                        showAddTransaction
-                          ? "minus.circle.fill"
-                          : "plus.circle.fill"
-                      }
+                      name="trash.fill"
                       size={24}
-                      color={colors.primary}
+                      color={colors.error}
                     />
                   </TouchableOpacity>
                 </View>
 
-                {showAddTransaction && (
-                  <Card style={{ marginBottom: Spacing.m }}>
-                    <Typography
-                      variant="caption"
-                      weight="bold"
-                      style={{ marginBottom: Spacing.s }}
-                    >
-                      Nueva Transacción para {selectedEntity.name}
-                    </Typography>
-                    <View
-                      style={{ flexDirection: "row", marginBottom: Spacing.s }}
-                    >
-                      {selectedEntity.type === "asset" ? (
-                        <Button
-                          title={STRINGS.wallet.income}
-                          variant="primary"
-                          onPress={() => {}}
-                          style={{ flex: 1 }}
-                        />
-                      ) : (
-                        <Button
-                          title={STRINGS.wallet.expense}
-                          variant="primary"
-                          onPress={() => {}}
-                          style={{ flex: 1 }}
-                        />
-                      )}
-                    </View>
-                    <Input
-                      placeholder={STRINGS.wallet.amount}
-                      value={transactionAmount}
-                      onChangeText={(t) =>
-                        setTransactionAmount(formatAmountInput(t))
-                      }
-                      keyboardType="numeric"
-                    />
-                    <Input
-                      placeholder={STRINGS.wallet.description}
-                      value={transactionDescription}
-                      onChangeText={setTransactionDescription}
-                    />
-                    <Button
-                      title={STRINGS.common.save}
-                      onPress={handleAddTransactionToEntity}
-                      loading={isSaving}
-                    />
-                  </Card>
-                )}
+                <Typography variant="h1" weight="bold">
+                  {selectedEntity.name}
+                </Typography>
+                <Typography variant="h2" style={{ color: colors.primary }}>
+                  {formatCurrency(selectedEntity.amount)}
+                </Typography>
 
-                <FlatList
-                  data={getEntityTransactions(selectedEntity.id)}
-                  keyExtractor={(item) => item.id}
-                  renderItem={({ item }) => (
-                    <Card
-                      style={{ marginBottom: Spacing.xs, padding: Spacing.s }}
+                {selectedEntity.isCrypto &&
+                selectedEntity.cryptoAmount &&
+                selectedEntity.cryptoSymbol ? (
+                  <View
+                    style={{ alignItems: "flex-start", marginTop: Spacing.s }}
+                  >
+                    <Typography variant="body" weight="bold">
+                      {selectedEntity.cryptoAmount}{" "}
+                      {selectedEntity.cryptoSymbol}
+                    </Typography>
+                    <Button
+                      title="Actualizar Precio"
+                      variant="outline"
+                      onPress={() => handleUpdateCryptoPrice(selectedEntity)}
+                      loading={isSaving}
+                      style={{ marginTop: Spacing.xs, alignSelf: "flex-start" }}
+                    />
+                  </View>
+                ) : null}
+
+                {selectedEntity.description ? (
+                  <Typography variant="body" style={{ marginTop: Spacing.xs }}>
+                    {selectedEntity.description}
+                  </Typography>
+                ) : null}
+
+                <View style={{ marginTop: Spacing.l, flex: 1 }}>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      marginBottom: Spacing.s,
+                    }}
+                  >
+                    <Typography variant="h3" weight="bold">
+                      {STRINGS.vision.transactionHistory}
+                    </Typography>
+                    <TouchableOpacity
+                      onPress={() => setShowAddTransaction(!showAddTransaction)}
                     >
+                      <IconSymbol
+                        name={
+                          showAddTransaction
+                            ? "minus.circle.fill"
+                            : "plus.circle.fill"
+                        }
+                        size={24}
+                        color={colors.primary}
+                      />
+                    </TouchableOpacity>
+                  </View>
+
+                  {showAddTransaction && (
+                    <Card style={{ marginBottom: Spacing.m }}>
+                      <Typography
+                        variant="caption"
+                        weight="bold"
+                        style={{ marginBottom: Spacing.s }}
+                      >
+                        Nueva Transacción para {selectedEntity.name}
+                      </Typography>
                       <View
                         style={{
                           flexDirection: "row",
-                          justifyContent: "space-between",
+                          marginBottom: Spacing.s,
                         }}
                       >
-                        <View>
-                          <Typography variant="body" weight="bold">
-                            {item.description}
-                          </Typography>
-                          <Typography variant="caption">
-                            {new Date(item.date).toLocaleDateString()}
-                          </Typography>
-                        </View>
-                        <Typography
-                          variant="body"
-                          weight="bold"
-                          style={{
-                            color:
-                              item.type === "income"
-                                ? colors.success
-                                : colors.error,
-                          }}
-                        >
-                          {item.type === "income" ? "+" : "-"}{" "}
-                          {formatCurrency(item.amount)}
-                        </Typography>
+                        {selectedEntity.type === "asset" ? (
+                          <Button
+                            title={STRINGS.wallet.income}
+                            variant="primary"
+                            onPress={() => {}}
+                            style={{ flex: 1 }}
+                          />
+                        ) : (
+                          <Button
+                            title={STRINGS.wallet.expense}
+                            variant="primary"
+                            onPress={() => {}}
+                            style={{ flex: 1 }}
+                          />
+                        )}
                       </View>
+                      <Input
+                        placeholder={STRINGS.wallet.amount}
+                        value={transactionAmount}
+                        onChangeText={(t) =>
+                          setTransactionAmount(formatAmountInput(t))
+                        }
+                        keyboardType="numeric"
+                      />
+                      <Input
+                        placeholder={STRINGS.wallet.description}
+                        value={transactionDescription}
+                        onChangeText={setTransactionDescription}
+                      />
+                      <Button
+                        title={STRINGS.common.save}
+                        onPress={handleAddTransactionToEntity}
+                        loading={isSaving}
+                      />
                     </Card>
                   )}
-                  ListEmptyComponent={
-                    <Typography
-                      variant="caption"
-                      style={{ textAlign: "center", marginTop: Spacing.m }}
-                    >
-                      {STRINGS.wallet.noRecentTransactions}
-                    </Typography>
-                  }
-                />
+
+                  <FlatList
+                    data={getEntityTransactions(selectedEntity.id)}
+                    keyExtractor={(item) => item.id}
+                    renderItem={({ item }) => (
+                      <Card
+                        style={{ marginBottom: Spacing.xs, padding: Spacing.s }}
+                      >
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <View>
+                            <Typography variant="body" weight="bold">
+                              {item.description}
+                            </Typography>
+                            <Typography variant="caption">
+                              {new Date(item.date).toLocaleDateString()}
+                            </Typography>
+                          </View>
+                          <Typography
+                            variant="body"
+                            weight="bold"
+                            style={{
+                              color:
+                                item.type === "income"
+                                  ? colors.success
+                                  : colors.error,
+                            }}
+                          >
+                            {item.type === "income" ? "+" : "-"}{" "}
+                            {formatCurrency(item.amount)}
+                          </Typography>
+                        </View>
+                      </Card>
+                    )}
+                    ListEmptyComponent={
+                      <Typography
+                        variant="caption"
+                        style={{ textAlign: "center", marginTop: Spacing.m }}
+                      >
+                        {STRINGS.wallet.noRecentTransactions}
+                      </Typography>
+                    }
+                  />
+                </View>
               </View>
-            </View>
-          )}
-        </ThemedView>
+            )}
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Modal>
     </ThemedView>
   );
