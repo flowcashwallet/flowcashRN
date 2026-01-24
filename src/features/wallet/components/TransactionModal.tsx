@@ -1,6 +1,7 @@
 import { Button } from "@/components/atoms/Button";
 import { Input } from "@/components/atoms/Input";
 import { Typography } from "@/components/atoms/Typography";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { BorderRadius, Colors, Spacing } from "@/constants/theme";
 import { VisionEntity } from "@/features/vision/data/visionSlice";
 import { fetchCategories } from "@/features/wallet/data/categoriesSlice";
@@ -8,6 +9,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import STRINGS from "@/i18n/es.json";
 import { AppDispatch, RootState } from "@/store/store";
 import { formatAmountInput } from "@/utils/format";
+import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   Keyboard,
@@ -47,6 +49,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   visionEntities,
   isSaving,
 }) => {
+  const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
   const { user } = useSelector((state: RootState) => state.auth);
   const { categories } = useSelector((state: RootState) => state.categories);
@@ -174,13 +177,25 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                       color: selectedCategory
                         ? colors.text
                         : colors.text + "80",
+                      flex: 1,
                     }}
                   >
                     {selectedCategory || STRINGS.wallet.selectCategory}
                   </Typography>
-                  <Typography variant="body" style={{ color: colors.text }}>
-                    {isCategoryDropdownOpen ? "▲" : "▼"}
-                  </Typography>
+                  <View style={{ flexDirection: "row", alignItems: "center" }}>
+                    <TouchableOpacity
+                      onPress={() => {
+                        onClose();
+                        router.push("/wallet/categories");
+                      }}
+                      style={{ marginRight: Spacing.s, padding: 4 }}
+                    >
+                      <IconSymbol name="pencil" size={16} color={colors.text} />
+                    </TouchableOpacity>
+                    <Typography variant="body" style={{ color: colors.text }}>
+                      {isCategoryDropdownOpen ? "▲" : "▼"}
+                    </Typography>
+                  </View>
                 </View>
               </TouchableOpacity>
 

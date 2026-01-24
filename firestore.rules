@@ -1,0 +1,46 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+    
+    function isResourceOwner() {
+      return request.auth != null && resource.data.userId == request.auth.uid;
+    }
+    
+    function isCreatingOwnedResource() {
+      return request.auth != null && request.resource.data.userId == request.auth.uid;
+    }
+
+    // Users collection: Document ID must match User ID
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+    
+    // Budgets collection: Document ID must match User ID
+    match /budgets/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+    
+    // Transactions: Document ID is auto-generated, check userId field
+    match /transactions/{transactionId} {
+      allow create: if isCreatingOwnedResource();
+      allow read, update, delete: if isResourceOwner();
+    }
+    
+    // Vision (Assets/Liabilities): Document ID is auto-generated, check userId field
+    match /vision/{entityId} {
+      allow create: if isCreatingOwnedResource();
+      allow read, update, delete: if isResourceOwner();
+    }
+    
+    // Categories: Document ID is auto-generated, check userId field
+    match /categories/{categoryId} {
+      allow create: if isCreatingOwnedResource();
+      allow read, update, delete: if isResourceOwner();
+    }
+  }
+}

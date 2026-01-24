@@ -13,7 +13,7 @@ import {
 } from "@/features/wallet/data/categoriesSlice";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { AppDispatch, RootState } from "@/store/store";
-import { Stack } from "expo-router";
+import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -21,14 +21,18 @@ import {
   FlatList,
   Keyboard,
   Modal,
+  Pressable,
   StyleSheet,
   TouchableOpacity,
   TouchableWithoutFeedback,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useDispatch, useSelector } from "react-redux";
 
 export default function CategoriesScreen() {
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
   const dispatch = useDispatch<AppDispatch>();
   const { user } = useSelector((state: RootState) => state.auth);
   const { categories, loading } = useSelector(
@@ -122,27 +126,51 @@ export default function CategoriesScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <Stack.Screen
-        options={{
-          title: "Categorías",
-          headerStyle: {
-            backgroundColor: colors.surfaceHighlight || colors.surface,
-          },
-          headerTintColor: colors.text,
-          headerTitleStyle: {
-            fontWeight: "bold",
-          },
-          headerRight: () => (
-            <TouchableOpacity onPress={openAddModal}>
-              <IconSymbol
-                name="plus.circle.fill"
-                size={24}
-                color={colors.primary}
-              />
-            </TouchableOpacity>
-          ),
+      <View
+        style={{
+          paddingTop: insets.top,
+          backgroundColor: colors.surfaceHighlight,
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          paddingHorizontal: Spacing.s,
+          paddingBottom: Spacing.s,
+          borderBottomWidth: StyleSheet.hairlineWidth,
+          borderBottomColor: colors.border,
         }}
-      />
+      >
+        <Pressable
+          onPress={() => router.back()}
+          hitSlop={20}
+          style={({ pressed }) => ({
+            width: 44,
+            height: 44,
+            justifyContent: "center",
+            alignItems: "center",
+            opacity: pressed ? 0.6 : 1,
+          })}
+        >
+          <IconSymbol name="arrow.left" size={24} color={colors.text} />
+        </Pressable>
+
+        <Typography variant="h3" weight="bold" style={{ color: colors.text }}>
+          Categorías
+        </Typography>
+
+        <Pressable
+          onPress={openAddModal}
+          hitSlop={20}
+          style={({ pressed }) => ({
+            width: 44,
+            height: 44,
+            justifyContent: "center",
+            alignItems: "center",
+            opacity: pressed ? 0.6 : 1,
+          })}
+        >
+          <IconSymbol name="plus" size={24} color={colors.primary} />
+        </Pressable>
+      </View>
 
       <FlatList
         data={categories}
