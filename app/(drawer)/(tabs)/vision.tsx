@@ -66,6 +66,8 @@ export default function VisionScreen() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
+  const [category, setCategory] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   // Crypto State
@@ -191,42 +193,79 @@ export default function VisionScreen() {
     }
   };
 
+  const resetForm = () => {
+    setName("");
+    setDescription("");
+    setAmount("");
+    setCategory("");
+    setIsCrypto(false);
+    setCryptoAmount("");
+    setCryptoPrice(null);
+    setIsEditing(false);
+    // Do not nullify selectedEntity here if we want to return to detail view,
+    // but for now let's assume we close everything or just the add modal.
+    // If we are editing, we probably want to keep selectedEntity to update the detail view?
+    // The detail view updates automatically via Redux selector if we just close the edit modal.
+  };
+
   const handleAddEntity = () => {
     if (!name || !amount || !user?.uid) return;
     setIsSaving(true);
-    dispatch(
-      addVisionEntity({
-        userId: user.uid,
-        name,
-        description,
-        amount: parseAmount(amount),
-        type: selectedType,
-        createdAt: Date.now(),
-        isCrypto: selectedType === "asset" && isCrypto,
-        ...(isCrypto && selectedType === "asset"
-          ? {
-              cryptoSymbol: selectedCrypto,
-              cryptoAmount: parseAmount(cryptoAmount),
-            }
-          : {}),
-      }),
-    )
-      .unwrap()
-      .then(() => {
-        setAddModalVisible(false);
-        setName("");
-        setDescription("");
-        setAmount("");
-        setIsCrypto(false);
-        setCryptoAmount("");
-        setCryptoPrice(null);
-      })
-      .catch((error) => {
-        Alert.alert(STRINGS.common.error, error);
-      })
-      .finally(() => {
-        setIsSaving(false);
-      });
+
+    const commonData = {
+      userId: user.uid,
+      name,
+      description,
+      amount: parseAmount(amount),
+      type: selectedType,
+      category,
+      isCrypto: selectedType === "asset" && isCrypto,
+      ...(isCrypto && selectedType === "asset"
+        ? {
+            cryptoSymbol: selectedCrypto,
+            cryptoAmount: parseAmount(cryptoAmount),
+          }
+        : {}),
+    };
+
+    if (isEditing && selectedEntity) {
+      dispatch(
+        updateVisionEntity({
+          ...selectedEntity,
+          ...commonData,
+        }),
+      )
+        .unwrap()
+        .then((updatedEntity) => {
+          setAddModalVisible(false);
+          setSelectedEntity(updatedEntity); // Update local state for detail view
+          resetForm();
+        })
+        .catch((error) => {
+          Alert.alert(STRINGS.common.error, error);
+        })
+        .finally(() => {
+          setIsSaving(false);
+        });
+    } else {
+      dispatch(
+        addVisionEntity({
+          ...commonData,
+          createdAt: Date.now(),
+        }),
+      )
+        .unwrap()
+        .then(() => {
+          setAddModalVisible(false);
+          resetForm();
+        })
+        .catch((error) => {
+          Alert.alert(STRINGS.common.error, error);
+        })
+        .finally(() => {
+          setIsSaving(false);
+        });
+    }
   };
 
   const handleAddTransactionToEntity = () => {
@@ -322,9 +361,8 @@ export default function VisionScreen() {
   };
 
   const renderEntityItem = ({ item }: { item: VisionEntity }) => {
-    // Vivid colors for item borders/accents
-    const assetGradient = ["#00F260", "#0575E6"] as const; // Green to Blue
-    const liabilityGradient = ["#FF416C", "#FF4B2B"] as const; // Red to Orange
+    const isAsset = item.type === "asset";
+    const indicatorColor = isAsset ? colors.success : colors.error;
 
     return (
       <TouchableOpacity
@@ -337,63 +375,91 @@ export default function VisionScreen() {
           setSelectedEntity(item);
           setDetailModalVisible(true);
         }}
-        activeOpacity={0.8}
+        activeOpacity={0.7}
+        style={{
+          marginBottom: Spacing.m,
+          borderRadius: BorderRadius.l,
+          backgroundColor: colors.surface,
+          ...Platform.select({
+            ios: {
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.05,
+              shadowRadius: 8,
+            },
+            android: {
+              elevation: 2,
+            },
+          }),
+        }}
       >
-        <LinearGradient
-          colors={item.type === "asset" ? assetGradient : liabilityGradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
+        <View
           style={{
+            flexDirection: "row",
+            overflow: "hidden",
             borderRadius: BorderRadius.l,
-            padding: 2, // Border width
-            marginBottom: Spacing.m,
           }}
         >
-          <View
-            style={{
-              backgroundColor: colors.surface,
-              borderRadius: BorderRadius.l - 2,
-              padding: Spacing.m,
-            }}
-          >
+          {/* Side Indicator */}
+          <View style={{ width: 6, backgroundColor: indicatorColor }} />
+
+          <View style={{ flex: 1, padding: Spacing.m }}>
             <View
-              style={{ flexDirection: "row", justifyContent: "space-between" }}
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
             >
               <View>
                 <Typography variant="body" weight="bold">
                   {item.name}
                 </Typography>
+                {item.category && (
+                  <Typography
+                    variant="caption"
+                    style={{ color: colors.text, opacity: 0.6, marginTop: 2 }}
+                  >
+                    {item.category}
+                  </Typography>
+                )}
                 {item.isCrypto && item.cryptoAmount && item.cryptoSymbol ? (
                   <Typography
                     variant="caption"
-                    style={{ color: colors.primary, fontWeight: "600" }}
+                    style={{
+                      color: colors.primary,
+                      fontWeight: "600",
+                      marginTop: 2,
+                    }}
                   >
                     {item.cryptoAmount} {item.cryptoSymbol}
                   </Typography>
                 ) : null}
+              </View>
+
+              <View style={{ alignItems: "flex-end" }}>
+                <Typography
+                  variant="body"
+                  weight="bold"
+                  style={{ color: indicatorColor }}
+                >
+                  {formatCurrency(
+                    item.type === "liability" ? -item.amount : item.amount,
+                  )}
+                </Typography>
                 {item.description ? (
-                  <Typography variant="caption" style={{ color: colors.icon }}>
+                  <Typography
+                    variant="caption"
+                    style={{ color: colors.icon, maxWidth: 120 }}
+                    numberOfLines={1}
+                  >
                     {item.description}
                   </Typography>
                 ) : null}
               </View>
-              <Typography
-                variant="body"
-                weight="bold"
-                style={{
-                  color:
-                    item.type === "asset"
-                      ? Colors.light.success
-                      : Colors.light.error, // Use consistent vivid colors
-                }}
-              >
-                {formatCurrency(
-                  item.type === "liability" ? -item.amount : item.amount,
-                )}
-              </Typography>
             </View>
           </View>
-        </LinearGradient>
+        </View>
       </TouchableOpacity>
     );
   };
@@ -418,15 +484,73 @@ export default function VisionScreen() {
           end={{ x: 1, y: 1 }}
           style={styles.headerCard}
         >
-          <Typography
-            variant="h3"
-            style={{ color: "rgba(255,255,255,0.8)", marginBottom: Spacing.xs }}
+          <View style={{ alignItems: "center", marginBottom: Spacing.m }}>
+            <Typography
+              variant="h3"
+              style={{
+                color: "rgba(255,255,255,0.8)",
+                marginBottom: Spacing.xs,
+              }}
+            >
+              {STRINGS.vision.netWorth}
+            </Typography>
+            <Typography
+              variant="h1"
+              weight="bold"
+              style={{ color: "#FFF", fontSize: 36 }}
+            >
+              {formatCurrency(netWorth)}
+            </Typography>
+          </View>
+
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              width: "100%",
+              paddingTop: Spacing.s,
+              borderTopWidth: 1,
+              borderTopColor: "rgba(255,255,255,0.2)",
+            }}
           >
-            {STRINGS.vision.netWorth}
-          </Typography>
-          <Typography variant="h1" weight="bold" style={{ color: "#FFF" }}>
-            {formatCurrency(netWorth)}
-          </Typography>
+            <View style={{ alignItems: "center", flex: 1 }}>
+              <Typography
+                variant="caption"
+                style={{ color: "rgba(255,255,255,0.8)" }}
+              >
+                {STRINGS.vision.assets}
+              </Typography>
+              <Typography
+                variant="body"
+                weight="bold"
+                style={{ color: "#FFF" }}
+              >
+                ↑ {formatCurrency(totalAssets)}
+              </Typography>
+            </View>
+            <View
+              style={{
+                width: 1,
+                height: "100%",
+                backgroundColor: "rgba(255,255,255,0.2)",
+              }}
+            />
+            <View style={{ alignItems: "center", flex: 1 }}>
+              <Typography
+                variant="caption"
+                style={{ color: "rgba(255,255,255,0.8)" }}
+              >
+                {STRINGS.vision.liabilities}
+              </Typography>
+              <Typography
+                variant="body"
+                weight="bold"
+                style={{ color: "#FFF" }}
+              >
+                ↓ {formatCurrency(totalLiabilities)}
+              </Typography>
+            </View>
+          </View>
         </LinearGradient>
 
         {/* Tabs Selector */}
@@ -435,8 +559,17 @@ export default function VisionScreen() {
             flexDirection: "row",
             marginBottom: Spacing.m,
             backgroundColor: colors.surface,
-            borderRadius: BorderRadius.l,
+            borderRadius: BorderRadius.xl,
             padding: 4,
+            ...Platform.select({
+              ios: {
+                shadowColor: "#000",
+                shadowOpacity: 0.05,
+                shadowRadius: 4,
+                shadowOffset: { width: 0, height: 2 },
+              },
+              android: { elevation: 2 },
+            }),
           }}
         >
           <TouchableOpacity
@@ -444,7 +577,7 @@ export default function VisionScreen() {
               flex: 1,
               paddingVertical: Spacing.s,
               alignItems: "center",
-              borderRadius: BorderRadius.m,
+              borderRadius: BorderRadius.l,
               backgroundColor:
                 activeTab === "asset" ? colors.primary : "transparent",
             }}
@@ -460,12 +593,13 @@ export default function VisionScreen() {
               {STRINGS.vision.assets}
             </Typography>
           </TouchableOpacity>
+
           <TouchableOpacity
             style={{
               flex: 1,
               paddingVertical: Spacing.s,
               alignItems: "center",
-              borderRadius: BorderRadius.m,
+              borderRadius: BorderRadius.l,
               backgroundColor:
                 activeTab === "liability" ? colors.primary : "transparent",
             }}
@@ -493,6 +627,7 @@ export default function VisionScreen() {
               <TouchableOpacity
                 onPress={() => {
                   setSelectedType("asset");
+                  resetForm(); // Reset and ensure isEditing is false
                   setAddModalVisible(true);
                 }}
               >
@@ -528,6 +663,7 @@ export default function VisionScreen() {
               <TouchableOpacity
                 onPress={() => {
                   setSelectedType("liability");
+                  resetForm();
                   setAddModalVisible(true);
                 }}
               >
@@ -584,9 +720,11 @@ export default function VisionScreen() {
                   weight="bold"
                   style={{ marginBottom: Spacing.m }}
                 >
-                  {selectedType === "asset"
-                    ? STRINGS.vision.addAsset
-                    : STRINGS.vision.addLiability}
+                  {isEditing
+                    ? "Editar"
+                    : selectedType === "asset"
+                      ? STRINGS.vision.addAsset
+                      : STRINGS.vision.addLiability}
                 </Typography>
 
                 {selectedType === "asset" && (
@@ -708,6 +846,52 @@ export default function VisionScreen() {
                   onChangeText={setName}
                   placeholder="Ej: Casa, Préstamo..."
                 />
+
+                <Typography
+                  variant="caption"
+                  style={{
+                    color: colors.text,
+                    marginBottom: Spacing.xs,
+                    marginLeft: 4,
+                  }}
+                >
+                  Categoría
+                </Typography>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={{ marginBottom: Spacing.m }}
+                >
+                  {(selectedType === "asset"
+                    ? STRINGS.vision.categories.asset
+                    : STRINGS.vision.categories.liability
+                  ).map((cat) => (
+                    <TouchableOpacity
+                      key={cat}
+                      onPress={() => setCategory(cat)}
+                      style={{
+                        paddingHorizontal: Spacing.m,
+                        paddingVertical: Spacing.s,
+                        borderRadius: BorderRadius.l,
+                        backgroundColor:
+                          category === cat ? colors.primary : colors.surface,
+                        marginRight: Spacing.s,
+                        borderWidth: 1,
+                        borderColor:
+                          category === cat ? colors.primary : colors.border,
+                      }}
+                    >
+                      <Typography
+                        variant="body"
+                        style={{
+                          color: category === cat ? "#FFF" : colors.text,
+                        }}
+                      >
+                        {cat}
+                      </Typography>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
                 <Input
                   label={STRINGS.vision.description}
                   value={description}
@@ -791,15 +975,50 @@ export default function VisionScreen() {
                       {STRINGS.common.close}
                     </Typography>
                   </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => handleDeleteEntity(selectedEntity.id)}
-                  >
-                    <IconSymbol
-                      name="trash.fill"
-                      size={24}
-                      color={colors.error}
-                    />
-                  </TouchableOpacity>
+
+                  <View style={{ flexDirection: "row", alignItems: "center" }}>
+                    <TouchableOpacity
+                      onPress={() => {
+                        setName(selectedEntity.name);
+                        setDescription(selectedEntity.description || "");
+                        setAmount(selectedEntity.amount.toString());
+                        setCategory(selectedEntity.category || "");
+                        setSelectedType(selectedEntity.type);
+                        if (selectedEntity.isCrypto) {
+                          setIsCrypto(true);
+                          setSelectedCrypto(
+                            (selectedEntity.cryptoSymbol as any) || "BTC",
+                          );
+                          setCryptoAmount(
+                            selectedEntity.cryptoAmount?.toString() || "",
+                          );
+                        } else {
+                          setIsCrypto(false);
+                        }
+
+                        setIsEditing(true);
+                        setDetailModalVisible(false);
+                        setAddModalVisible(true);
+                      }}
+                      style={{ marginRight: Spacing.m }}
+                    >
+                      <IconSymbol
+                        name="pencil"
+                        size={24}
+                        color={colors.primary}
+                      />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      onPress={() => handleDeleteEntity(selectedEntity.id)}
+                    >
+                      <IconSymbol
+                        name="trash.fill"
+                        size={24}
+                        color={colors.error}
+                      />
+                    </TouchableOpacity>
+                  </View>
                 </View>
 
                 <Typography variant="h1" weight="bold">

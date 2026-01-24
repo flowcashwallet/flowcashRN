@@ -25,10 +25,29 @@
     "addAsset": "Agregar Activo",
     "addLiability": "Agregar Pasivo",
     "name": "Nombre",
-    "description": "Descripción",
     "netWorth": "Patrimonio Neto",
     "noAssets": "No hay activos registrados",
     "noLiabilities": "No hay pasivos registrados",
+    "categories": {
+      "asset": [
+        "🏠 Casa",
+        "🚗 Auto",
+        "🏦 Banco",
+        "💰 Efectivo",
+        "₿ Cripto",
+        "📈 Inversiones",
+        "💎 Joyas",
+        "🔁 Otros"
+      ],
+      "liability": [
+        "💳 Tarjeta de Crédito",
+        "🏦 Préstamo",
+        "🚗 Crédito Automotriz",
+        "🏠 Hipoteca",
+        "🎓 Crédito Educativo",
+        "🔁 Otros"
+      ]
+    },
     "selectEntity": "Asociar a (Opcional)",
     "entityPlaceholder": "Seleccionar Activo/Pasivo",
     "transactionHistory": "Historial de Transacciones"

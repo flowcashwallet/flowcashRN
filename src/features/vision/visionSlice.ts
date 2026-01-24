@@ -22,6 +22,7 @@ export interface VisionEntity {
   isCrypto?: boolean;
   cryptoSymbol?: string;
   cryptoAmount?: number;
+  category?: string;
 }
 
 interface VisionState {
@@ -56,6 +57,7 @@ export const fetchVisionEntities = createAsyncThunk(
           isCrypto: data.isCrypto,
           cryptoSymbol: data.cryptoSymbol,
           cryptoAmount: data.cryptoAmount,
+          category: data.category,
         });
       });
       return entities;
