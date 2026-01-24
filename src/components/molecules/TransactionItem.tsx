@@ -5,11 +5,11 @@ import STRINGS from "@/i18n/es.json";
 import { formatCurrency } from "@/utils/format";
 import React from "react";
 import {
-    Alert,
-    Platform,
-    StyleSheet,
-    TouchableOpacity,
-    View,
+  Alert,
+  Platform,
+  StyleSheet,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import Swipeable from "react-native-gesture-handler/Swipeable";
 import { Typography } from "../atoms/Typography";
@@ -41,12 +41,8 @@ export function TransactionItem({
   const isIncome = type === "income";
   const iconColor = isIncome ? colors.success : colors.error;
 
-  // Vivid colors for item borders/accents
-  const incomeGradient = ["#00F260", "#0575E6"] as const; // Green to Blue
-  const expenseGradient = ["#FF416C", "#FF4B2B"] as const; // Red to Orange
-
   // Extract emoji from category string (e.g. "🍔 Comida" -> "🍔")
-  const emoji = category ? category.split(" ")[0] : null;
+  const emoji = category ? category.slice(0, 1) : null;
 
   const handleLongPress = () => {
     if (onDelete) {
