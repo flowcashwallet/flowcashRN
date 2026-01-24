@@ -67,7 +67,7 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
     if (visible && transaction) {
       setEditDescription(transaction.description);
       setEditCategory(transaction.category || CATEGORIES[0]);
-      setEditAmount(transaction.amount.toString());
+      setEditAmount(formatAmountInput(transaction.amount.toFixed(2)));
       setEditEntityId(transaction.relatedEntityId || null);
       setIsEditing(false);
       setIsEditCategoryDropdownOpen(false);

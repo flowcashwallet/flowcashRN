@@ -177,8 +177,8 @@ export const useWalletTransactions = () => {
           id: data.id,
           updates: {
             description: data.description,
-            category: data.category || undefined,
-            relatedEntityId: data.relatedEntityId || undefined,
+            category: data.category || null,
+            relatedEntityId: data.relatedEntityId || null,
             amount: newAmount,
           },
         }),
