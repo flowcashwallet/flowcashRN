@@ -24,6 +24,7 @@ const MAPPING = {
   "creditcard.fill": "account-balance-wallet",
   "chart.pie.fill": "pie-chart",
   "eye.fill": "visibility",
+  "eye.slash.fill": "visibility-off",
   "trash.fill": "delete",
   "arrow.down.left": "call-received",
   "arrow.up.right": "call-made",

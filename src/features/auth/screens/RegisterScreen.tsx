@@ -4,6 +4,7 @@ import { Checkbox } from "@/components/atoms/Checkbox";
 import { Input } from "@/components/atoms/Input";
 import { Typography } from "@/components/atoms/Typography";
 import { ThemedView } from "@/components/themed-view";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Colors, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import STRINGS from "@/i18n/es.json";
@@ -16,7 +17,6 @@ import { doc, setDoc } from "firebase/firestore";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Linking,
   Platform,
@@ -40,11 +40,55 @@ export default function RegisterScreen() {
   const [dob, setDob] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
+
+  const handleDateChange = (text: string) => {
+    // Remove non-numeric characters
+    const cleaned = text.replace(/[^0-9]/g, "");
+
+    // Limit length to 8 characters (DDMMAAAA)
+    let formatted = cleaned.substring(0, 8);
+
+    // Insert hyphens
+    if (formatted.length > 4) {
+      formatted = `${formatted.slice(0, 2)}-${formatted.slice(2, 4)}-${formatted.slice(4)}`;
+    } else if (formatted.length > 2) {
+      formatted = `${formatted.slice(0, 2)}-${formatted.slice(2)}`;
+    }
+
+    setDob(formatted);
+  };
+
+  const isValidDate = (dateString: string) => {
+    const regex = /^(\d{2})-(\d{2})-(\d{4})$/;
+    if (!regex.test(dateString)) return false;
+
+    const parts = dateString.split("-");
+    const day = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10);
+    const year = parseInt(parts[2], 10);
+
+    if (year < 1900 || year > new Date().getFullYear()) return false;
+    if (month < 1 || month > 12) return false;
+    if (day < 1 || day > 31) return false;
+
+    const date = new Date(year, month - 1, day);
+    return (
+      date.getDate() === day &&
+      date.getMonth() === month - 1 &&
+      date.getFullYear() === year
+    );
+  };
 
   const handleRegister = async () => {
     if (!firstName || !lastName || !dob || !email || !password) {
       dispatch(setError("Por favor completa todos los campos"));
+      return;
+    }
+
+    if (!isValidDate(dob)) {
+      dispatch(setError("Por favor ingresa una fecha válida (DD-MM-AAAA)"));
       return;
     }
 
@@ -61,7 +105,7 @@ export default function RegisterScreen() {
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         email,
-        password
+        password,
       );
       const user = userCredential.user;
 
@@ -108,7 +152,7 @@ export default function RegisterScreen() {
                 colors={
                   colors.gradients.primary as unknown as readonly [
                     string,
-                    string
+                    string,
                   ]
                 }
                 start={{ x: 0, y: 0 }}
@@ -168,10 +212,11 @@ export default function RegisterScreen() {
               />
               <Input
                 label="Fecha de Nacimiento"
-                placeholder="DD/MM/AAAA"
+                placeholder="DD-MM-AAAA"
                 value={dob}
-                onChangeText={setDob}
-                keyboardType="numbers-and-punctuation"
+                onChangeText={handleDateChange}
+                keyboardType="numeric"
+                maxLength={10}
               />
               <Input
                 label={STRINGS.auth.email}
@@ -186,14 +231,22 @@ export default function RegisterScreen() {
                 placeholder={STRINGS.auth.passwordPlaceholder}
                 value={password}
                 onChangeText={setPassword}
-                secureTextEntry
+                secureTextEntry={!isPasswordVisible}
+                rightIcon={
+                  <TouchableOpacity
+                    onPress={() => setIsPasswordVisible(!isPasswordVisible)}
+                  >
+                    <IconSymbol
+                      name={isPasswordVisible ? "eye.fill" : "eye.slash.fill"}
+                      size={24}
+                      color={colors.icon}
+                    />
+                  </TouchableOpacity>
+                }
               />
 
               <View style={styles.termsContainer}>
-                <Checkbox
-                  checked={termsAccepted}
-                  onChange={setTermsAccepted}
-                />
+                <Checkbox checked={termsAccepted} onChange={setTermsAccepted} />
                 <View style={{ flex: 1, marginLeft: Spacing.s }}>
                   <Typography variant="body" style={{ color: colors.text }}>
                     Acepto los{" "}
