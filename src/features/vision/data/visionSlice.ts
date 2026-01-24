@@ -9,7 +9,7 @@ import {
   updateDoc,
   where,
 } from "firebase/firestore";
-import { db } from "../../services/firebaseConfig";
+import { db } from "../../../services/firebaseConfig";
 
 export interface VisionEntity {
   id: string;

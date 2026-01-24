@@ -7,9 +7,9 @@ import { QuickActions } from "../components/QuickActions";
 import { TransactionDetailModal } from "../components/TransactionDetailModal";
 import { TransactionModal } from "../components/TransactionModal";
 import { WalletHeader } from "../components/WalletHeader";
+import { Transaction } from "../data/walletSlice";
 import { useWalletData } from "../hooks/useWalletData";
 import { useWalletTransactions } from "../hooks/useWalletTransactions";
-import { Transaction } from "../walletSlice";
 
 export default function WalletScreen() {
   const {

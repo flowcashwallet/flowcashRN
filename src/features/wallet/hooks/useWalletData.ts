@@ -1,11 +1,11 @@
 import { Colors } from "@/constants/theme";
-import { fetchVisionEntities } from "@/features/vision/visionSlice";
+import { fetchVisionEntities } from "@/features/vision/data/visionSlice";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import STRINGS from "@/i18n/es.json";
 import { AppDispatch, RootState } from "@/store/store";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchTransactions } from "../walletSlice";
+import { fetchTransactions } from "../data/walletSlice";
 
 export const useWalletData = () => {
   const dispatch = useDispatch<AppDispatch>();

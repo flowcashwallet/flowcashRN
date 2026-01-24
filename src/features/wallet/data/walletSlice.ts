@@ -10,7 +10,7 @@ import {
   where,
   writeBatch,
 } from "firebase/firestore";
-import { db } from "../../services/firebaseConfig";
+import { db } from "../../../services/firebaseConfig";
 
 export interface Transaction {
   id: string;

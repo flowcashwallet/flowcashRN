@@ -2,7 +2,7 @@ import { PayloadAction, createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { deleteDoc, doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 import { db } from "../../services/firebaseConfig";
 import { RootState } from "../../store/store";
-import { addTransaction } from "../wallet/walletSlice";
+import { addTransaction } from "../wallet/data/walletSlice";
 
 export interface FixedExpense {
   id: string;

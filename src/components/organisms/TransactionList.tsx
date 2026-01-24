@@ -1,5 +1,5 @@
 import { Spacing } from "@/constants/theme";
-import { Transaction } from "@/features/wallet/walletSlice";
+import { Transaction } from "@/features/wallet/data/walletSlice";
 import STRINGS from "@/i18n/es.json";
 import React from "react";
 import { FlatList, StyleSheet, View } from "react-native";

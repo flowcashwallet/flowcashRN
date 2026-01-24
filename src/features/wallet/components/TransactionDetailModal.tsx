@@ -2,8 +2,8 @@ import { Button } from "@/components/atoms/Button";
 import { Input } from "@/components/atoms/Input";
 import { Typography } from "@/components/atoms/Typography";
 import { BorderRadius, Colors, Spacing } from "@/constants/theme";
-import { VisionEntity } from "@/features/vision/visionSlice";
-import { Transaction } from "@/features/wallet/walletSlice";
+import { VisionEntity } from "@/features/vision/data/visionSlice";
+import { Transaction } from "@/features/wallet/data/walletSlice";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import STRINGS from "@/i18n/es.json";
 import { formatAmountInput, formatCurrency } from "@/utils/format";
@@ -33,7 +33,9 @@ interface TransactionDetailModalProps {
   visible: boolean;
   onClose: () => void;
   transaction: Transaction | null;
-  onUpdate: (data: UpdateTransactionData) => Promise<boolean | undefined | void>;
+  onUpdate: (
+    data: UpdateTransactionData,
+  ) => Promise<boolean | undefined | void>;
   onDelete: (id: string) => void;
   visionEntities: VisionEntity[];
   isSaving: boolean;
@@ -121,9 +123,7 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
               weight="bold"
               style={{
                 color:
-                  transaction.type === "income"
-                    ? colors.success
-                    : colors.error,
+                  transaction.type === "income" ? colors.success : colors.error,
               }}
             >
               {transaction.type === "income" ? "+" : "-"}
@@ -280,9 +280,7 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                       {
                         backgroundColor: colors.surface,
                         borderColor: colors.border,
-                        marginBottom: isEditEntityDropdownOpen
-                          ? 0
-                          : Spacing.m,
+                        marginBottom: isEditEntityDropdownOpen ? 0 : Spacing.m,
                         borderBottomLeftRadius: isEditEntityDropdownOpen
                           ? 0
                           : BorderRadius.m,
@@ -348,7 +346,7 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                           .filter((e) =>
                             transaction.type === "income"
                               ? e.type === "asset"
-                              : e.type === "liability"
+                              : e.type === "liability",
                           )
                           .map((entity, index) => (
                             <TouchableOpacity
@@ -454,7 +452,7 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                     </Typography>
                     <Typography variant="body" weight="medium">
                       {visionEntities.find(
-                        (e) => e.id === transaction.relatedEntityId
+                        (e) => e.id === transaction.relatedEntityId,
                       )?.name || "Entidad desconocida"}
                     </Typography>
                   </View>

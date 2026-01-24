@@ -1,4 +1,4 @@
-import { updateVisionEntity } from "@/features/vision/visionSlice";
+import { updateVisionEntity } from "@/features/vision/data/visionSlice";
 import STRINGS from "@/i18n/es.json";
 import { AppDispatch, RootState } from "@/store/store";
 import { parseAmount } from "@/utils/format";
@@ -10,7 +10,7 @@ import {
   deleteMultipleTransactions,
   deleteTransaction as deleteTransactionAction,
   updateTransaction as updateTransactionAction,
-} from "../walletSlice";
+} from "../data/walletSlice";
 
 interface TransactionData {
   amount: string;

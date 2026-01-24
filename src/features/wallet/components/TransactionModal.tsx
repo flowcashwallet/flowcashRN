@@ -2,6 +2,7 @@ import { Button } from "@/components/atoms/Button";
 import { Input } from "@/components/atoms/Input";
 import { Typography } from "@/components/atoms/Typography";
 import { BorderRadius, Colors, Spacing } from "@/constants/theme";
+import { VisionEntity } from "@/features/vision/data/visionSlice";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import STRINGS from "@/i18n/es.json";
 import { formatAmountInput } from "@/utils/format";
@@ -17,7 +18,6 @@ import {
   TouchableWithoutFeedback,
   View,
 } from "react-native";
-import { VisionEntity } from "@/features/vision/visionSlice";
 
 const CATEGORIES = STRINGS.wallet.categories;
 
@@ -139,7 +139,9 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               </Typography>
 
               <TouchableOpacity
-                onPress={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
+                onPress={() =>
+                  setIsCategoryDropdownOpen(!isCategoryDropdownOpen)
+                }
                 style={[
                   styles.dropdown,
                   {
@@ -196,7 +198,10 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                           borderTopColor: colors.border,
                         }}
                       >
-                        <Typography variant="body" style={{ color: colors.text }}>
+                        <Typography
+                          variant="body"
+                          style={{ color: colors.text }}
+                        >
                           {cat}
                         </Typography>
                       </TouchableOpacity>
@@ -264,7 +269,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                     {visionEntities.filter((e) =>
                       type === "income"
                         ? e.type === "asset"
-                        : e.type === "liability"
+                        : e.type === "liability",
                     ).length === 0 ? (
                       <Typography
                         variant="body"
@@ -279,7 +284,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                         .filter((e) =>
                           type === "income"
                             ? e.type === "asset"
-                            : e.type === "liability"
+                            : e.type === "liability",
                         )
                         .map((entity, index) => (
                           <TouchableOpacity
@@ -341,7 +346,8 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                   style={{
                     flex: 1,
                     marginLeft: Spacing.s,
-                    backgroundColor: type === "income" ? colors.success : colors.error,
+                    backgroundColor:
+                      type === "income" ? colors.success : colors.error,
                   }}
                 />
               </View>
