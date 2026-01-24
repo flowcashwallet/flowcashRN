@@ -453,7 +453,7 @@ export default function WalletScreen() {
                 <Typography
                   variant="caption"
                   weight="medium"
-                  style={{ color: colors.textSecondary }}
+                  style={{ color: colors.text }}
                 >
                   {STRINGS.wallet.summary}
                 </Typography>

@@ -17,7 +17,7 @@ const palette = {
   textLight: "#172B4D",
   textDark: "#FFFFFF",
   textGrey: "#A0A0A0",
-  success: "#00F260", // Bright Green (New Vision)
+  success: "#14dc64ff", // Bright Green (New Vision)
   error: "#FF416C", // Bright Pink/Red (New Vision)
   warning: "#FFAB00",
   grey: "#97A0AF",
