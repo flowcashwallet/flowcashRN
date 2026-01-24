@@ -506,17 +506,17 @@ function BudgetDashboard() {
       label: "Ingreso",
       frontColor: colors.success,
       topLabelComponent: () => (
-        <Typography variant="caption" style={{ fontSize: 10 }}>
+        <Typography variant="caption" style={{ fontSize: 10, width: 80, textAlign: 'center', marginBottom: 6 }}>
           {formatCurrency(monthlyIncome)}
         </Typography>
       ),
     },
     {
       value: totalActualExpense,
-      label: "Gasto Real",
+      label: "Gasto",
       frontColor: colors.error,
       topLabelComponent: () => (
-        <Typography variant="caption" style={{ fontSize: 10 }}>
+        <Typography variant="caption" style={{ fontSize: 10, width: 80, textAlign: 'center', marginBottom: 6 }}>
           {formatCurrency(totalActualExpense)}
         </Typography>
       ),
@@ -526,7 +526,7 @@ function BudgetDashboard() {
       label: "Restante",
       frontColor: "#4A00E0",
       topLabelComponent: () => (
-        <Typography variant="caption" style={{ fontSize: 10 }}>
+        <Typography variant="caption" style={{ fontSize: 10, width: 80, textAlign: 'center', marginBottom: 6 }}>
           {formatCurrency(Math.max(0, monthlyIncome - totalActualExpense))}
         </Typography>
       ),
@@ -618,19 +618,25 @@ function BudgetDashboard() {
         >
           Resumen Mensual (Real vs Presupuesto)
         </Typography>
-        <BarChart
-          data={barData}
-          barWidth={35}
-          noOfSections={4}
-          barBorderRadius={4}
-          frontColor="lightgray"
-          yAxisThickness={0}
-          xAxisThickness={0}
-          height={200}
-          width={300}
-          isAnimated
-          hideRules
-        />
+        <View style={{ alignItems: 'center' }}>
+          <BarChart
+            data={barData}
+            barWidth={50}
+            spacing={40}
+            noOfSections={4}
+            barBorderRadius={4}
+            frontColor="lightgray"
+            yAxisThickness={0}
+            xAxisThickness={0}
+            yAxisLabelWidth={60}
+            height={200}
+            width={300}
+            isAnimated
+            hideRules
+            yAxisTextStyle={{ color: colors.text, fontSize: 10 }}
+            xAxisLabelTextStyle={{ color: colors.text, fontSize: 10 }}
+          />
+        </View>
       </Card>
 
       <View style={styles.statsGrid}>
