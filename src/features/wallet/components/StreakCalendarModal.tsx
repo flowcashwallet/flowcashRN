@@ -7,13 +7,7 @@ import { Transaction } from "@/features/wallet/data/walletSlice";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { AppDispatch, RootState } from "@/store/store";
 import React, { useMemo } from "react";
-import {
-  Alert,
-  Modal,
-  Pressable,
-  StyleSheet,
-  View
-} from "react-native";
+import { Alert, Modal, Pressable, StyleSheet, View } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 
 interface StreakCalendarModalProps {
@@ -100,6 +94,38 @@ export const StreakCalendarModal: React.FC<StreakCalendarModalProps> = ({
 
   const statusColor = streakFreezes > 0 ? "#FF9500" : "#8E8E93";
 
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = yesterday.toISOString().split("T")[0];
+
+  const dayBeforeYesterday = new Date(today);
+  dayBeforeYesterday.setDate(dayBeforeYesterday.getDate() - 2);
+  const dayBeforeYesterdayStr = dayBeforeYesterday.toISOString().split("T")[0];
+
+  // Logic to calculate streak ending at dayBeforeYesterday
+  let previousStreak = 0;
+  if (
+    !activeDates.has(yesterdayStr) &&
+    activeDates.has(dayBeforeYesterdayStr)
+  ) {
+    let current = new Date(dayBeforeYesterday);
+    while (true) {
+      const dateStr = current.toISOString().split("T")[0];
+      if (activeDates.has(dateStr)) {
+        previousStreak++;
+        current.setDate(current.getDate() - 1);
+      } else {
+        break;
+      }
+    }
+  }
+
+  const canRestore =
+    !activeDates.has(yesterdayStr) &&
+    activeDates.has(dayBeforeYesterdayStr) &&
+    previousStreak > 3;
+
   return (
     <Modal visible={visible} animationType="slide" transparent>
       <Pressable style={styles.overlay} onPress={onClose}>
@@ -133,7 +159,7 @@ export const StreakCalendarModal: React.FC<StreakCalendarModalProps> = ({
                   variant="caption"
                   style={{ color: colors.textSecondary }}
                 >
-                  Congelaciones disponibles
+                  Restauraciones disponibles
                 </Typography>
                 <Typography
                   variant="h2"
@@ -205,10 +231,24 @@ export const StreakCalendarModal: React.FC<StreakCalendarModalProps> = ({
             ))}
           </View>
 
+          {canRestore && (
+            <Button
+              title="Restaurar Racha"
+              onPress={() => handleRepair(yesterdayStr)}
+              style={{ marginTop: Spacing.xl, backgroundColor: "#FF9500" }}
+            />
+          )}
+
           <Button
             title="Cerrar"
             onPress={onClose}
-            style={{ marginTop: Spacing.xl }}
+            style={{
+              marginTop: canRestore ? Spacing.s : Spacing.xl,
+              backgroundColor: canRestore ? "transparent" : colors.primary,
+              borderWidth: canRestore ? 1 : 0,
+              borderColor: canRestore ? colors.textSecondary : "transparent",
+            }}
+            textStyle={canRestore ? { color: colors.text } : undefined}
           />
         </Pressable>
       </Pressable>
