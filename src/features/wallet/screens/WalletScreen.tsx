@@ -5,6 +5,7 @@ import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet } from "react-native";
 import { QuickActions } from "../components/QuickActions";
+import { StreakCalendarModal } from "../components/StreakCalendarModal";
 import { TransactionDetailModal } from "../components/TransactionDetailModal";
 import { TransactionModal } from "../components/TransactionModal";
 import { WalletHeader } from "../components/WalletHeader";
@@ -25,6 +26,8 @@ export default function WalletScreen() {
     colors,
     visionEntities,
     streak,
+    streakFreezes,
+    repairedDays,
   } = useWalletData();
 
   const {
@@ -37,6 +40,7 @@ export default function WalletScreen() {
 
   const [modalVisible, setModalVisible] = useState(false);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
+  const [calendarVisible, setCalendarVisible] = useState(false);
   const [transactionType, setTransactionType] = useState<"income" | "expense">(
     "expense",
   );
@@ -73,6 +77,7 @@ export default function WalletScreen() {
           expense={expense}
           onDeleteMonth={handleDeleteMonthly}
           streak={streak}
+          onPressStreak={() => setCalendarVisible(true)}
         />
 
         <QuickActions
@@ -113,6 +118,13 @@ export default function WalletScreen() {
         onDelete={deleteTransaction}
         visionEntities={visionEntities}
         isSaving={isSaving}
+      />
+
+      <StreakCalendarModal
+        visible={calendarVisible}
+        onClose={() => setCalendarVisible(false)}
+        transactions={currentMonthTransactions}
+        repairedDays={repairedDays || []}
       />
     </ThemedView>
   );

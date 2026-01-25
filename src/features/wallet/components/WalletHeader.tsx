@@ -17,6 +17,7 @@ interface WalletHeaderProps {
   expense: number;
   onDeleteMonth: () => void;
   streak: StreakInfo;
+  onPressStreak: () => void;
 }
 
 export const WalletHeader: React.FC<WalletHeaderProps> = ({
@@ -26,6 +27,7 @@ export const WalletHeader: React.FC<WalletHeaderProps> = ({
   expense,
   onDeleteMonth,
   streak,
+  onPressStreak,
 }) => {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
@@ -72,7 +74,7 @@ export const WalletHeader: React.FC<WalletHeaderProps> = ({
           marginBottom: Spacing.s,
         }}
       >
-        <StreakBadge streak={streak} />
+        <StreakBadge streak={streak} onPress={onPressStreak} />
         <View style={{ flexDirection: "row", alignItems: "center" }}>
           <Typography
             variant="h3"

@@ -5,6 +5,7 @@ import STRINGS from "@/i18n/es.json";
 import { AppDispatch, RootState } from "@/store/store";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { fetchGamificationData } from "../data/gamificationSlice";
 import { fetchTransactions } from "../data/walletSlice";
 import { useStreak } from "./useStreak";
 
@@ -15,10 +16,13 @@ export const useWalletData = () => {
     (state: RootState) => state.vision,
   );
   const { user } = useSelector((state: RootState) => state.auth);
+  const { streakFreezes, repairedDays } = useSelector(
+    (state: RootState) => state.gamification,
+  );
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
 
-  const streak = useStreak(transactions);
+  const streak = useStreak(transactions, repairedDays);
 
   const [refreshing, setRefreshing] = useState(false);
 
@@ -26,14 +30,17 @@ export const useWalletData = () => {
     if (user?.uid) {
       dispatch(fetchTransactions(user.uid));
       dispatch(fetchVisionEntities(user.uid));
+      dispatch(fetchGamificationData(user.uid));
     }
   }, [dispatch, user]);
 
   const onRefresh = () => {
     if (user?.uid) {
       setRefreshing(true);
-      dispatch(fetchTransactions(user.uid))
-        .unwrap()
+      Promise.all([
+        dispatch(fetchTransactions(user.uid)).unwrap(),
+        dispatch(fetchGamificationData(user.uid)).unwrap(),
+      ])
         .then(() => setRefreshing(false))
         .catch(() => setRefreshing(false));
     }
@@ -77,5 +84,7 @@ export const useWalletData = () => {
     expense,
     colors,
     streak,
+    streakFreezes,
+    repairedDays,
   };
 };
