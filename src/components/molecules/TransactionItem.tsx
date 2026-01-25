@@ -42,7 +42,7 @@ export function TransactionItem({
   const iconColor = isIncome ? colors.success : colors.error;
 
   // Extract emoji from category string (e.g. "🍔 Comida" -> "🍔")
-  const emoji = category ? category.slice(0, 1) : null;
+  const emoji = category ? category.slice(0, 2) : null;
 
   const handleLongPress = () => {
     if (onDelete) {
