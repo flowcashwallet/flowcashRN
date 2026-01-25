@@ -126,5 +126,17 @@
       "🧾 Servicios",
       "🔁 Otros"
     ]
+  },
+  "streak": {
+    "noFreezesTitle": "Sin congelaciones",
+    "noFreezesMessage": "No te quedan oportunidades para restaurar la racha.",
+    "restoreTitle": "Restaurar Racha",
+    "restoreMessage": "¿Usar una congelación para recuperar el día {date}? Te quedan {count}.",
+    "restoreConfirmButton": "Restaurar",
+    "restoreError": "No se pudo restaurar la racha.",
+    "yourStreak": "Tu Racha",
+    "availableRestores": "Restauraciones disponibles",
+    "last30Days": "Últimos 30 días",
+    "restoreAction": "Restaurar Racha"
   }
 }

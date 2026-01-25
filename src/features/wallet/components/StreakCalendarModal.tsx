@@ -5,6 +5,7 @@ import { BorderRadius, Colors, Spacing } from "@/constants/theme";
 import { consumeStreakFreeze } from "@/features/wallet/data/gamificationSlice";
 import { Transaction } from "@/features/wallet/data/walletSlice";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import STRINGS from "@/i18n/es.json";
 import { AppDispatch, RootState } from "@/store/store";
 import React, { useMemo } from "react";
 import { Alert, Modal, Pressable, StyleSheet, View } from "react-native";
@@ -65,26 +66,28 @@ export const StreakCalendarModal: React.FC<StreakCalendarModalProps> = ({
 
     if (streakFreezes <= 0) {
       Alert.alert(
-        "Sin congelaciones",
-        "No te quedan oportunidades para restaurar la racha.",
+        STRINGS.streak.noFreezesTitle,
+        STRINGS.streak.noFreezesMessage,
       );
       return;
     }
 
     Alert.alert(
-      "Restaurar Racha",
-      `¿Usar una congelación para recuperar el día ${dateStr}? Te quedan ${streakFreezes}.`,
+      STRINGS.streak.restoreTitle,
+      STRINGS.streak.restoreMessage
+        .replace("{date}", dateStr)
+        .replace("{count}", streakFreezes.toString()),
       [
-        { text: "Cancelar", style: "cancel" },
+        { text: STRINGS.common.cancel, style: "cancel" },
         {
-          text: "Restaurar",
+          text: STRINGS.streak.restoreConfirmButton,
           onPress: async () => {
             try {
               await dispatch(
                 consumeStreakFreeze({ userId: user.uid, date: dateStr }),
               ).unwrap();
             } catch (error) {
-              Alert.alert("Error", "No se pudo restaurar la racha.");
+              Alert.alert(STRINGS.common.error, STRINGS.streak.restoreError);
             }
           },
         },
@@ -139,7 +142,7 @@ export const StreakCalendarModal: React.FC<StreakCalendarModalProps> = ({
               weight="bold"
               style={{ color: colors.text }}
             >
-              Tu Racha
+              {STRINGS.streak.yourStreak}
             </Typography>
             <Pressable onPress={onClose}>
               <IconSymbol name="xmark" size={24} color={colors.textSecondary} />
@@ -159,7 +162,7 @@ export const StreakCalendarModal: React.FC<StreakCalendarModalProps> = ({
                   variant="caption"
                   style={{ color: colors.textSecondary }}
                 >
-                  Restauraciones disponibles
+                  {STRINGS.streak.availableRestores}
                 </Typography>
                 <Typography
                   variant="h2"
@@ -177,7 +180,7 @@ export const StreakCalendarModal: React.FC<StreakCalendarModalProps> = ({
             weight="bold"
             style={{ marginBottom: Spacing.m, color: colors.text }}
           >
-            Últimos 30 días
+            {STRINGS.streak.last30Days}
           </Typography>
 
           <View style={styles.calendarGrid}>
@@ -233,14 +236,14 @@ export const StreakCalendarModal: React.FC<StreakCalendarModalProps> = ({
 
           {canRestore && (
             <Button
-              title="Restaurar Racha"
+              title={STRINGS.streak.restoreAction}
               onPress={() => handleRepair(yesterdayStr)}
               style={{ marginTop: Spacing.xl, backgroundColor: "#FF9500" }}
             />
           )}
 
           <Button
-            title="Cerrar"
+            title={STRINGS.common.close}
             onPress={onClose}
             style={{
               marginTop: canRestore ? Spacing.s : Spacing.xl,
