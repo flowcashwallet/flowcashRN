@@ -1,12 +1,14 @@
 import { Typography } from "@/components/atoms/Typography";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { BorderRadius, Spacing, Colors } from "@/constants/theme";
+import { BorderRadius, Colors, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import STRINGS from "@/i18n/es.json";
 import { formatCurrency } from "@/utils/format";
 import React from "react";
 import { Platform, StyleSheet, TouchableOpacity, View } from "react-native";
 import { PieChart } from "react-native-gifted-charts";
+import { StreakInfo } from "../hooks/useStreak";
+import { StreakBadge } from "./StreakBadge";
 
 interface WalletHeaderProps {
   balance: number;
@@ -14,6 +16,7 @@ interface WalletHeaderProps {
   income: number;
   expense: number;
   onDeleteMonth: () => void;
+  streak: StreakInfo;
 }
 
 export const WalletHeader: React.FC<WalletHeaderProps> = ({
@@ -22,6 +25,7 @@ export const WalletHeader: React.FC<WalletHeaderProps> = ({
   income,
   expense,
   onDeleteMonth,
+  streak,
 }) => {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
@@ -68,13 +72,16 @@ export const WalletHeader: React.FC<WalletHeaderProps> = ({
           marginBottom: Spacing.s,
         }}
       >
-        <Typography
-          variant="h3"
-          weight="bold"
-          style={{ color: colors.textSecondary }}
-        >
-          {currentMonthName}
-        </Typography>
+        <StreakBadge streak={streak} />
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          <Typography
+            variant="h3"
+            weight="bold"
+            style={{ color: colors.textSecondary }}
+          >
+            {currentMonthName}
+          </Typography>
+        </View>
         <TouchableOpacity onPress={onDeleteMonth}>
           <IconSymbol
             name="trash.fill"

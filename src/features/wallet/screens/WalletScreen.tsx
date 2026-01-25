@@ -24,6 +24,7 @@ export default function WalletScreen() {
     onRefresh,
     colors,
     visionEntities,
+    streak,
   } = useWalletData();
 
   const {
@@ -71,6 +72,7 @@ export default function WalletScreen() {
           income={income}
           expense={expense}
           onDeleteMonth={handleDeleteMonthly}
+          streak={streak}
         />
 
         <QuickActions

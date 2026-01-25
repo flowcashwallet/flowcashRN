@@ -6,6 +6,7 @@ import { AppDispatch, RootState } from "@/store/store";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchTransactions } from "../data/walletSlice";
+import { useStreak } from "./useStreak";
 
 export const useWalletData = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -16,6 +17,8 @@ export const useWalletData = () => {
   const { user } = useSelector((state: RootState) => state.auth);
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
+
+  const streak = useStreak(transactions);
 
   const [refreshing, setRefreshing] = useState(false);
 
@@ -73,5 +76,6 @@ export const useWalletData = () => {
     income,
     expense,
     colors,
+    streak,
   };
 };
