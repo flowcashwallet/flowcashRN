@@ -102,6 +102,8 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   return (
     <Modal visible={visible} animationType="slide" transparent>
       <KeyboardAvoidingView
+        // persist taps on keyboard
+
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.modalOverlay}
       >
@@ -209,7 +211,10 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                     },
                   ]}
                 >
-                  <ScrollView nestedScrollEnabled>
+                  <ScrollView
+                    keyboardShouldPersistTaps="always"
+                    nestedScrollEnabled
+                  >
                     {categories.map((cat, index) => (
                       <TouchableOpacity
                         key={cat.id}
@@ -285,7 +290,10 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                     },
                   ]}
                 >
-                  <ScrollView nestedScrollEnabled>
+                  <ScrollView
+                    keyboardShouldPersistTaps="always"
+                    nestedScrollEnabled
+                  >
                     {visionEntities.filter((e) =>
                       type === "income"
                         ? e.type === "asset"

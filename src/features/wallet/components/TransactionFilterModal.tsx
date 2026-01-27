@@ -1,13 +1,20 @@
 import { Button } from "@/components/atoms/Button";
 import { Typography } from "@/components/atoms/Typography";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { Colors, Spacing } from "@/constants/theme";
+import { BorderRadius, Colors, Spacing } from "@/constants/theme";
 import { VisionEntity } from "@/features/vision/data/visionSlice";
 import { Category } from "@/features/wallet/data/categoriesSlice";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import STRINGS from "@/i18n/es.json";
 import React, { useEffect, useState } from "react";
-import { Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import {
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 interface TransactionFilterModalProps {
   visible: boolean;
@@ -40,20 +47,24 @@ export const TransactionFilterModal: React.FC<TransactionFilterModalProps> = ({
   const colors = Colors[colorScheme ?? "light"];
 
   const [selectedCategory, setSelectedCategory] = useState<string | null>(
-    currentFilters.category
+    currentFilters.category,
   );
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(
-    currentFilters.entityId
+    currentFilters.entityId,
   );
-  const [selectedType, setSelectedType] = useState<
-    "income" | "expense" | null
-  >(currentFilters.type);
+  const [selectedType, setSelectedType] = useState<"income" | "expense" | null>(
+    currentFilters.type,
+  );
+  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
+  const [isEntityDropdownOpen, setIsEntityDropdownOpen] = useState(false);
 
   useEffect(() => {
     if (visible) {
       setSelectedCategory(currentFilters.category);
       setSelectedEntityId(currentFilters.entityId);
       setSelectedType(currentFilters.type);
+      setIsCategoryDropdownOpen(false);
+      setIsEntityDropdownOpen(false);
     }
   }, [visible, currentFilters]);
 
@@ -111,7 +122,11 @@ export const TransactionFilterModal: React.FC<TransactionFilterModalProps> = ({
           onPress={(e) => e.stopPropagation()}
         >
           <View style={styles.header}>
-            <Typography variant="h3" weight="bold" style={{ color: colors.text }}>
+            <Typography
+              variant="h3"
+              weight="bold"
+              style={{ color: colors.text }}
+            >
               Filtrar Transacciones
             </Typography>
             <Pressable onPress={onClose}>
@@ -132,7 +147,7 @@ export const TransactionFilterModal: React.FC<TransactionFilterModalProps> = ({
               >
                 {STRINGS.wallet.type}
               </Typography>
-              <View style={styles.optionsGrid}>
+              <View style={styles.optionsRow}>
                 <OptionButton
                   label={STRINGS.wallet.income}
                   selected={selectedType === "income"}
@@ -144,7 +159,9 @@ export const TransactionFilterModal: React.FC<TransactionFilterModalProps> = ({
                   label={STRINGS.wallet.expense}
                   selected={selectedType === "expense"}
                   onPress={() =>
-                    setSelectedType(selectedType === "expense" ? null : "expense")
+                    setSelectedType(
+                      selectedType === "expense" ? null : "expense",
+                    )
                   }
                 />
               </View>
@@ -160,20 +177,102 @@ export const TransactionFilterModal: React.FC<TransactionFilterModalProps> = ({
                 >
                   Activo/Pasivo Asociado
                 </Typography>
-                <View style={styles.optionsGrid}>
-                  {entities.map((entity) => (
-                    <OptionButton
-                      key={entity.id}
-                      label={entity.name}
-                      selected={selectedEntityId === entity.id}
-                      onPress={() =>
-                        setSelectedEntityId(
-                          selectedEntityId === entity.id ? null : entity.id
-                        )
-                      }
-                    />
-                  ))}
-                </View>
+                <TouchableOpacity
+                  onPress={() => setIsEntityDropdownOpen(!isEntityDropdownOpen)}
+                  style={[
+                    styles.dropdown,
+                    {
+                      backgroundColor: colors.surfaceHighlight,
+                      borderColor: colors.border,
+                      marginBottom: isEntityDropdownOpen ? 0 : Spacing.m,
+                      borderBottomLeftRadius: isEntityDropdownOpen
+                        ? 0
+                        : BorderRadius.m,
+                      borderBottomRightRadius: isEntityDropdownOpen
+                        ? 0
+                        : BorderRadius.m,
+                    },
+                  ]}
+                >
+                  <View style={styles.dropdownHeader}>
+                    <Typography
+                      variant="body"
+                      style={{
+                        color: selectedEntityId
+                          ? colors.text
+                          : colors.textSecondary,
+                      }}
+                    >
+                      {selectedEntityId
+                        ? entities.find((e) => e.id === selectedEntityId)
+                            ?.name || "Seleccionar Entidad"
+                        : "Seleccionar Entidad"}
+                    </Typography>
+                    <Typography variant="body" style={{ color: colors.text }}>
+                      {isEntityDropdownOpen ? "▲" : "▼"}
+                    </Typography>
+                  </View>
+                </TouchableOpacity>
+
+                {isEntityDropdownOpen && (
+                  <View
+                    style={[
+                      styles.dropdownList,
+                      {
+                        borderColor: colors.border,
+                        backgroundColor: colors.surfaceHighlight,
+                      },
+                    ]}
+                  >
+                    <ScrollView nestedScrollEnabled style={{ maxHeight: 200 }}>
+                      <TouchableOpacity
+                        onPress={() => {
+                          setSelectedEntityId(null);
+                          setIsEntityDropdownOpen(false);
+                        }}
+                        style={[
+                          styles.dropdownItem,
+                          { borderBottomColor: colors.border },
+                        ]}
+                      >
+                        <Typography
+                          variant="body"
+                          style={{ color: colors.text }}
+                        >
+                          Todos
+                        </Typography>
+                      </TouchableOpacity>
+                      {entities.map((entity, index) => (
+                        <TouchableOpacity
+                          key={entity.id}
+                          onPress={() => {
+                            setSelectedEntityId(entity.id);
+                            setIsEntityDropdownOpen(false);
+                          }}
+                          style={[
+                            styles.dropdownItem,
+                            {
+                              borderTopWidth: 1,
+                              borderTopColor: colors.border,
+                            },
+                          ]}
+                        >
+                          <Typography
+                            variant="body"
+                            weight={
+                              selectedEntityId === entity.id
+                                ? "bold"
+                                : "regular"
+                            }
+                            style={{ color: colors.text }}
+                          >
+                            {entity.name}
+                          </Typography>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+                )}
               </View>
             )}
 
@@ -187,20 +286,100 @@ export const TransactionFilterModal: React.FC<TransactionFilterModalProps> = ({
                 >
                   {STRINGS.wallet.category}
                 </Typography>
-                <View style={styles.optionsGrid}>
-                  {categories.map((cat) => (
-                    <OptionButton
-                      key={cat.id || cat.name}
-                      label={cat.name}
-                      selected={selectedCategory === cat.name}
-                      onPress={() =>
-                        setSelectedCategory(
-                          selectedCategory === cat.name ? null : cat.name
-                        )
-                      }
-                    />
-                  ))}
-                </View>
+                <TouchableOpacity
+                  onPress={() =>
+                    setIsCategoryDropdownOpen(!isCategoryDropdownOpen)
+                  }
+                  style={[
+                    styles.dropdown,
+                    {
+                      backgroundColor: colors.surfaceHighlight,
+                      borderColor: colors.border,
+                      marginBottom: isCategoryDropdownOpen ? 0 : Spacing.m,
+                      borderBottomLeftRadius: isCategoryDropdownOpen
+                        ? 0
+                        : BorderRadius.m,
+                      borderBottomRightRadius: isCategoryDropdownOpen
+                        ? 0
+                        : BorderRadius.m,
+                    },
+                  ]}
+                >
+                  <View style={styles.dropdownHeader}>
+                    <Typography
+                      variant="body"
+                      style={{
+                        color: selectedCategory
+                          ? colors.text
+                          : colors.textSecondary,
+                        flex: 1,
+                      }}
+                    >
+                      {selectedCategory || "Seleccionar Categoría"}
+                    </Typography>
+                    <Typography variant="body" style={{ color: colors.text }}>
+                      {isCategoryDropdownOpen ? "▲" : "▼"}
+                    </Typography>
+                  </View>
+                </TouchableOpacity>
+
+                {isCategoryDropdownOpen && (
+                  <View
+                    style={[
+                      styles.dropdownList,
+                      {
+                        borderColor: colors.border,
+                        backgroundColor: colors.surfaceHighlight,
+                      },
+                    ]}
+                  >
+                    <ScrollView nestedScrollEnabled style={{ maxHeight: 200 }}>
+                      <TouchableOpacity
+                        onPress={() => {
+                          setSelectedCategory(null);
+                          setIsCategoryDropdownOpen(false);
+                        }}
+                        style={[
+                          styles.dropdownItem,
+                          { borderBottomColor: colors.border },
+                        ]}
+                      >
+                        <Typography
+                          variant="body"
+                          style={{ color: colors.text }}
+                        >
+                          Todas
+                        </Typography>
+                      </TouchableOpacity>
+                      {categories.map((cat, index) => (
+                        <TouchableOpacity
+                          key={cat.id || cat.name}
+                          onPress={() => {
+                            setSelectedCategory(cat.name);
+                            setIsCategoryDropdownOpen(false);
+                          }}
+                          style={[
+                            styles.dropdownItem,
+                            {
+                              borderTopWidth: 1,
+                              borderTopColor: colors.border,
+                            },
+                          ]}
+                        >
+                          <Typography
+                            variant="body"
+                            weight={
+                              selectedCategory === cat.name ? "bold" : "regular"
+                            }
+                            style={{ color: colors.text }}
+                          >
+                            {cat.name}
+                          </Typography>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+                )}
               </View>
             )}
           </ScrollView>
@@ -242,9 +421,8 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: Spacing.l,
   },
-  optionsGrid: {
+  optionsRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
     gap: Spacing.s,
   },
   optionButton: {
@@ -252,6 +430,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.m,
     borderRadius: 20,
     borderWidth: 1,
+  },
+  dropdown: {
+    paddingHorizontal: Spacing.m,
+    paddingVertical: Spacing.m,
+    borderRadius: BorderRadius.m,
+    borderWidth: 1,
+  },
+  dropdownHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  dropdownList: {
+    borderWidth: 1,
+    borderTopWidth: 0,
+    borderBottomLeftRadius: BorderRadius.m,
+    borderBottomRightRadius: BorderRadius.m,
+    marginBottom: Spacing.m,
+  },
+  dropdownItem: {
+    padding: Spacing.m,
   },
   footer: {
     flexDirection: "row",
