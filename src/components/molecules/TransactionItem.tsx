@@ -20,7 +20,7 @@ interface TransactionItemProps {
   description: string;
   date: number;
   type: "income" | "expense";
-  category?: string;
+  category?: string | null;
   onDelete?: (id: string) => void;
   onPress?: () => void;
 }

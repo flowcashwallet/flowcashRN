@@ -13,6 +13,7 @@ import React, { useState } from "react";
 import {
   FlatList,
   Modal,
+  Pressable,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -85,14 +86,9 @@ export const EntityDetailModal: React.FC<EntityDetailModalProps> = ({
       visible={visible}
       onRequestClose={onClose}
     >
-      <TouchableOpacity
-        style={styles.modalOverlay}
-        activeOpacity={1}
-        onPress={onClose}
-      >
-        <TouchableOpacity
-          activeOpacity={1}
-          onPress={(e) => e.stopPropagation()}
+      <View style={styles.modalOverlay}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+        <View
           style={[
             styles.modalContent,
             { backgroundColor: colors.background, height: "85%" },
@@ -252,6 +248,12 @@ export const EntityDetailModal: React.FC<EntityDetailModalProps> = ({
               <FlatList
                 data={entityTransactions}
                 keyExtractor={(item) => item.id}
+                style={{ flex: 1 }}
+                contentContainerStyle={{
+                  flexGrow: 1,
+                  paddingBottom: Spacing.xl,
+                }}
+                keyboardShouldPersistTaps="handled"
                 renderItem={({ item }) => (
                   <Card
                     style={{ marginBottom: Spacing.xs, padding: Spacing.s }}
@@ -297,8 +299,8 @@ export const EntityDetailModal: React.FC<EntityDetailModalProps> = ({
               />
             </View>
           </View>
-        </TouchableOpacity>
-      </TouchableOpacity>
+        </View>
+      </View>
     </Modal>
   );
 };

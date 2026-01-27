@@ -5,6 +5,7 @@ import STRINGS from "@/i18n/es.json";
 import { AppDispatch, RootState } from "@/store/store";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { fetchCategories } from "../data/categoriesSlice";
 import { fetchGamificationData } from "../data/gamificationSlice";
 import { fetchTransactions } from "../data/walletSlice";
 import { useStreak } from "./useStreak";
@@ -15,6 +16,7 @@ export const useWalletData = () => {
   const { entities: visionEntities } = useSelector(
     (state: RootState) => state.vision,
   );
+  const { categories } = useSelector((state: RootState) => state.categories);
   const { user } = useSelector((state: RootState) => state.auth);
   const { streakFreezes, repairedDays } = useSelector(
     (state: RootState) => state.gamification,
@@ -31,6 +33,7 @@ export const useWalletData = () => {
       dispatch(fetchTransactions(user.uid));
       dispatch(fetchVisionEntities(user.uid));
       dispatch(fetchGamificationData(user.uid));
+      dispatch(fetchCategories(user.uid));
     }
   }, [dispatch, user]);
 
@@ -40,6 +43,7 @@ export const useWalletData = () => {
       Promise.all([
         dispatch(fetchTransactions(user.uid)).unwrap(),
         dispatch(fetchGamificationData(user.uid)).unwrap(),
+        dispatch(fetchCategories(user.uid)).unwrap(),
       ])
         .then(() => setRefreshing(false))
         .catch(() => setRefreshing(false));
@@ -86,5 +90,6 @@ export const useWalletData = () => {
     streak,
     streakFreezes,
     repairedDays,
+    categories,
   };
 };

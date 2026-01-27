@@ -1,12 +1,19 @@
 import { TransactionList } from "@/components/organisms/TransactionList";
 import { ThemedView } from "@/components/themed-view";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Spacing } from "@/constants/theme";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { RefreshControl, ScrollView, StyleSheet } from "react-native";
+import {
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+} from "react-native";
 import { QuickActions } from "../components/QuickActions";
 import { StreakCalendarModal } from "../components/StreakCalendarModal";
 import { TransactionDetailModal } from "../components/TransactionDetailModal";
+import { TransactionFilterModal } from "../components/TransactionFilterModal";
 import { TransactionModal } from "../components/TransactionModal";
 import { WalletHeader } from "../components/WalletHeader";
 import { Transaction } from "../data/walletSlice";
@@ -28,6 +35,7 @@ export default function WalletScreen() {
     streak,
     streakFreezes,
     repairedDays,
+    categories,
   } = useWalletData();
 
   const {
@@ -41,6 +49,17 @@ export default function WalletScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [calendarVisible, setCalendarVisible] = useState(false);
+  const [filterVisible, setFilterVisible] = useState(false);
+  const [filters, setFilters] = useState<{
+    category: string | null;
+    entityId: string | null;
+    type: "income" | "expense" | null;
+  }>({
+    category: null,
+    entityId: null,
+    type: null,
+  });
+
   const [transactionType, setTransactionType] = useState<"income" | "expense">(
     "expense",
   );
@@ -55,6 +74,16 @@ export default function WalletScreen() {
     setSelectedTransaction(transaction);
     setDetailModalVisible(true);
   };
+
+  const filteredTransactions = currentMonthTransactions.filter((t) => {
+    if (filters.category && t.category !== filters.category) return false;
+    if (filters.entityId && t.relatedEntityId !== filters.entityId)
+      return false;
+    if (filters.type && t.type !== filters.type) return false;
+    return true;
+  });
+
+  const hasActiveFilters = filters.category || filters.entityId || filters.type;
 
   return (
     <ThemedView style={styles.container}>
@@ -95,9 +124,22 @@ export default function WalletScreen() {
         />
 
         <TransactionList
-          transactions={currentMonthTransactions}
+          transactions={filteredTransactions}
           onDelete={deleteTransaction}
           onTransactionPress={handleTransactionPress}
+          headerRight={
+            <TouchableOpacity onPress={() => setFilterVisible(true)}>
+              <IconSymbol
+                name={
+                  hasActiveFilters
+                    ? "line.3.horizontal.decrease.circle.fill"
+                    : "line.3.horizontal.decrease.circle"
+                }
+                size={24}
+                color={colors.primary}
+              />
+            </TouchableOpacity>
+          }
         />
       </ScrollView>
 
@@ -125,6 +167,18 @@ export default function WalletScreen() {
         onClose={() => setCalendarVisible(false)}
         transactions={currentMonthTransactions}
         repairedDays={repairedDays || []}
+      />
+
+      <TransactionFilterModal
+        visible={filterVisible}
+        onClose={() => setFilterVisible(false)}
+        categories={categories}
+        entities={visionEntities}
+        currentFilters={filters}
+        onApply={setFilters}
+        onClear={() =>
+          setFilters({ category: null, entityId: null, type: null })
+        }
       />
     </ThemedView>
   );

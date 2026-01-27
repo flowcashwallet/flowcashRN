@@ -10,16 +10,24 @@ interface TransactionListProps {
   transactions: Transaction[];
   onTransactionPress?: (transaction: Transaction) => void;
   onDelete?: (id: string) => void;
+  headerRight?: React.ReactNode;
 }
 
 export function TransactionList({
   transactions,
   onTransactionPress,
   onDelete,
+  headerRight,
 }: TransactionListProps) {
   if (!transactions || transactions.length === 0) {
     return (
       <View style={styles.emptyContainer}>
+        <View style={{ flexDirection: "row", justifyContent: "space-between", width: "100%", marginBottom: Spacing.m }}>
+           <Typography variant="h3" weight="bold">
+            {STRINGS.wallet.recentTransactions}
+           </Typography>
+           {headerRight}
+        </View>
         <Typography variant="body" style={{ opacity: 0.6 }}>
           {STRINGS.wallet.noRecentTransactions}
         </Typography>
@@ -29,9 +37,12 @@ export function TransactionList({
 
   return (
     <View style={styles.container}>
-      <Typography variant="h3" weight="bold" style={styles.title}>
-        {STRINGS.wallet.recentTransactions}
-      </Typography>
+      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: Spacing.m }}>
+        <Typography variant="h3" weight="bold">
+          {STRINGS.wallet.recentTransactions}
+        </Typography>
+        {headerRight}
+      </View>
 
       <FlatList
         data={transactions}
