@@ -19,7 +19,7 @@
   },
   "vision": {
     "title": "Balance",
-    "description": "Aquí podrás visualizar tu balance general y patrimonio.",
+    "description": "Descripción",
     "assets": "Activos",
     "liabilities": "Pasivos",
     "addAsset": "Agregar Activo",

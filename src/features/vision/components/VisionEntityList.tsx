@@ -51,30 +51,39 @@ const CollapsibleGroup = ({
     <View style={{ marginBottom: Spacing.m }}>
       <TouchableOpacity
         onPress={toggleCollapse}
+        activeOpacity={0.7}
         style={{
           flexDirection: "row",
           alignItems: "center",
           justifyContent: "space-between",
-          paddingVertical: Spacing.s,
+          paddingVertical: Spacing.m,
+          paddingHorizontal: Spacing.m,
+          backgroundColor: colors.surfaceHighlight,
+          borderRadius: BorderRadius.m,
+          marginBottom: collapsed ? 0 : Spacing.s,
         }}
       >
-        <Typography
-          variant="body"
-          weight="bold"
-          style={{
-            color: colors.textSecondary,
-          }}
+        <View
+          style={{ flexDirection: "row", alignItems: "center", gap: Spacing.s }}
         >
-          {title} ({items.length})
-        </Typography>
-        <IconSymbol
-          name={collapsed ? "chevron.down" : "chevron.up"}
-          size={16}
-          color={colors.textSecondary}
-        />
+          <IconSymbol
+            name={collapsed ? "chevron.right" : "chevron.down"}
+            size={20}
+            color={colors.primary}
+          />
+          <Typography
+            variant="body"
+            weight="bold"
+            style={{
+              color: colors.text,
+            }}
+          >
+            {title} ({items.length})
+          </Typography>
+        </View>
       </TouchableOpacity>
       {!collapsed && (
-        <View>
+        <View style={{ marginTop: Spacing.xs }}>
           {items.map((item) => (
             <View key={item.id}>{renderItem(item)}</View>
           ))}
