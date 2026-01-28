@@ -6,9 +6,9 @@ import { BorderRadius, Colors, Spacing } from "@/constants/theme";
 import { useVisionData } from "@/features/vision/hooks/useVisionData";
 import { fetchCategories } from "@/features/wallet/data/categoriesSlice";
 import {
-    addTransaction,
-    deleteTransaction,
-    updateTransaction,
+  addTransaction,
+  deleteTransaction,
+  updateTransaction,
 } from "@/features/wallet/data/walletSlice";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import STRINGS from "@/i18n/es.json";
@@ -17,13 +17,14 @@ import { formatAmountInput } from "@/utils/format";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    Alert,
-    Keyboard,
-    ScrollView,
-    StyleSheet,
-    TouchableOpacity,
-    TouchableWithoutFeedback,
-    View,
+  Alert,
+  Keyboard,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { EntitySelectionModal } from "../components/EntitySelectionModal";
@@ -180,39 +181,54 @@ export default function TransactionFormScreen() {
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <View>
             {/* Amount Input */}
-            <View style={{ alignItems: "center", marginVertical: Spacing.l }}>
+            <View style={{ marginVertical: Spacing.l }}>
               <Typography
                 variant="caption"
                 style={{
                   color: colors.textSecondary,
                   marginBottom: Spacing.xs,
+                  textAlign: "center",
                 }}
               >
                 {STRINGS.wallet.amount}
               </Typography>
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: colors.surface,
+                  borderRadius: BorderRadius.m,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  paddingVertical: Spacing.m,
+                  paddingHorizontal: Spacing.m,
+                }}
+              >
                 <Typography
                   variant="h1"
                   style={{
                     color: type === "income" ? colors.success : colors.error,
-                    marginRight: Spacing.xs,
+                    marginRight: Spacing.s,
                   }}
                 >
                   {type === "income" ? "+" : "-"}
                 </Typography>
-                <Input
+                <TextInput
                   value={amount}
                   onChangeText={(text) => setAmount(formatAmountInput(text))}
                   placeholder="0.00"
+                  placeholderTextColor={colors.textSecondary}
                   keyboardType="numeric"
                   style={{
-                    fontSize: 32,
+                    fontSize: 48,
                     fontWeight: "bold",
+                    color: colors.text,
                     textAlign: "center",
-                    borderWidth: 0,
-                    backgroundColor: "transparent",
-                    width: 200,
+                    minWidth: 120,
+                    padding: 0,
                   }}
+                  autoFocus={!isEditing}
                 />
               </View>
             </View>
