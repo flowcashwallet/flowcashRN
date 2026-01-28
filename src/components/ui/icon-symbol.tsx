@@ -29,6 +29,8 @@ const MAPPING = {
   "arrow.down.left": "call-received",
   "arrow.up.right": "call-made",
   "line.3.horizontal": "menu",
+  "bell.fill": "notifications",
+  xmark: "close",
   plus: "add",
   "plus.circle.fill": "add-circle",
   "minus.circle.fill": "remove-circle",
