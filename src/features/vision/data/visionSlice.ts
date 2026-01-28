@@ -23,6 +23,11 @@ export interface VisionEntity {
   cryptoSymbol?: string;
   cryptoAmount?: number;
   category?: string;
+  // Credit Card Specific
+  isCreditCard?: boolean;
+  cutoffDate?: number; // Day of month 1-31
+  paymentDate?: number; // Day of month 1-31
+  issuerBank?: string;
 }
 
 interface VisionState {

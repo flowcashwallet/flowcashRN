@@ -10,15 +10,15 @@ import { fetchCryptoPrices } from "@/services/price/coingecko";
 import { formatAmountInput, formatCurrency, parseAmount } from "@/utils/format";
 import React, { useEffect, useState } from "react";
 import {
-  Keyboard,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  View,
+    Keyboard,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    TouchableOpacity,
+    TouchableWithoutFeedback,
+    View,
 } from "react-native";
 
 interface AddEntityModalProps {
@@ -56,6 +56,12 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
   const [cryptoAmount, setCryptoAmount] = useState("");
   const [cryptoPrice, setCryptoPrice] = useState<number | null>(null);
 
+  // Credit Card States
+  const [isCreditCard, setIsCreditCard] = useState(false);
+  const [cutoffDate, setCutoffDate] = useState("");
+  const [paymentDate, setPaymentDate] = useState("");
+  const [issuerBank, setIssuerBank] = useState("");
+
   useEffect(() => {
     if (visible) {
       if (initialEntity) {
@@ -63,6 +69,8 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
         setDescription(initialEntity.description || "");
         setAmount(initialEntity.amount.toString());
         setCategory(initialEntity.category || "");
+
+        // Asset - Crypto
         if (initialEntity.isCrypto) {
           setIsCrypto(true);
           setSelectedCrypto((initialEntity.cryptoSymbol as any) || "BTC");
@@ -71,6 +79,19 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
           setIsCrypto(false);
           setCryptoAmount("");
         }
+
+        // Liability - Credit Card
+        if (initialEntity.isCreditCard) {
+          setIsCreditCard(true);
+          setCutoffDate(initialEntity.cutoffDate?.toString() || "");
+          setPaymentDate(initialEntity.paymentDate?.toString() || "");
+          setIssuerBank(initialEntity.issuerBank || "");
+        } else {
+          setIsCreditCard(false);
+          setCutoffDate("");
+          setPaymentDate("");
+          setIssuerBank("");
+        }
       } else {
         setName("");
         setDescription("");
@@ -78,6 +99,11 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
         setCategory("");
         setIsCrypto(false);
         setCryptoAmount("");
+
+        setIsCreditCard(false);
+        setCutoffDate("");
+        setPaymentDate("");
+        setIssuerBank("");
       }
     }
   }, [visible, initialEntity]);
@@ -130,6 +156,10 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
         isCrypto,
         cryptoSymbol: selectedCrypto,
         cryptoAmount,
+        isCreditCard,
+        cutoffDate,
+        paymentDate,
+        issuerBank,
       },
       !!initialEntity,
       initialEntity,
@@ -223,6 +253,104 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
                   </TouchableOpacity>
                 </View>
               )}
+
+              {selectedType === "liability" && (
+                <View style={{ flexDirection: "row", marginBottom: Spacing.m }}>
+                  <TouchableOpacity
+                    style={{
+                      flex: 1,
+                      padding: Spacing.s,
+                      backgroundColor: !isCreditCard
+                        ? colors.primary
+                        : colors.surface,
+                      alignItems: "center",
+                      borderTopLeftRadius: BorderRadius.m,
+                      borderBottomLeftRadius: BorderRadius.m,
+                    }}
+                    onPress={() => {
+                      setIsCreditCard(false);
+                    }}
+                  >
+                    <Typography
+                      variant="caption"
+                      style={{ color: !isCreditCard ? "#FFF" : colors.text }}
+                    >
+                      Deuda General
+                    </Typography>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={{
+                      flex: 1,
+                      padding: Spacing.s,
+                      backgroundColor: isCreditCard
+                        ? colors.primary
+                        : colors.surface,
+                      alignItems: "center",
+                      borderTopRightRadius: BorderRadius.m,
+                      borderBottomRightRadius: BorderRadius.m,
+                    }}
+                    onPress={() => {
+                      setIsCreditCard(true);
+                    }}
+                  >
+                    <Typography
+                      variant="caption"
+                      style={{ color: isCreditCard ? "#FFF" : colors.text }}
+                    >
+                      Tarjeta de Crédito
+                    </Typography>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {isCreditCard && selectedType === "liability" ? (
+                <>
+                  <Input
+                    label="Banco Emisor"
+                    value={issuerBank}
+                    onChangeText={setIssuerBank}
+                    placeholder="Ej: BBVA, Santander..."
+                  />
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <View style={{ flex: 1, marginRight: Spacing.s }}>
+                      <Input
+                        label="Día de Corte"
+                        value={cutoffDate}
+                        onChangeText={(text) => {
+                          // Allow only numbers 1-31
+                          const num = parseInt(text);
+                          if (text === "" || (num >= 1 && num <= 31)) {
+                            setCutoffDate(text);
+                          }
+                        }}
+                        placeholder="Ej: 5"
+                        keyboardType="numeric"
+                        maxLength={2}
+                      />
+                    </View>
+                    <View style={{ flex: 1, marginLeft: Spacing.s }}>
+                      <Input
+                        label="Día de Pago"
+                        value={paymentDate}
+                        onChangeText={(text) => {
+                          const num = parseInt(text);
+                          if (text === "" || (num >= 1 && num <= 31)) {
+                            setPaymentDate(text);
+                          }
+                        }}
+                        placeholder="Ej: 25"
+                        keyboardType="numeric"
+                        maxLength={2}
+                      />
+                    </View>
+                  </View>
+                </>
+              ) : null}
 
               {isCrypto && selectedType === "asset" ? (
                 <>

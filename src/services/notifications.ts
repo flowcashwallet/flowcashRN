@@ -104,6 +104,34 @@ export async function scheduleMonthlyNotification(
   return id;
 }
 
+export async function scheduleCreditCardReminder(
+  bankName: string,
+  paymentDay: number,
+) {
+  // Logic: 2 days before paymentDay
+  let reminderDay = paymentDay - 2;
+  if (reminderDay < 1) {
+    // Fallback for beginning of month: set to 28th to ensure it triggers
+    reminderDay = 28;
+  }
+
+  const id = await Notifications.scheduleNotificationAsync({
+    content: {
+      title: "Pago de Tarjeta",
+      body: `¡Recuerda pagar tu tarjeta ${bankName}! Vence el día ${paymentDay}.`,
+      sound: true,
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.CALENDAR,
+      day: reminderDay,
+      hour: 9, // Default to 9 AM
+      minute: 0,
+      repeats: true,
+    },
+  });
+  return id;
+}
+
 export async function getAllScheduledNotifications() {
   return await Notifications.getAllScheduledNotificationsAsync();
 }

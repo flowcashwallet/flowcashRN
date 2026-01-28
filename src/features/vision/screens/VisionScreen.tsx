@@ -10,8 +10,12 @@ import {
   AddEntityData,
   useVisionOperations,
 } from "@/features/vision/hooks/useVisionOperations";
+import {
+  registerForPushNotificationsAsync,
+  scheduleCreditCardReminder,
+} from "@/services/notifications";
 import React, { useState } from "react";
-import { RefreshControl, ScrollView, StyleSheet } from "react-native";
+import { Alert, RefreshControl, ScrollView, StyleSheet } from "react-native";
 
 export default function VisionScreen() {
   const {
@@ -90,6 +94,47 @@ export default function VisionScreen() {
         // If we were editing from the detail view, we closed it to open this modal.
         // So we don't need to update selectedEntity for the detail view immediately unless we re-open it.
         // But let's keep it simple.
+      } else if (!isEditing) {
+        // Post-save logic for new Credit Card Liability
+        if (
+          data.type === "liability" &&
+          data.isCreditCard &&
+          data.paymentDate &&
+          data.issuerBank
+        ) {
+          Alert.alert(
+            "Recordatorio de Pago",
+            `¿Quieres que te enviemos un recordatorio mensual 2 días antes de tu fecha de pago (${data.paymentDate})?`,
+            [
+              {
+                text: "No",
+                style: "cancel",
+              },
+              {
+                text: "Sí, por favor",
+                onPress: async () => {
+                  const hasPermission =
+                    await registerForPushNotificationsAsync();
+                  if (hasPermission) {
+                    await scheduleCreditCardReminder(
+                      data.issuerBank!,
+                      parseInt(data.paymentDate!),
+                    );
+                    Alert.alert(
+                      "Listo",
+                      "Te recordaremos 2 días antes de tu fecha de pago.",
+                    );
+                  } else {
+                    Alert.alert(
+                      "Error",
+                      "No tenemos permisos para enviar notificaciones.",
+                    );
+                  }
+                },
+              },
+            ],
+          );
+        }
       }
     }
     return result;

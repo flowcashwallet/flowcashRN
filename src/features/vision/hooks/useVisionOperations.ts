@@ -25,6 +25,11 @@ export interface AddEntityData {
   isCrypto: boolean;
   cryptoSymbol?: string;
   cryptoAmount?: string;
+  // Credit Card fields
+  isCreditCard?: boolean;
+  cutoffDate?: string;
+  paymentDate?: string;
+  issuerBank?: string;
 }
 
 export interface AddTransactionToEntityData {
@@ -58,6 +63,15 @@ export const useVisionOperations = (userId?: string) => {
         ? {
             cryptoSymbol: data.cryptoSymbol,
             cryptoAmount: parseAmount(data.cryptoAmount || "0"),
+          }
+        : {}),
+      // Credit Card Logic
+      isCreditCard: data.type === "liability" && data.isCreditCard,
+      ...(data.isCreditCard && data.type === "liability"
+        ? {
+            cutoffDate: parseInt(data.cutoffDate || "0"),
+            paymentDate: parseInt(data.paymentDate || "0"),
+            issuerBank: data.issuerBank,
           }
         : {}),
     };
