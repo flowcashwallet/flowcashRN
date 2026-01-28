@@ -149,44 +149,88 @@ export const VisionEntityList: React.FC<VisionEntityListProps> = ({
     );
   };
 
-  const renderSection = (type: "asset" | "liability", data: VisionEntity[]) => (
-    <View style={styles.section}>
-      <View style={styles.sectionHeader}>
-        <Typography variant="h3" weight="bold" style={{ color: colors.text }}>
-          {type === "asset"
-            ? STRINGS.vision.assets
-            : STRINGS.vision.liabilities}
-        </Typography>
-        <TouchableOpacity onPress={onAddPress}>
-          <View
-            style={[
-              styles.addButton,
-              {
-                backgroundColor:
-                  type === "asset" ? colors.success : colors.error,
-              },
-            ]}
+  const renderSection = (type: "asset" | "liability", data: VisionEntity[]) => {
+    // Grouping logic
+    let group1: VisionEntity[] = [];
+    let group2: VisionEntity[] = [];
+    let title1 = "";
+    let title2 = "";
+
+    if (type === "asset") {
+      group1 = data.filter((item) => !item.isCrypto);
+      title1 = "Dinero Fiat";
+      group2 = data.filter((item) => item.isCrypto);
+      title2 = "Criptomonedas";
+    } else {
+      group1 = data.filter((item) => item.isCreditCard);
+      title1 = "Tarjetas de Crédito";
+      group2 = data.filter((item) => !item.isCreditCard);
+      title2 = "Deuda General";
+    }
+
+    const renderGroup = (title: string, items: VisionEntity[]) => {
+      if (items.length === 0) return null;
+      return (
+        <View style={{ marginBottom: Spacing.m }}>
+          <Typography
+            variant="body"
+            weight="bold"
+            style={{
+              color: colors.textSecondary,
+              marginBottom: Spacing.s,
+              marginTop: Spacing.s,
+            }}
           >
-            <IconSymbol name="plus" size={20} color="#FFF" />
-          </View>
-        </TouchableOpacity>
+            {title}
+          </Typography>
+          {items.map((item) => (
+            <View key={item.id}>{renderEntityItem({ item })}</View>
+          ))}
+        </View>
+      );
+    };
+
+    return (
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Typography variant="h3" weight="bold" style={{ color: colors.text }}>
+            {type === "asset"
+              ? STRINGS.vision.assets
+              : STRINGS.vision.liabilities}
+          </Typography>
+          <TouchableOpacity onPress={onAddPress}>
+            <View
+              style={[
+                styles.addButton,
+                {
+                  backgroundColor:
+                    type === "asset" ? colors.success : colors.error,
+                },
+              ]}
+            >
+              <IconSymbol name="plus" size={20} color="#FFF" />
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        {data.length === 0 ? (
+          <Typography
+            variant="caption"
+            style={{ fontStyle: "italic", color: colors.textSecondary }}
+          >
+            {type === "asset"
+              ? STRINGS.vision.noAssets
+              : STRINGS.vision.noLiabilities}
+          </Typography>
+        ) : (
+          <>
+            {renderGroup(title1, group1)}
+            {renderGroup(title2, group2)}
+          </>
+        )}
       </View>
-      {data.length === 0 ? (
-        <Typography
-          variant="caption"
-          style={{ fontStyle: "italic", color: colors.textSecondary }}
-        >
-          {type === "asset"
-            ? STRINGS.vision.noAssets
-            : STRINGS.vision.noLiabilities}
-        </Typography>
-      ) : (
-        data.map((item) => (
-          <View key={item.id}>{renderEntityItem({ item })}</View>
-        ))
-      )}
-    </View>
-  );
+    );
+  };
 
   return (
     <View>
