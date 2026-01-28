@@ -3,16 +3,17 @@ import { Spacing } from "@/constants/theme";
 import { AddEntityModal } from "@/features/vision/components/AddEntityModal";
 import { EntityDetailModal } from "@/features/vision/components/EntityDetailModal";
 import { VisionEntityList } from "@/features/vision/components/VisionEntityList";
+import { VisionFilterModal } from "@/features/vision/components/VisionFilterModal";
 import { VisionHeader } from "@/features/vision/components/VisionHeader";
 import { VisionEntity } from "@/features/vision/data/visionSlice";
 import { useVisionData } from "@/features/vision/hooks/useVisionData";
 import {
-  AddEntityData,
-  useVisionOperations,
+    AddEntityData,
+    useVisionOperations,
 } from "@/features/vision/hooks/useVisionOperations";
 import {
-  registerForPushNotificationsAsync,
-  scheduleCreditCardReminder,
+    registerForPushNotificationsAsync,
+    scheduleCreditCardReminder,
 } from "@/services/notifications";
 import React, { useState } from "react";
 import { Alert, RefreshControl, ScrollView, StyleSheet } from "react-native";
@@ -48,6 +49,20 @@ export default function VisionScreen() {
   const [selectedEntity, setSelectedEntity] = useState<VisionEntity | null>(
     null,
   );
+  const [filterVisible, setFilterVisible] = useState(false);
+  const [filterCategory, setFilterCategory] = useState<string | null>(null);
+
+  const filteredAssets = assets.filter(
+    (item) => !filterCategory || item.category === filterCategory,
+  );
+  const filteredLiabilities = liabilities.filter(
+    (item) => !filterCategory || item.category === filterCategory,
+  );
+
+  const handleTabChange = (tab: "asset" | "liability") => {
+    setActiveTab(tab);
+    setFilterCategory(null);
+  };
 
   const onAddPress = () => {
     setSelectedType(activeTab);
@@ -162,14 +177,25 @@ export default function VisionScreen() {
 
         <VisionEntityList
           activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          assets={assets}
-          liabilities={liabilities}
+          setActiveTab={handleTabChange}
+          assets={filteredAssets}
+          liabilities={filteredLiabilities}
           onAddPress={onAddPress}
           onEntityPress={onEntityPress}
           onDeleteEntity={handleDeleteEntity}
+          onFilterPress={() => setFilterVisible(true)}
+          activeFilterCategory={filterCategory}
         />
       </ScrollView>
+
+      <VisionFilterModal
+        visible={filterVisible}
+        onClose={() => setFilterVisible(false)}
+        activeTab={activeTab}
+        currentCategory={filterCategory}
+        onApply={setFilterCategory}
+        onClear={() => setFilterCategory(null)}
+      />
 
       <AddEntityModal
         visible={addModalVisible}

@@ -5,8 +5,14 @@ import { VisionEntity } from "@/features/vision/data/visionSlice";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import STRINGS from "@/i18n/es.json";
 import { formatCurrency } from "@/utils/format";
-import React from "react";
-import { Platform, StyleSheet, TouchableOpacity, View } from "react-native";
+import React, { useState } from "react";
+import {
+    LayoutAnimation,
+    Platform,
+    StyleSheet,
+    TouchableOpacity,
+    View,
+} from "react-native";
 import Swipeable from "react-native-gesture-handler/Swipeable";
 
 interface VisionEntityListProps {
@@ -17,7 +23,66 @@ interface VisionEntityListProps {
   onAddPress: () => void;
   onEntityPress: (entity: VisionEntity) => void;
   onDeleteEntity: (id: string) => void;
+  onFilterPress: () => void;
+  activeFilterCategory: string | null;
 }
+
+const CollapsibleGroup = ({
+  title,
+  items,
+  renderItem,
+  colors,
+}: {
+  title: string;
+  items: VisionEntity[];
+  renderItem: (item: VisionEntity) => React.ReactNode;
+  colors: any;
+}) => {
+  const [collapsed, setCollapsed] = useState(false);
+
+  const toggleCollapse = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setCollapsed(!collapsed);
+  };
+
+  if (items.length === 0) return null;
+
+  return (
+    <View style={{ marginBottom: Spacing.m }}>
+      <TouchableOpacity
+        onPress={toggleCollapse}
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          paddingVertical: Spacing.s,
+        }}
+      >
+        <Typography
+          variant="body"
+          weight="bold"
+          style={{
+            color: colors.textSecondary,
+          }}
+        >
+          {title} ({items.length})
+        </Typography>
+        <IconSymbol
+          name={collapsed ? "chevron.down" : "chevron.up"}
+          size={16}
+          color={colors.textSecondary}
+        />
+      </TouchableOpacity>
+      {!collapsed && (
+        <View>
+          {items.map((item) => (
+            <View key={item.id}>{renderItem(item)}</View>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+};
 
 export const VisionEntityList: React.FC<VisionEntityListProps> = ({
   activeTab,
@@ -27,6 +92,8 @@ export const VisionEntityList: React.FC<VisionEntityListProps> = ({
   onAddPress,
   onEntityPress,
   onDeleteEntity,
+  onFilterPress,
+  activeFilterCategory,
 }) => {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
@@ -169,24 +236,13 @@ export const VisionEntityList: React.FC<VisionEntityListProps> = ({
     }
 
     const renderGroup = (title: string, items: VisionEntity[]) => {
-      if (items.length === 0) return null;
       return (
-        <View style={{ marginBottom: Spacing.m }}>
-          <Typography
-            variant="body"
-            weight="bold"
-            style={{
-              color: colors.textSecondary,
-              marginBottom: Spacing.s,
-              marginTop: Spacing.s,
-            }}
-          >
-            {title}
-          </Typography>
-          {items.map((item) => (
-            <View key={item.id}>{renderEntityItem({ item })}</View>
-          ))}
-        </View>
+        <CollapsibleGroup
+          title={title}
+          items={items}
+          renderItem={(item) => renderEntityItem({ item })}
+          colors={colors}
+        />
       );
     };
 
@@ -198,19 +254,46 @@ export const VisionEntityList: React.FC<VisionEntityListProps> = ({
               ? STRINGS.vision.assets
               : STRINGS.vision.liabilities}
           </Typography>
-          <TouchableOpacity onPress={onAddPress}>
-            <View
-              style={[
-                styles.addButton,
-                {
-                  backgroundColor:
-                    type === "asset" ? colors.success : colors.error,
-                },
-              ]}
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <TouchableOpacity
+              onPress={onFilterPress}
+              style={{ marginRight: 12 }}
             >
-              <IconSymbol name="plus" size={20} color="#FFF" />
-            </View>
-          </TouchableOpacity>
+              <View
+                style={[
+                  styles.addButton,
+                  {
+                    backgroundColor: activeFilterCategory
+                      ? colors.primary
+                      : colors.surfaceHighlight,
+                  },
+                ]}
+              >
+                <IconSymbol
+                  name={
+                    activeFilterCategory
+                      ? "line.3.horizontal.decrease.circle.fill"
+                      : "line.3.horizontal.decrease.circle"
+                  }
+                  size={20}
+                  color={activeFilterCategory ? "#FFF" : colors.textSecondary}
+                />
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={onAddPress}>
+              <View
+                style={[
+                  styles.addButton,
+                  {
+                    backgroundColor:
+                      type === "asset" ? colors.success : colors.error,
+                  },
+                ]}
+              >
+                <IconSymbol name="plus" size={20} color="#FFF" />
+              </View>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {data.length === 0 ? (
