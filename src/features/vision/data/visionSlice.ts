@@ -63,6 +63,11 @@ export const fetchVisionEntities = createAsyncThunk(
           cryptoSymbol: data.cryptoSymbol,
           cryptoAmount: data.cryptoAmount,
           category: data.category,
+          // Credit Card Fields
+          isCreditCard: data.isCreditCard,
+          cutoffDate: data.cutoffDate,
+          paymentDate: data.paymentDate,
+          issuerBank: data.issuerBank,
         });
       });
       return entities;
