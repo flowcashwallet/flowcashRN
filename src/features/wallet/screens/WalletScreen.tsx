@@ -12,9 +12,7 @@ import {
 } from "react-native";
 import { QuickActions } from "../components/QuickActions";
 import { StreakCalendarModal } from "../components/StreakCalendarModal";
-import { TransactionDetailModal } from "../components/TransactionDetailModal";
 import { TransactionFilterModal } from "../components/TransactionFilterModal";
-import { TransactionModal } from "../components/TransactionModal";
 import { WalletHeader } from "../components/WalletHeader";
 import { Transaction } from "../data/walletSlice";
 import { useWalletData } from "../hooks/useWalletData";
@@ -38,16 +36,9 @@ export default function WalletScreen() {
     categories,
   } = useWalletData();
 
-  const {
-    isSaving,
-    addTransaction,
-    updateTransaction,
-    deleteTransaction,
-    deleteMonthlyTransactions,
-  } = useWalletTransactions();
+  const { deleteTransaction, deleteMonthlyTransactions } =
+    useWalletTransactions();
 
-  const [modalVisible, setModalVisible] = useState(false);
-  const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [calendarVisible, setCalendarVisible] = useState(false);
   const [filterVisible, setFilterVisible] = useState(false);
   const [filters, setFilters] = useState<{
@@ -60,19 +51,15 @@ export default function WalletScreen() {
     type: null,
   });
 
-  const [transactionType, setTransactionType] = useState<"income" | "expense">(
-    "expense",
-  );
-  const [selectedTransaction, setSelectedTransaction] =
-    useState<Transaction | null>(null);
-
   const handleDeleteMonthly = () => {
     deleteMonthlyTransactions(currentMonthTransactions, currentMonthName);
   };
 
   const handleTransactionPress = (transaction: Transaction) => {
-    setSelectedTransaction(transaction);
-    setDetailModalVisible(true);
+    router.push({
+      pathname: "/transaction-form",
+      params: { id: transaction.id },
+    });
   };
 
   const filteredTransactions = currentMonthTransactions.filter((t) => {
@@ -111,12 +98,16 @@ export default function WalletScreen() {
 
         <QuickActions
           onPressIncome={() => {
-            setTransactionType("income");
-            setModalVisible(true);
+            router.push({
+              pathname: "/transaction-form",
+              params: { initialType: "income" },
+            });
           }}
           onPressExpense={() => {
-            setTransactionType("expense");
-            setModalVisible(true);
+            router.push({
+              pathname: "/transaction-form",
+              params: { initialType: "expense" },
+            });
           }}
           onPressCategories={() => {
             router.push("/wallet/categories");
@@ -142,25 +133,6 @@ export default function WalletScreen() {
           }
         />
       </ScrollView>
-
-      <TransactionModal
-        visible={modalVisible}
-        onClose={() => setModalVisible(false)}
-        onSave={addTransaction}
-        initialType={transactionType}
-        visionEntities={visionEntities}
-        isSaving={isSaving}
-      />
-
-      <TransactionDetailModal
-        visible={detailModalVisible}
-        onClose={() => setDetailModalVisible(false)}
-        transaction={selectedTransaction}
-        onUpdate={updateTransaction}
-        onDelete={deleteTransaction}
-        visionEntities={visionEntities}
-        isSaving={isSaving}
-      />
 
       <StreakCalendarModal
         visible={calendarVisible}
