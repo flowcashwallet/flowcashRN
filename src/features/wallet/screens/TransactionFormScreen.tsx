@@ -1,3 +1,4 @@
+import { NotificationSetupModal } from "@/components/NotificationSetupModal";
 import { Button } from "@/components/atoms/Button";
 import { Input } from "@/components/atoms/Input";
 import { Typography } from "@/components/atoms/Typography";
@@ -6,26 +7,28 @@ import { BorderRadius, Colors, Spacing } from "@/constants/theme";
 import { useVisionData } from "@/features/vision/hooks/useVisionData";
 import { fetchCategories } from "@/features/wallet/data/categoriesSlice";
 import {
-  addTransaction,
-  deleteTransaction,
-  updateTransaction,
+    addTransaction,
+    deleteTransaction,
+    updateTransaction,
 } from "@/features/wallet/data/walletSlice";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import STRINGS from "@/i18n/es.json";
+import { registerForPushNotificationsAsync } from "@/services/notifications";
 import { AppDispatch, RootState } from "@/store/store";
 import { formatAmountInput } from "@/utils/format";
 import { determineDefaultPaymentType } from "@/utils/transactionUtils";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  Alert,
-  Keyboard,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  View,
+    Alert,
+    Keyboard,
+    ScrollView,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    TouchableWithoutFeedback,
+    View,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { EntitySelectionModal } from "../components/EntitySelectionModal";
@@ -80,6 +83,8 @@ export default function TransactionFormScreen() {
   const [isPaymentTypeDropdownOpen, setIsPaymentTypeDropdownOpen] =
     useState(false);
   const [isEntityModalVisible, setIsEntityModalVisible] = useState(false);
+  const [isNotificationSetupVisible, setIsNotificationSetupVisible] =
+    useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -141,6 +146,51 @@ export default function TransactionFormScreen() {
             paymentType: selectedPaymentType,
           }),
         ).unwrap();
+
+        const isFirstTransaction = transactions.length === 0;
+        const hasAsked = await AsyncStorage.getItem(
+          "has_asked_initial_reminder",
+        );
+
+        if (isFirstTransaction && !hasAsked) {
+          Alert.alert(
+            "¡Primera transacción!",
+            "¿Te gustaría configurar un recordatorio diario para no olvidar registrar tus gastos?",
+            [
+              {
+                text: "No, gracias",
+                style: "cancel",
+                onPress: async () => {
+                  await AsyncStorage.setItem(
+                    "has_asked_initial_reminder",
+                    "true",
+                  );
+                  router.back();
+                },
+              },
+              {
+                text: "Sí, configurar",
+                onPress: async () => {
+                  await AsyncStorage.setItem(
+                    "has_asked_initial_reminder",
+                    "true",
+                  );
+                  const granted = await registerForPushNotificationsAsync();
+                  if (granted) {
+                    setIsNotificationSetupVisible(true);
+                  } else {
+                    Alert.alert(
+                      "Permisos requeridos",
+                      "No se pudieron habilitar las notificaciones. Verifica tus ajustes.",
+                      [{ text: "OK", onPress: () => router.back() }],
+                    );
+                  }
+                },
+              },
+            ],
+          );
+          return; // Don't route back yet
+        }
       }
       router.back();
     } catch (error) {
@@ -565,6 +615,18 @@ export default function TransactionFormScreen() {
         onSelect={setSelectedEntityId}
         visionEntities={entities}
         selectedEntityId={selectedEntityId}
+      />
+
+      <NotificationSetupModal
+        visible={isNotificationSetupVisible}
+        onClose={() => {
+          setIsNotificationSetupVisible(false);
+          router.back();
+        }}
+        onSave={() => {
+          setIsNotificationSetupVisible(false);
+          router.back();
+        }}
       />
     </View>
   );
