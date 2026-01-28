@@ -21,7 +21,13 @@ export interface Transaction {
   category?: string | null; // e.g. "🍔 Comida"
   relatedEntityId?: string | null; // ID of the Asset or Liability
   date: number; // timestamp
-  paymentType?: "credit_card" | "debit_card" | "cash" | null;
+  paymentType?:
+    | "credit_card"
+    | "debit_card"
+    | "cash"
+    | "transfer"
+    | "payroll"
+    | null;
 }
 
 interface WalletState {

@@ -70,10 +70,10 @@ export default function TransactionFormScreen() {
     existingTransaction?.relatedEntityId || null,
   );
   const [selectedPaymentType, setSelectedPaymentType] = useState<
-    "credit_card" | "debit_card" | "cash" | null
+    "credit_card" | "debit_card" | "cash" | "transfer" | "payroll" | null
   >(
     existingTransaction?.paymentType ||
-      (!isEditing ? determineDefaultPaymentType(transactions) : null),
+      (!isEditing ? determineDefaultPaymentType(transactions, type) : null),
   );
 
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
@@ -87,6 +87,22 @@ export default function TransactionFormScreen() {
       dispatch(fetchCategories(user.uid));
     }
   }, [user, dispatch, categories.length]);
+
+  // Update default payment type when type changes (only if creating and not manually set - strictly speaking, we just want to follow the "default" logic)
+  // However, the user requirement is to just "check the last 10 transactions...".
+  // If the user switches types, we should probably re-suggest the default payment type for that new transaction type.
+  useEffect(() => {
+    if (!isEditing) {
+      const suggestedPaymentType = determineDefaultPaymentType(
+        transactions,
+        type,
+      );
+      // We only update if the user hasn't selected a payment type yet?
+      // Or we can always update it since switching types (Income <-> Expense) implies a context switch.
+      // Let's go with updating it.
+      setSelectedPaymentType(suggestedPaymentType);
+    }
+  }, [type, transactions, isEditing]);
 
   const handleSave = async () => {
     if (!amount || !description || !user?.uid) {
@@ -346,7 +362,11 @@ export default function TransactionFormScreen() {
                         ? "Tarjeta de crédito"
                         : selectedPaymentType === "debit_card"
                           ? "Tarjeta de débito"
-                          : "Efectivo"
+                          : selectedPaymentType === "cash"
+                            ? "Efectivo"
+                            : selectedPaymentType === "transfer"
+                              ? "Transferencia"
+                              : "Nómina"
                       : "Seleccionar tipo de pago (opcional)"}
                   </Typography>
                   <IconSymbol
@@ -371,6 +391,8 @@ export default function TransactionFormScreen() {
                     { id: "credit_card", label: "Tarjeta de crédito" },
                     { id: "debit_card", label: "Tarjeta de débito" },
                     { id: "cash", label: "Efectivo" },
+                    { id: "transfer", label: "Transferencia" },
+                    { id: "payroll", label: "Nómina" },
                   ].map((pt, index) => (
                     <TouchableOpacity
                       key={pt.id}

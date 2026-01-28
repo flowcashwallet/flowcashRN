@@ -1,28 +1,42 @@
 import { Transaction } from "@/features/wallet/data/walletSlice";
 
 /**
- * Determines the default payment type based on the last 10 transactions.
+ * Determines the default payment type based on the last 10 transactions of the same type.
  * Algorithm:
- * 1. Sort transactions by date descending (latest first).
- * 2. Take the last 10 transactions.
- * 3. Count the frequency of each payment type in these 10 transactions.
- * 4. If no payment types are found (all are null/undefined), return null.
- * 5. Otherwise, return the most frequent payment type.
+ * 1. Filter transactions by the current type (income/expense).
+ * 2. Sort filtered transactions by date descending (latest first).
+ * 3. Take the last 10 transactions from this filtered list.
+ * 4. Count the frequency of each payment type in these 10 transactions.
+ * 5. If no payment types are found (all are null/undefined), return null.
+ * 6. Otherwise, return the most frequent payment type.
  *
  * @param transactions List of all transactions
- * @returns The suggested payment type ("credit_card" | "debit_card" | "cash") or null
+ * @param type The type of transaction currently being created ("income" | "expense")
+ * @returns The suggested payment type or null
  */
 export const determineDefaultPaymentType = (
   transactions: Transaction[],
-): "credit_card" | "debit_card" | "cash" | null => {
+  type: "income" | "expense",
+):
+  | "credit_card"
+  | "debit_card"
+  | "cash"
+  | "transfer"
+  | "payroll"
+  | null => {
   if (!transactions || transactions.length === 0) {
     return null;
   }
 
+  // Filter by type (income vs expense)
+  const filteredTransactions = transactions.filter((t) => t.type === type);
+
   // Ensure we are looking at the latest transactions
   // Assuming the input array might not be sorted, we sort it.
   // Creating a copy to avoid mutating the original array
-  const sortedTransactions = [...transactions].sort((a, b) => b.date - a.date);
+  const sortedTransactions = [...filteredTransactions].sort(
+    (a, b) => b.date - a.date,
+  );
 
   // Analyze the last 10 transactions
   const last10 = sortedTransactions.slice(0, 10);
@@ -54,5 +68,11 @@ export const determineDefaultPaymentType = (
     }
   }
 
-  return mostFrequentType as "credit_card" | "debit_card" | "cash" | null;
+  return mostFrequentType as
+    | "credit_card"
+    | "debit_card"
+    | "cash"
+    | "transfer"
+    | "payroll"
+    | null;
 };
