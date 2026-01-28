@@ -1,4 +1,4 @@
-import { NotificationSetupModal } from "@/components/NotificationSetupModal";
+import { NotificationDashboardModal } from "@/components/NotificationDashboardModal";
 import { HapticTab } from "@/components/haptic-tab";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Colors } from "@/constants/theme";
@@ -119,7 +119,7 @@ export default function TabLayout() {
           }}
         />
       </Tabs>
-      <NotificationSetupModal
+      <NotificationDashboardModal
         visible={isNotificationModalVisible}
         onClose={() => setIsNotificationModalVisible(false)}
       />

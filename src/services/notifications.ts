@@ -22,28 +22,29 @@ export async function registerForPushNotificationsAsync() {
     });
   }
 
-  if (Device.isDevice) {
-    console.log("Device is a physical device");
-    const { status: existingStatus } =
-      await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
-    if (existingStatus !== "granted") {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
-    }
-    if (finalStatus !== "granted") {
-      return false;
-    }
-    return true;
+  if (!Device.isDevice) {
+    console.log(
+      "Estás en un simulador. Las notificaciones Push no funcionarán, pero las locales sí deberían mostrarse.",
+    );
   }
-  return false;
+
+  const { status: existingStatus } = await Notifications.getPermissionsAsync();
+  let finalStatus = existingStatus;
+  if (existingStatus !== "granted") {
+    const { status } = await Notifications.requestPermissionsAsync();
+    finalStatus = status;
+  }
+  if (finalStatus !== "granted") {
+    return false;
+  }
+  return true;
 }
 
 export async function scheduleDailyNotification(hour: number, minute: number) {
-  await Notifications.cancelAllScheduledNotificationsAsync();
-  await Notifications.scheduleNotificationAsync({
+  // Removed cancelAll to allow multiple notifications
+  const id = await Notifications.scheduleNotificationAsync({
     content: {
-      title: "Recordatorio",
+      title: "Recordatorio Diario",
       body: "¡Es hora de registrar tus transacciones del día!",
       sound: true,
     },
@@ -54,6 +55,7 @@ export async function scheduleDailyNotification(hour: number, minute: number) {
       repeats: true,
     },
   });
+  return id;
 }
 
 export async function scheduleWeeklyNotification(
@@ -61,8 +63,8 @@ export async function scheduleWeeklyNotification(
   hour: number,
   minute: number,
 ) {
-  await Notifications.cancelAllScheduledNotificationsAsync();
-  await Notifications.scheduleNotificationAsync({
+  // Removed cancelAll
+  const id = await Notifications.scheduleNotificationAsync({
     content: {
       title: "Recordatorio Semanal",
       body: "¡No olvides registrar tus gastos de la semana!",
@@ -76,6 +78,7 @@ export async function scheduleWeeklyNotification(
       repeats: true,
     },
   });
+  return id;
 }
 
 export async function scheduleMonthlyNotification(
@@ -83,8 +86,8 @@ export async function scheduleMonthlyNotification(
   hour: number,
   minute: number,
 ) {
-  await Notifications.cancelAllScheduledNotificationsAsync();
-  await Notifications.scheduleNotificationAsync({
+  // Removed cancelAll
+  const id = await Notifications.scheduleNotificationAsync({
     content: {
       title: "Recordatorio Mensual",
       body: "Es momento de revisar tu presupuesto del mes.",
@@ -98,6 +101,15 @@ export async function scheduleMonthlyNotification(
       repeats: true,
     },
   });
+  return id;
+}
+
+export async function getAllScheduledNotifications() {
+  return await Notifications.getAllScheduledNotificationsAsync();
+}
+
+export async function cancelScheduledNotification(identifier: string) {
+  await Notifications.cancelScheduledNotificationAsync(identifier);
 }
 
 export async function cancelAllNotifications() {

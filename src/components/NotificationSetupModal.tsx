@@ -1,18 +1,16 @@
 import { Button } from "@/components/atoms/Button";
 import { Typography } from "@/components/atoms/Typography";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { BorderRadius, Colors, Spacing } from "@/constants/theme";
+import { Colors, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
-  cancelAllNotifications,
   registerForPushNotificationsAsync,
   scheduleDailyNotification,
   scheduleMonthlyNotification,
   scheduleWeeklyNotification,
 } from "@/services/notifications";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   Alert,
   Modal,
@@ -27,6 +25,7 @@ import {
 interface NotificationSetupModalProps {
   visible: boolean;
   onClose: () => void;
+  onSave: () => void;
 }
 
 type Frequency = "daily" | "weekly" | "monthly";
@@ -34,6 +33,7 @@ type Frequency = "daily" | "weekly" | "monthly";
 export const NotificationSetupModal: React.FC<NotificationSetupModalProps> = ({
   visible,
   onClose,
+  onSave,
 }) => {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
@@ -41,30 +41,7 @@ export const NotificationSetupModal: React.FC<NotificationSetupModalProps> = ({
   const [frequency, setFrequency] = useState<Frequency>("daily");
   const [time, setTime] = useState(new Date());
   const [loading, setLoading] = useState(false);
-
-  // Load saved settings
-  useEffect(() => {
-    if (visible) {
-      loadSettings();
-    }
-  }, [visible]);
-
-  const loadSettings = async () => {
-    try {
-      const storedSettings = await AsyncStorage.getItem(
-        "notification_settings",
-      );
-      if (storedSettings) {
-        const settings = JSON.parse(storedSettings);
-        setFrequency(settings.frequency || "daily");
-        if (settings.time) {
-          setTime(new Date(settings.time));
-        }
-      }
-    } catch (error) {
-      console.error("Failed to load settings", error);
-    }
-  };
+  const [showAndroidTimePicker, setShowAndroidTimePicker] = useState(false);
 
   const handleSave = async () => {
     setLoading(true);
@@ -85,46 +62,20 @@ export const NotificationSetupModal: React.FC<NotificationSetupModalProps> = ({
       if (frequency === "daily") {
         await scheduleDailyNotification(hour, minute);
       } else if (frequency === "weekly") {
-        // Default to Monday for now, or could add a picker
         const currentDay = new Date().getDay(); // 0-6
-        // For simplicity in this iteration, use current day of week or ask user.
-        // Let's use Monday (1) as default or current day?
-        // User asked for "periodicidad", implied simple choice.
-        // Let's use current day for weekly to keep it simple, or add a selector.
-        // I'll stick to Monday for weekly if not specified, or better, "Every [Current Day]".
         await scheduleWeeklyNotification(currentDay + 1, hour, minute); // weekday 1-7
       } else if (frequency === "monthly") {
-        // Default to 1st of month
         await scheduleMonthlyNotification(1, hour, minute);
       }
 
-      await AsyncStorage.setItem(
-        "notification_settings",
-        JSON.stringify({
-          frequency,
-          time: time.toISOString(),
-          enabled: true,
-        }),
-      );
-
-      Alert.alert("¡Listo!", "Recordatorio configurado exitosamente.");
+      Alert.alert("¡Listo!", "Recordatorio agregado exitosamente.");
+      onSave();
       onClose();
     } catch (error) {
       console.error(error);
       Alert.alert("Error", "No se pudo configurar el recordatorio.");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleDisable = async () => {
-    try {
-      await cancelAllNotifications();
-      await AsyncStorage.removeItem("notification_settings");
-      Alert.alert("Desactivado", "Se han desactivado los recordatorios.");
-      onClose();
-    } catch (error) {
-      console.error(error);
     }
   };
 
@@ -165,8 +116,12 @@ export const NotificationSetupModal: React.FC<NotificationSetupModalProps> = ({
           onPress={(e) => e.stopPropagation()}
         >
           <View style={styles.header}>
-            <Typography variant="h3" weight="bold" style={{ color: colors.text }}>
-              Configurar Recordatorio
+            <Typography
+              variant="h3"
+              weight="bold"
+              style={{ color: colors.text }}
+            >
+              Nuevo Recordatorio
             </Typography>
             <Pressable onPress={onClose}>
               <IconSymbol name="xmark" size={24} color={colors.textSecondary} />
@@ -178,8 +133,8 @@ export const NotificationSetupModal: React.FC<NotificationSetupModalProps> = ({
               variant="body"
               style={{ marginBottom: Spacing.m, color: colors.textSecondary }}
             >
-              Recibe recordatorios para registrar tus transacciones y mantener tu
-              presupuesto al día.
+              Configura un nuevo recordatorio para no olvidar registrar tus
+              transacciones.
             </Typography>
 
             <View style={styles.section}>
@@ -228,27 +183,27 @@ export const NotificationSetupModal: React.FC<NotificationSetupModalProps> = ({
                     themeVariant={colorScheme ?? "light"}
                   />
                 ) : (
-                  <Button
-                    title={time.toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                    onPress={() => {
-                      // Android needs a separate call or specific handling, 
-                      // but generic RNDateTimePicker works if visible state is managed.
-                      // For simplicity, just rendering it inline or handling logic would be needed.
-                      // Let's assume standard behavior or add state if needed.
-                    }}
-                    variant="outline"
-                  />
-                )}
-                {Platform.OS === "android" && (
-                  <DateTimePicker
-                    value={time}
-                    mode="time"
-                    display="default"
-                    onChange={(e, date) => date && setTime(date)}
-                  />
+                  <>
+                    <Button
+                      title={time.toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                      onPress={() => setShowAndroidTimePicker(true)}
+                      variant="outline"
+                    />
+                    {showAndroidTimePicker && (
+                      <DateTimePicker
+                        value={time}
+                        mode="time"
+                        display="default"
+                        onChange={(e, date) => {
+                          setShowAndroidTimePicker(false);
+                          if (date) setTime(date);
+                        }}
+                      />
+                    )}
+                  </>
                 )}
               </View>
             </View>
@@ -256,8 +211,8 @@ export const NotificationSetupModal: React.FC<NotificationSetupModalProps> = ({
 
           <View style={styles.footer}>
             <Button
-              title="Desactivar"
-              onPress={handleDisable}
+              title="Cancelar"
+              onPress={onClose}
               variant="outline"
               style={{ flex: 1, marginRight: Spacing.s }}
             />
