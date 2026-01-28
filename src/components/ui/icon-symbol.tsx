@@ -36,6 +36,7 @@ const MAPPING = {
   "minus.circle.fill": "remove-circle",
   "g.circle.fill": "public",
   pencil: "edit",
+  "building.columns.fill": "account-balance",
 } as IconMapping;
 
 /**

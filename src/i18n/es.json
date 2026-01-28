@@ -11,15 +11,15 @@
   "tabs": {
     "wallet": "Wallet",
     "budget": "Presupuesto",
-    "vision": "Visión"
+    "vision": "Balance"
   },
   "budget": {
     "title": "Presupuesto",
     "description": "Aquí podrás gestionar tus presupuestos."
   },
   "vision": {
-    "title": "Visión",
-    "description": "Aquí podrás visualizar tus metas a largo plazo.",
+    "title": "Balance",
+    "description": "Aquí podrás visualizar tu balance general y patrimonio.",
     "assets": "Activos",
     "liabilities": "Pasivos",
     "addAsset": "Agregar Activo",

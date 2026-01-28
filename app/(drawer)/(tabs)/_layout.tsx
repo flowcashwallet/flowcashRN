@@ -110,11 +110,11 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
-          name="vision"
+          name="balance"
           options={{
             title: STRINGS.tabs.vision,
             tabBarIcon: ({ color }) => (
-              <IconSymbol size={24} name="eye.fill" color={color} />
+              <IconSymbol size={24} name="building.columns.fill" color={color} />
             ),
           }}
         />
