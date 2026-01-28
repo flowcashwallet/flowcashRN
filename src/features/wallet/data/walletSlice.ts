@@ -21,6 +21,7 @@ export interface Transaction {
   category?: string | null; // e.g. "🍔 Comida"
   relatedEntityId?: string | null; // ID of the Asset or Liability
   date: number; // timestamp
+  paymentType?: "credit_card" | "debit_card" | "cash" | null;
 }
 
 interface WalletState {
@@ -59,6 +60,7 @@ export const fetchTransactions = createAsyncThunk(
           category: data.category,
           relatedEntityId: data.relatedEntityId,
           date: data.date,
+          paymentType: data.paymentType,
         });
       });
       // Sort desc by date

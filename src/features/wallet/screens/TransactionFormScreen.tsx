@@ -14,6 +14,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import STRINGS from "@/i18n/es.json";
 import { AppDispatch, RootState } from "@/store/store";
 import { formatAmountInput } from "@/utils/format";
+import { determineDefaultPaymentType } from "@/utils/transactionUtils";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -68,8 +69,16 @@ export default function TransactionFormScreen() {
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(
     existingTransaction?.relatedEntityId || null,
   );
+  const [selectedPaymentType, setSelectedPaymentType] = useState<
+    "credit_card" | "debit_card" | "cash" | null
+  >(
+    existingTransaction?.paymentType ||
+      (!isEditing ? determineDefaultPaymentType(transactions) : null),
+  );
 
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
+  const [isPaymentTypeDropdownOpen, setIsPaymentTypeDropdownOpen] =
+    useState(false);
   const [isEntityModalVisible, setIsEntityModalVisible] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -99,6 +108,7 @@ export default function TransactionFormScreen() {
               type,
               category: selectedCategory || "General",
               relatedEntityId: selectedEntityId || null,
+              paymentType: selectedPaymentType,
             },
           }),
         ).unwrap();
@@ -112,6 +122,7 @@ export default function TransactionFormScreen() {
             category: selectedCategory || "General",
             relatedEntityId: selectedEntityId || null,
             date: Date.now(),
+            paymentType: selectedPaymentType,
           }),
         ).unwrap();
       }
@@ -300,6 +311,85 @@ export default function TransactionFormScreen() {
               value={description}
               onChangeText={setDescription}
             />
+
+            {/* Payment Type Selector */}
+            <View style={{ marginBottom: Spacing.m }}>
+              <Typography
+                variant="caption"
+                style={{ marginBottom: Spacing.xs, color: colors.text }}
+              >
+                Tipo de pago
+              </Typography>
+              <TouchableOpacity
+                onPress={() =>
+                  setIsPaymentTypeDropdownOpen(!isPaymentTypeDropdownOpen)
+                }
+                style={[
+                  styles.dropdown,
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                    marginBottom: isPaymentTypeDropdownOpen ? 0 : Spacing.m,
+                  },
+                ]}
+              >
+                <View style={styles.dropdownHeader}>
+                  <Typography
+                    style={{
+                      color: selectedPaymentType
+                        ? colors.text
+                        : colors.textSecondary,
+                    }}
+                  >
+                    {selectedPaymentType
+                      ? selectedPaymentType === "credit_card"
+                        ? "Tarjeta de crédito"
+                        : selectedPaymentType === "debit_card"
+                          ? "Tarjeta de débito"
+                          : "Efectivo"
+                      : "Seleccionar tipo de pago (opcional)"}
+                  </Typography>
+                  <IconSymbol
+                    name="chevron.down"
+                    size={16}
+                    color={colors.text}
+                  />
+                </View>
+              </TouchableOpacity>
+
+              {isPaymentTypeDropdownOpen && (
+                <View
+                  style={[
+                    styles.dropdownList,
+                    {
+                      borderColor: colors.border,
+                      backgroundColor: colors.surface,
+                    },
+                  ]}
+                >
+                  {[
+                    { id: "credit_card", label: "Tarjeta de crédito" },
+                    { id: "debit_card", label: "Tarjeta de débito" },
+                    { id: "cash", label: "Efectivo" },
+                  ].map((pt, index) => (
+                    <TouchableOpacity
+                      key={pt.id}
+                      onPress={() => {
+                        setSelectedPaymentType(pt.id as any);
+                        setIsPaymentTypeDropdownOpen(false);
+                      }}
+                      style={{
+                        padding: Spacing.m,
+                        borderTopWidth: index > 0 ? 1 : 0,
+                        borderTopColor: colors.border,
+                      }}
+                    >
+                      <Typography variant="body">{pt.label}</Typography>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </View>
 
             {/* Category Selector */}
             <View style={{ marginBottom: Spacing.m }}>
