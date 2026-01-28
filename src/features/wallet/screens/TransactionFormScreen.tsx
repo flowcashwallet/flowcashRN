@@ -201,12 +201,12 @@ export default function TransactionFormScreen() {
                   borderRadius: BorderRadius.m,
                   borderWidth: 1,
                   borderColor: colors.border,
-                  paddingVertical: Spacing.m,
+                  paddingVertical: Spacing.s,
                   paddingHorizontal: Spacing.m,
                 }}
               >
                 <Typography
-                  variant="h1"
+                  variant="h2"
                   style={{
                     color: type === "income" ? colors.success : colors.error,
                     marginRight: Spacing.s,
@@ -221,11 +221,11 @@ export default function TransactionFormScreen() {
                   placeholderTextColor={colors.textSecondary}
                   keyboardType="numeric"
                   style={{
-                    fontSize: 48,
+                    fontSize: 36,
                     fontWeight: "bold",
                     color: colors.text,
                     textAlign: "center",
-                    minWidth: 120,
+                    minWidth: 100,
                     padding: 0,
                   }}
                   autoFocus={!isEditing}
