@@ -63,6 +63,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
   const [isEntityDropdownOpen, setIsEntityDropdownOpen] = useState(false);
+  const [entitySearchQuery, setEntitySearchQuery] = useState("");
 
   useEffect(() => {
     if (visible && user?.uid && categories.length === 0) {
@@ -290,41 +291,144 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                     },
                   ]}
                 >
+                  <View style={{ padding: Spacing.s }}>
+                    <Input
+                      placeholder="Buscar activo/pasivo..."
+                      value={entitySearchQuery}
+                      onChangeText={setEntitySearchQuery}
+                      style={{ marginBottom: 0 }}
+                    />
+                  </View>
                   <ScrollView
                     keyboardShouldPersistTaps="always"
                     nestedScrollEnabled
+                    style={{ maxHeight: 200 }}
                   >
-                    {visionEntities.length === 0 ? (
-                      <Typography
-                        variant="body"
-                        style={{ padding: Spacing.m, color: colors.icon }}
-                      >
-                        {STRINGS.vision.noEntities}
-                      </Typography>
-                    ) : (
-                      visionEntities.map((entity, index) => (
-                        <TouchableOpacity
-                          key={entity.id}
-                          onPress={() => {
-                            setSelectedEntityId(entity.id);
-                            setIsEntityDropdownOpen(false);
-                          }}
-                          style={{
-                            padding: Spacing.m,
-                            borderTopWidth: index > 0 ? 1 : 0,
-                            borderTopColor: colors.border,
-                          }}
-                        >
-                          <Typography variant="body">{entity.name}</Typography>
+                    {(() => {
+                      const filteredEntities = visionEntities.filter((e) =>
+                        e.name
+                          .toLowerCase()
+                          .includes(entitySearchQuery.toLowerCase()),
+                      );
+
+                      if (filteredEntities.length === 0) {
+                        return (
                           <Typography
-                            variant="caption"
-                            style={{ color: colors.textSecondary }}
+                            variant="body"
+                            style={{ padding: Spacing.m, color: colors.icon }}
                           >
-                            {entity.type === "asset" ? "Activo" : "Pasivo"}
+                            No se encontraron resultados
                           </Typography>
-                        </TouchableOpacity>
-                      ))
-                    )}
+                        );
+                      }
+
+                      const assets = filteredEntities.filter(
+                        (e) => e.type === "asset",
+                      );
+                      const liabilities = filteredEntities.filter(
+                        (e) => e.type === "liability",
+                      );
+
+                      return (
+                        <>
+                          <TouchableOpacity
+                            onPress={() => {
+                              setSelectedEntityId(null);
+                              setIsEntityDropdownOpen(false);
+                            }}
+                            style={{
+                              padding: Spacing.m,
+                              borderBottomWidth: 1,
+                              borderBottomColor: colors.border,
+                            }}
+                          >
+                            <Typography
+                              variant="body"
+                              style={{
+                                color: colors.text,
+                                fontStyle: "italic",
+                              }}
+                            >
+                              Ninguno
+                            </Typography>
+                          </TouchableOpacity>
+
+                          {assets.length > 0 && (
+                            <>
+                              <View
+                                style={{
+                                  padding: Spacing.s,
+                                  backgroundColor: colors.surfaceHighlight,
+                                }}
+                              >
+                                <Typography
+                                  variant="caption"
+                                  weight="bold"
+                                  style={{ color: colors.textSecondary }}
+                                >
+                                  ACTIVOS
+                                </Typography>
+                              </View>
+                              {assets.map((entity) => (
+                                <TouchableOpacity
+                                  key={entity.id}
+                                  onPress={() => {
+                                    setSelectedEntityId(entity.id);
+                                    setIsEntityDropdownOpen(false);
+                                  }}
+                                  style={{
+                                    padding: Spacing.m,
+                                    borderBottomWidth: 1,
+                                    borderBottomColor: colors.border,
+                                  }}
+                                >
+                                  <Typography variant="body">
+                                    {entity.name}
+                                  </Typography>
+                                </TouchableOpacity>
+                              ))}
+                            </>
+                          )}
+
+                          {liabilities.length > 0 && (
+                            <>
+                              <View
+                                style={{
+                                  padding: Spacing.s,
+                                  backgroundColor: colors.surfaceHighlight,
+                                }}
+                              >
+                                <Typography
+                                  variant="caption"
+                                  weight="bold"
+                                  style={{ color: colors.textSecondary }}
+                                >
+                                  PASIVOS
+                                </Typography>
+                              </View>
+                              {liabilities.map((entity) => (
+                                <TouchableOpacity
+                                  key={entity.id}
+                                  onPress={() => {
+                                    setSelectedEntityId(entity.id);
+                                    setIsEntityDropdownOpen(false);
+                                  }}
+                                  style={{
+                                    padding: Spacing.m,
+                                    borderBottomWidth: 1,
+                                    borderBottomColor: colors.border,
+                                  }}
+                                >
+                                  <Typography variant="body">
+                                    {entity.name}
+                                  </Typography>
+                                </TouchableOpacity>
+                              ))}
+                            </>
+                          )}
+                        </>
+                      );
+                    })()}
                   </ScrollView>
                 </View>
               )}

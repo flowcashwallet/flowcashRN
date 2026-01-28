@@ -11,11 +11,11 @@ import { AppDispatch, RootState } from "@/store/store";
 import { formatAmountInput, formatCurrency } from "@/utils/format";
 import React, { useEffect, useState } from "react";
 import {
-    Modal,
-    ScrollView,
-    StyleSheet,
-    TouchableOpacity,
-    View,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 
@@ -66,6 +66,7 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
     useState(false);
   const [isEditEntityDropdownOpen, setIsEditEntityDropdownOpen] =
     useState(false);
+  const [editEntitySearchQuery, setEditEntitySearchQuery] = useState("");
 
   useEffect(() => {
     if (visible && user?.uid && categories.length === 0) {
@@ -328,69 +329,166 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                         },
                       ]}
                     >
-                      <ScrollView nestedScrollEnabled>
-                        <TouchableOpacity
-                          onPress={() => {
-                            setEditEntityId(null);
-                            setIsEditEntityDropdownOpen(false);
-                          }}
-                          style={{
-                            padding: Spacing.m,
-                            borderBottomWidth: 1,
-                            borderBottomColor: colors.border,
-                          }}
-                        >
-                          <Typography
-                            variant="body"
-                            style={{
-                              color: colors.text,
-                              fontStyle: "italic",
-                            }}
-                          >
-                            Ninguno
-                          </Typography>
-                        </TouchableOpacity>
-                        {visionEntities.map((entity, index) => (
-                          <TouchableOpacity
-                            key={entity.id}
-                            onPress={() => {
-                              setEditEntityId(entity.id);
-                              setIsEditEntityDropdownOpen(false);
-                            }}
-                            style={{
-                              padding: Spacing.m,
-                              borderTopWidth: index > 0 ? 1 : 0,
-                              borderTopColor: colors.border,
-                            }}
-                          >
-                            <View
-                              style={{
-                                flexDirection: "row",
-                                justifyContent: "space-between",
-                              }}
-                            >
+                      <View style={{ padding: Spacing.s }}>
+                        <Input
+                          placeholder="Buscar activo/pasivo..."
+                          value={editEntitySearchQuery}
+                          onChangeText={setEditEntitySearchQuery}
+                          style={{ marginBottom: 0 }}
+                        />
+                      </View>
+                      <ScrollView
+                        nestedScrollEnabled
+                        style={{ maxHeight: 200 }}
+                      >
+                        {(() => {
+                          const filteredEntities = visionEntities.filter((e) =>
+                            e.name
+                              .toLowerCase()
+                              .includes(editEntitySearchQuery.toLowerCase()),
+                          );
+
+                          if (filteredEntities.length === 0) {
+                            return (
                               <Typography
                                 variant="body"
-                                style={{ color: colors.text }}
-                              >
-                                {entity.name}
-                              </Typography>
-                              <Typography
-                                variant="caption"
                                 style={{
-                                  color:
-                                    entity.type === "asset"
-                                      ? colors.success
-                                      : colors.error,
+                                  padding: Spacing.m,
+                                  color: colors.icon,
                                 }}
                               >
-                                {entity.type === "asset"
-                                  ? STRINGS.vision.assets
-                                  : STRINGS.vision.liabilities}
+                                No se encontraron resultados
                               </Typography>
-                            </View>
-                          </TouchableOpacity>
-                        ))}
+                            );
+                          }
+
+                          const assets = filteredEntities.filter(
+                            (e) => e.type === "asset",
+                          );
+                          const liabilities = filteredEntities.filter(
+                            (e) => e.type === "liability",
+                          );
+
+                          return (
+                            <>
+                              <TouchableOpacity
+                                onPress={() => {
+                                  setEditEntityId(null);
+                                  setIsEditEntityDropdownOpen(false);
+                                }}
+                                style={{
+                                  padding: Spacing.m,
+                                  borderBottomWidth: 1,
+                                  borderBottomColor: colors.border,
+                                }}
+                              >
+                                <Typography
+                                  variant="body"
+                                  style={{
+                                    color: colors.text,
+                                    fontStyle: "italic",
+                                  }}
+                                >
+                                  Ninguno
+                                </Typography>
+                              </TouchableOpacity>
+
+                              {assets.length > 0 && (
+                                <>
+                                  <View
+                                    style={{
+                                      padding: Spacing.s,
+                                      backgroundColor: colors.surfaceHighlight,
+                                    }}
+                                  >
+                                    <Typography
+                                      variant="caption"
+                                      weight="bold"
+                                      style={{ color: colors.textSecondary }}
+                                    >
+                                      ACTIVOS
+                                    </Typography>
+                                  </View>
+                                  {assets.map((entity) => (
+                                    <TouchableOpacity
+                                      key={entity.id}
+                                      onPress={() => {
+                                        setEditEntityId(entity.id);
+                                        setIsEditEntityDropdownOpen(false);
+                                      }}
+                                      style={{
+                                        padding: Spacing.m,
+                                        borderBottomWidth: 1,
+                                        borderBottomColor: colors.border,
+                                      }}
+                                    >
+                                      <View
+                                        style={{
+                                          flexDirection: "row",
+                                          justifyContent: "space-between",
+                                        }}
+                                      >
+                                        <Typography
+                                          variant="body"
+                                          style={{ color: colors.text }}
+                                        >
+                                          {entity.name}
+                                        </Typography>
+                                      </View>
+                                    </TouchableOpacity>
+                                  ))}
+                                </>
+                              )}
+
+                              {liabilities.length > 0 && (
+                                <>
+                                  <View
+                                    style={{
+                                      padding: Spacing.s,
+                                      backgroundColor: colors.surfaceHighlight,
+                                    }}
+                                  >
+                                    <Typography
+                                      variant="caption"
+                                      weight="bold"
+                                      style={{ color: colors.textSecondary }}
+                                    >
+                                      PASIVOS
+                                    </Typography>
+                                  </View>
+                                  {liabilities.map((entity) => (
+                                    <TouchableOpacity
+                                      key={entity.id}
+                                      onPress={() => {
+                                        setEditEntityId(entity.id);
+                                        setIsEditEntityDropdownOpen(false);
+                                      }}
+                                      style={{
+                                        padding: Spacing.m,
+                                        borderBottomWidth: 1,
+                                        borderBottomColor: colors.border,
+                                      }}
+                                    >
+                                      <View
+                                        style={{
+                                          flexDirection: "row",
+                                          justifyContent: "space-between",
+                                        }}
+                                      >
+                                        <Typography
+                                          variant="body"
+                                          style={{ color: colors.text }}
+                                        >
+                                          {entity.name}
+                                        </Typography>
+                                      </View>
+                                    </TouchableOpacity>
+                                  ))}
+                                </>
+                              )}
+                            </>
+                          );
+                        })()}
                       </ScrollView>
                     </View>
                   )}
