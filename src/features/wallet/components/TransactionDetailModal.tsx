@@ -350,53 +350,47 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                             Ninguno
                           </Typography>
                         </TouchableOpacity>
-                        {visionEntities
-                          .filter((e) =>
-                            transaction.type === "income"
-                              ? e.type === "asset"
-                              : e.type === "liability",
-                          )
-                          .map((entity, index) => (
-                            <TouchableOpacity
-                              key={entity.id}
-                              onPress={() => {
-                                setEditEntityId(entity.id);
-                                setIsEditEntityDropdownOpen(false);
-                              }}
+                        {visionEntities.map((entity, index) => (
+                          <TouchableOpacity
+                            key={entity.id}
+                            onPress={() => {
+                              setEditEntityId(entity.id);
+                              setIsEditEntityDropdownOpen(false);
+                            }}
+                            style={{
+                              padding: Spacing.m,
+                              borderTopWidth: index > 0 ? 1 : 0,
+                              borderTopColor: colors.border,
+                            }}
+                          >
+                            <View
                               style={{
-                                padding: Spacing.m,
-                                borderTopWidth: index > 0 ? 1 : 0,
-                                borderTopColor: colors.border,
+                                flexDirection: "row",
+                                justifyContent: "space-between",
                               }}
                             >
-                              <View
+                              <Typography
+                                variant="body"
+                                style={{ color: colors.text }}
+                              >
+                                {entity.name}
+                              </Typography>
+                              <Typography
+                                variant="caption"
                                 style={{
-                                  flexDirection: "row",
-                                  justifyContent: "space-between",
+                                  color:
+                                    entity.type === "asset"
+                                      ? colors.success
+                                      : colors.error,
                                 }}
                               >
-                                <Typography
-                                  variant="body"
-                                  style={{ color: colors.text }}
-                                >
-                                  {entity.name}
-                                </Typography>
-                                <Typography
-                                  variant="caption"
-                                  style={{
-                                    color:
-                                      entity.type === "asset"
-                                        ? colors.success
-                                        : colors.error,
-                                  }}
-                                >
-                                  {entity.type === "asset"
-                                    ? STRINGS.vision.assets
-                                    : STRINGS.vision.liabilities}
-                                </Typography>
-                              </View>
-                            </TouchableOpacity>
-                          ))}
+                                {entity.type === "asset"
+                                  ? STRINGS.vision.assets
+                                  : STRINGS.vision.liabilities}
+                              </Typography>
+                            </View>
+                          </TouchableOpacity>
+                        ))}
                       </ScrollView>
                     </View>
                   )}

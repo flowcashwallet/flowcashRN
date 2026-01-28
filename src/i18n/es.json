@@ -28,6 +28,7 @@
     "netWorth": "Patrimonio Neto",
     "noAssets": "No hay activos registrados",
     "noLiabilities": "No hay pasivos registrados",
+    "noEntities": "No hay activos o pasivos registrados",
     "categories": {
       "asset": [
         "🏠 Casa",

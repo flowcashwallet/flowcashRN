@@ -294,67 +294,36 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                     keyboardShouldPersistTaps="always"
                     nestedScrollEnabled
                   >
-                    {visionEntities.filter((e) =>
-                      type === "income"
-                        ? e.type === "asset"
-                        : e.type === "liability",
-                    ).length === 0 ? (
+                    {visionEntities.length === 0 ? (
                       <Typography
                         variant="body"
                         style={{ padding: Spacing.m, color: colors.icon }}
                       >
-                        {type === "income"
-                          ? "No hay activos disponibles"
-                          : "No hay pasivos disponibles"}
+                        {STRINGS.vision.noEntities}
                       </Typography>
                     ) : (
-                      visionEntities
-                        .filter((e) =>
-                          type === "income"
-                            ? e.type === "asset"
-                            : e.type === "liability",
-                        )
-                        .map((entity, index) => (
-                          <TouchableOpacity
-                            key={entity.id}
-                            onPress={() => {
-                              setSelectedEntityId(entity.id);
-                              setIsEntityDropdownOpen(false);
-                            }}
-                            style={{
-                              padding: Spacing.m,
-                              borderTopWidth: index > 0 ? 1 : 0,
-                              borderTopColor: colors.border,
-                            }}
+                      visionEntities.map((entity, index) => (
+                        <TouchableOpacity
+                          key={entity.id}
+                          onPress={() => {
+                            setSelectedEntityId(entity.id);
+                            setIsEntityDropdownOpen(false);
+                          }}
+                          style={{
+                            padding: Spacing.m,
+                            borderTopWidth: index > 0 ? 1 : 0,
+                            borderTopColor: colors.border,
+                          }}
+                        >
+                          <Typography variant="body">{entity.name}</Typography>
+                          <Typography
+                            variant="caption"
+                            style={{ color: colors.textSecondary }}
                           >
-                            <View
-                              style={{
-                                flexDirection: "row",
-                                justifyContent: "space-between",
-                              }}
-                            >
-                              <Typography
-                                variant="body"
-                                style={{ color: colors.text }}
-                              >
-                                {entity.name}
-                              </Typography>
-                              <Typography
-                                variant="caption"
-                                style={{
-                                  color:
-                                    entity.type === "asset"
-                                      ? colors.success
-                                      : colors.error,
-                                }}
-                              >
-                                {entity.type === "asset"
-                                  ? STRINGS.vision.assets
-                                  : STRINGS.vision.liabilities}
-                              </Typography>
-                            </View>
-                          </TouchableOpacity>
-                        ))
+                            {entity.type === "asset" ? "Activo" : "Pasivo"}
+                          </Typography>
+                        </TouchableOpacity>
+                      ))
                     )}
                   </ScrollView>
                 </View>
