@@ -25,11 +25,25 @@ interface TransactionFilterModalProps {
     category: string | null;
     entityId: string | null;
     type: "income" | "expense" | null;
+    paymentType:
+      | "credit_card"
+      | "debit_card"
+      | "cash"
+      | "transfer"
+      | "payroll"
+      | null;
   };
   onApply: (filters: {
     category: string | null;
     entityId: string | null;
     type: "income" | "expense" | null;
+    paymentType:
+      | "credit_card"
+      | "debit_card"
+      | "cash"
+      | "transfer"
+      | "payroll"
+      | null;
   }) => void;
   onClear: () => void;
 }
@@ -55,16 +69,24 @@ export const TransactionFilterModal: React.FC<TransactionFilterModalProps> = ({
   const [selectedType, setSelectedType] = useState<"income" | "expense" | null>(
     currentFilters.type,
   );
+  const [selectedPaymentType, setSelectedPaymentType] = useState<
+    "credit_card" | "debit_card" | "cash" | "transfer" | "payroll" | null
+  >(currentFilters.paymentType);
+
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
   const [isEntityDropdownOpen, setIsEntityDropdownOpen] = useState(false);
+  const [isPaymentTypeDropdownOpen, setIsPaymentTypeDropdownOpen] =
+    useState(false);
 
   useEffect(() => {
     if (visible) {
       setSelectedCategory(currentFilters.category);
       setSelectedEntityId(currentFilters.entityId);
       setSelectedType(currentFilters.type);
+      setSelectedPaymentType(currentFilters.paymentType);
       setIsCategoryDropdownOpen(false);
       setIsEntityDropdownOpen(false);
+      setIsPaymentTypeDropdownOpen(false);
     }
   }, [visible, currentFilters]);
 
@@ -73,6 +95,7 @@ export const TransactionFilterModal: React.FC<TransactionFilterModalProps> = ({
       category: selectedCategory,
       entityId: selectedEntityId,
       type: selectedType,
+      paymentType: selectedPaymentType,
     });
     onClose();
   };
@@ -81,6 +104,7 @@ export const TransactionFilterModal: React.FC<TransactionFilterModalProps> = ({
     setSelectedCategory(null);
     setSelectedEntityId(null);
     setSelectedType(null);
+    setSelectedPaymentType(null);
     onClear();
     onClose();
   };
@@ -165,6 +189,123 @@ export const TransactionFilterModal: React.FC<TransactionFilterModalProps> = ({
                   }
                 />
               </View>
+            </View>
+
+            {/* Payment Type Filter */}
+            <View style={styles.section}>
+              <Typography
+                variant="body"
+                weight="bold"
+                style={{ marginBottom: Spacing.s, color: colors.text }}
+              >
+                Tipo de pago
+              </Typography>
+              <TouchableOpacity
+                onPress={() =>
+                  setIsPaymentTypeDropdownOpen(!isPaymentTypeDropdownOpen)
+                }
+                style={[
+                  styles.dropdown,
+                  {
+                    backgroundColor: colors.surfaceHighlight,
+                    borderColor: colors.border,
+                    marginBottom: isPaymentTypeDropdownOpen ? 0 : Spacing.m,
+                    borderBottomLeftRadius: isPaymentTypeDropdownOpen
+                      ? 0
+                      : BorderRadius.m,
+                    borderBottomRightRadius: isPaymentTypeDropdownOpen
+                      ? 0
+                      : BorderRadius.m,
+                  },
+                ]}
+              >
+                <View style={styles.dropdownHeader}>
+                  <Typography
+                    variant="body"
+                    style={{
+                      color: selectedPaymentType
+                        ? colors.text
+                        : colors.textSecondary,
+                    }}
+                  >
+                    {selectedPaymentType
+                      ? selectedPaymentType === "credit_card"
+                        ? "Tarjeta de crédito"
+                        : selectedPaymentType === "debit_card"
+                          ? "Tarjeta de débito"
+                          : selectedPaymentType === "cash"
+                            ? "Efectivo"
+                            : selectedPaymentType === "transfer"
+                              ? "Transferencia"
+                              : "Nómina"
+                      : "Seleccionar tipo de pago"}
+                  </Typography>
+                  <Typography variant="body" style={{ color: colors.text }}>
+                    {isPaymentTypeDropdownOpen ? "▲" : "▼"}
+                  </Typography>
+                </View>
+              </TouchableOpacity>
+
+              {isPaymentTypeDropdownOpen && (
+                <View
+                  style={[
+                    styles.dropdownList,
+                    {
+                      borderColor: colors.border,
+                      backgroundColor: colors.surfaceHighlight,
+                    },
+                  ]}
+                >
+                  <ScrollView nestedScrollEnabled style={{ maxHeight: 200 }}>
+                    <TouchableOpacity
+                      onPress={() => {
+                        setSelectedPaymentType(null);
+                        setIsPaymentTypeDropdownOpen(false);
+                      }}
+                      style={[
+                        styles.dropdownItem,
+                        { borderBottomColor: colors.border },
+                      ]}
+                    >
+                      <Typography variant="body" style={{ color: colors.text }}>
+                        Todos
+                      </Typography>
+                    </TouchableOpacity>
+                    {[
+                      { id: "credit_card", label: "Tarjeta de crédito" },
+                      { id: "debit_card", label: "Tarjeta de débito" },
+                      { id: "cash", label: "Efectivo" },
+                      { id: "transfer", label: "Transferencia" },
+                      { id: "payroll", label: "Nómina" },
+                    ].map((pt, index) => (
+                      <TouchableOpacity
+                        key={pt.id}
+                        onPress={() => {
+                          setSelectedPaymentType(pt.id as any);
+                          setIsPaymentTypeDropdownOpen(false);
+                        }}
+                        style={[
+                          styles.dropdownItem,
+                          {
+                            borderTopWidth: 1,
+                            borderTopColor: colors.border,
+                          },
+                        ]}
+                      >
+                        <Typography
+                          variant="body"
+                          weight={
+                            selectedPaymentType === pt.id ? "bold" : "regular"
+                          }
+                          style={{ color: colors.text }}
+                        >
+                          {pt.label}
+                        </Typography>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
             </View>
 
             {/* Entity Filter */}

@@ -45,10 +45,18 @@ export default function WalletScreen() {
     category: string | null;
     entityId: string | null;
     type: "income" | "expense" | null;
+    paymentType:
+      | "credit_card"
+      | "debit_card"
+      | "cash"
+      | "transfer"
+      | "payroll"
+      | null;
   }>({
     category: null,
     entityId: null,
     type: null,
+    paymentType: null,
   });
 
   const handleDeleteMonthly = () => {
@@ -67,10 +75,13 @@ export default function WalletScreen() {
     if (filters.entityId && t.relatedEntityId !== filters.entityId)
       return false;
     if (filters.type && t.type !== filters.type) return false;
+    if (filters.paymentType && t.paymentType !== filters.paymentType)
+      return false;
     return true;
   });
 
-  const hasActiveFilters = filters.category || filters.entityId || filters.type;
+  const hasActiveFilters =
+    filters.category || filters.entityId || filters.type || filters.paymentType;
 
   return (
     <ThemedView style={styles.container}>
@@ -149,7 +160,12 @@ export default function WalletScreen() {
         currentFilters={filters}
         onApply={setFilters}
         onClear={() =>
-          setFilters({ category: null, entityId: null, type: null })
+          setFilters({
+            category: null,
+            entityId: null,
+            type: null,
+            paymentType: null,
+          })
         }
       />
     </ThemedView>
