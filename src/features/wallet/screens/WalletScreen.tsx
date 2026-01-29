@@ -1,14 +1,18 @@
 import { TransactionList } from "@/components/organisms/TransactionList";
 import { ThemedView } from "@/components/themed-view";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { Spacing } from "@/constants/theme";
+import { BorderRadius, Spacing } from "@/constants/theme";
+import STRINGS from "@/i18n/es.json";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
+    Platform,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { QuickActions } from "../components/QuickActions";
 import { StreakCalendarModal } from "../components/StreakCalendarModal";
@@ -41,6 +45,7 @@ export default function WalletScreen() {
 
   const [calendarVisible, setCalendarVisible] = useState(false);
   const [filterVisible, setFilterVisible] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState<{
     category: string | null;
     entityId: string | null;
@@ -77,6 +82,15 @@ export default function WalletScreen() {
     if (filters.type && t.type !== filters.type) return false;
     if (filters.paymentType && t.paymentType !== filters.paymentType)
       return false;
+
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      const description = t.description || "";
+      if (!description.toLowerCase().includes(query)) {
+        return false;
+      }
+    }
+
     return true;
   });
 
@@ -124,6 +138,48 @@ export default function WalletScreen() {
             router.push("/wallet/categories");
           }}
         />
+
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            backgroundColor: colors.surfaceHighlight,
+            borderRadius: BorderRadius.l,
+            paddingHorizontal: Spacing.s,
+            paddingVertical: Platform.OS === "ios" ? Spacing.xs : 0,
+            marginBottom: Spacing.m,
+            borderWidth: 1,
+            borderColor: colors.border,
+          }}
+        >
+          <IconSymbol
+            name="magnifyingglass"
+            size={20}
+            color={colors.textSecondary}
+          />
+          <TextInput
+            style={{
+              flex: 1,
+              padding: Spacing.s,
+              color: colors.text,
+              fontSize: 16,
+            }}
+            placeholder={STRINGS.common.search}
+            placeholderTextColor={colors.textSecondary}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            clearButtonMode="while-editing"
+          />
+          {Platform.OS === "android" && searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery("")}>
+              <IconSymbol
+                name="xmark.circle.fill"
+                size={20}
+                color={colors.textSecondary}
+              />
+            </TouchableOpacity>
+          )}
+        </View>
 
         <TransactionList
           transactions={filteredTransactions}

@@ -37,6 +37,8 @@ const MAPPING = {
   "g.circle.fill": "public",
   pencil: "edit",
   "building.columns.fill": "account-balance",
+  magnifyingglass: "search",
+  "xmark.circle.fill": "cancel",
 } as IconMapping;
 
 /**

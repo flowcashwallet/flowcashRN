@@ -4,7 +4,7 @@ import { BorderRadius, Colors, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import STRINGS from "@/i18n/es.json";
 import { formatCurrency } from "@/utils/format";
-import React from "react";
+import React, { useState } from "react";
 import { Platform, StyleSheet, TouchableOpacity, View } from "react-native";
 import { PieChart } from "react-native-gifted-charts";
 import { StreakInfo } from "../hooks/useStreak";
@@ -31,6 +31,7 @@ export const WalletHeader: React.FC<WalletHeaderProps> = ({
 }) => {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
+  const [isBalanceVisible, setIsBalanceVisible] = useState(true);
 
   const chartData = [
     {
@@ -95,13 +96,28 @@ export const WalletHeader: React.FC<WalletHeaderProps> = ({
       <Typography variant="caption" style={{ color: colors.textSecondary }}>
         {STRINGS.wallet.balanceTotal}
       </Typography>
-      <Typography
-        variant="h1"
-        weight="bold"
-        style={{ color: colors.text, marginTop: Spacing.xs }}
-      >
-        {formatCurrency(balance)}
-      </Typography>
+      
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", marginTop: Spacing.xs }}>
+        <Typography
+          variant="h1"
+          weight="bold"
+          style={{ color: colors.text }}
+        >
+          {isBalanceVisible ? formatCurrency(balance) : "****"}
+        </Typography>
+        <TouchableOpacity 
+          onPress={() => setIsBalanceVisible(!isBalanceVisible)} 
+          style={{ marginLeft: Spacing.s }}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <IconSymbol 
+            name={isBalanceVisible ? "eye.fill" : "eye.slash.fill"} 
+            size={24} 
+            color={colors.textSecondary} 
+          />
+        </TouchableOpacity>
+      </View>
+
       <View style={styles.chartContainer}>
         <PieChart
           data={chartData}
