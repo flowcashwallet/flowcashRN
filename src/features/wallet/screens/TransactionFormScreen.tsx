@@ -6,11 +6,7 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { BorderRadius, Colors, Spacing } from "@/constants/theme";
 import { useVisionData } from "@/features/vision/hooks/useVisionData";
 import { fetchCategories } from "@/features/wallet/data/categoriesSlice";
-import {
-    addTransaction,
-    deleteTransaction,
-    updateTransaction,
-} from "@/features/wallet/data/walletSlice";
+import { useWalletTransactions } from "@/features/wallet/hooks/useWalletTransactions";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import STRINGS from "@/i18n/es.json";
 import { registerForPushNotificationsAsync } from "@/services/notifications";
@@ -44,6 +40,8 @@ export default function TransactionFormScreen() {
   const { transactions } = useSelector((state: RootState) => state.wallet);
   // Destructure entities correctly from useVisionData
   const { entities } = useVisionData();
+  
+  const { addTransaction, deleteTransaction, updateTransaction } = useWalletTransactions();
 
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
@@ -117,115 +115,93 @@ export default function TransactionFormScreen() {
 
     setIsSaving(true);
     try {
-      const numericAmount = parseFloat(amount.replace(/,/g, ""));
-
+      let success = false;
       if (isEditing && existingTransaction) {
-        await dispatch(
-          updateTransaction({
-            id: existingTransaction.id,
-            updates: {
-              amount: numericAmount,
-              description,
-              type,
-              category: selectedCategory || "General",
-              relatedEntityId: selectedEntityId || null,
-              paymentType: selectedPaymentType,
-            },
-          }),
-        ).unwrap();
+        success = (await updateTransaction({
+          id: existingTransaction.id,
+          amount: amount,
+          description,
+          type,
+          category: selectedCategory || "General",
+          relatedEntityId: selectedEntityId || null,
+          oldAmount: existingTransaction.amount,
+          oldEntityId: existingTransaction.relatedEntityId,
+        })) || false;
       } else {
-        await dispatch(
-          addTransaction({
-            userId: user.uid,
-            amount: numericAmount,
-            description,
-            type,
-            category: selectedCategory || "General",
-            relatedEntityId: selectedEntityId || null,
-            date: Date.now(),
-            paymentType: selectedPaymentType,
-          }),
-        ).unwrap();
-
-        const isFirstTransaction = transactions.length === 0;
-        const hasAsked = await AsyncStorage.getItem(
-          "has_asked_initial_reminder",
-        );
-
-        if (isFirstTransaction && !hasAsked) {
-          Alert.alert(
-            "¡Primera transacción!",
-            "¿Te gustaría configurar un recordatorio diario para no olvidar registrar tus gastos?",
-            [
-              {
-                text: "No, gracias",
-                style: "cancel",
-                onPress: async () => {
-                  await AsyncStorage.setItem(
-                    "has_asked_initial_reminder",
-                    "true",
-                  );
-                  router.back();
-                },
-              },
-              {
-                text: "Sí, configurar",
-                onPress: async () => {
-                  await AsyncStorage.setItem(
-                    "has_asked_initial_reminder",
-                    "true",
-                  );
-                  const granted = await registerForPushNotificationsAsync();
-                  if (granted) {
-                    setIsNotificationSetupVisible(true);
-                  } else {
-                    Alert.alert(
-                      "Permisos requeridos",
-                      "No se pudieron habilitar las notificaciones. Verifica tus ajustes.",
-                      [{ text: "OK", onPress: () => router.back() }],
-                    );
-                  }
-                },
-              },
-            ],
-          );
-          return; // Don't route back yet
-        }
+        success = (await addTransaction({
+          amount: amount,
+          description,
+          type,
+          category: selectedCategory || "General",
+          relatedEntityId: selectedEntityId || null,
+        })) || false;
       }
-      router.back();
+
+      if (success) {
+        if (!isEditing) {
+          const isFirstTransaction = transactions.length === 0;
+          const hasAsked = await AsyncStorage.getItem(
+            "has_asked_initial_reminder",
+          );
+
+          if (isFirstTransaction && !hasAsked) {
+            Alert.alert(
+              "¡Primera transacción!",
+              "¿Te gustaría configurar un recordatorio diario para no olvidar registrar tus gastos?",
+              [
+                {
+                  text: "No, gracias",
+                  style: "cancel",
+                  onPress: async () => {
+                    await AsyncStorage.setItem(
+                      "has_asked_initial_reminder",
+                      "true",
+                    );
+                    router.back();
+                  },
+                },
+                {
+                  text: "Sí, configurar",
+                  onPress: async () => {
+                    await AsyncStorage.setItem(
+                      "has_asked_initial_reminder",
+                      "true",
+                    );
+                    const granted = await registerForPushNotificationsAsync();
+                    if (granted) {
+                      setIsNotificationSetupVisible(true);
+                    } else {
+                      Alert.alert(
+                        "Permisos requeridos",
+                        "No se pudieron habilitar las notificaciones. Verifica tus ajustes.",
+                        [{ text: "OK", onPress: () => router.back() }],
+                      );
+                    }
+                  },
+                },
+              ],
+            );
+            return; // Don't route back yet
+          }
+        }
+        router.back();
+      }
     } catch (error) {
       console.error("Error saving transaction:", error);
-      Alert.alert("Error", "No se pudo guardar la transacción");
+      // Alert is already handled in the hook for some cases, but a fallback is good?
+      // actually hook alerts on error.
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleDelete = async () => {
-    if (!existingTransaction || !user?.uid) return;
+    if (!existingTransaction) return;
 
-    Alert.alert(
-      STRINGS.wallet.deleteTransactionTitle,
-      STRINGS.wallet.deleteTransactionMessage,
-      [
-        { text: STRINGS.common.cancel, style: "cancel" },
-        {
-          text: STRINGS.common.delete,
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await dispatch(
-                deleteTransaction(existingTransaction.id),
-              ).unwrap();
-              router.back();
-            } catch (error) {
-              console.error("Error deleting transaction:", error);
-              Alert.alert("Error", "No se pudo eliminar la transacción");
-            }
-          },
-        },
-      ],
-    );
+    const success = await deleteTransaction(existingTransaction.id);
+    if (success) {
+      router.back();
+    }
   };
 
   return (
