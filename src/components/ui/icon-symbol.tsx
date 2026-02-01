@@ -39,6 +39,8 @@ const MAPPING = {
   "building.columns.fill": "account-balance",
   magnifyingglass: "search",
   "xmark.circle.fill": "cancel",
+  "chart.bar.fill": "bar-chart",
+  "lightbulb.fill": "lightbulb",
 } as IconMapping;
 
 /**

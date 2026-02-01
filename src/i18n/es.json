@@ -12,7 +12,8 @@
   "tabs": {
     "wallet": "Wallet",
     "budget": "Presupuesto",
-    "vision": "Balance"
+    "vision": "Balance",
+    "statistics": "Estadísticas"
   },
   "budget": {
     "title": "Presupuesto",
