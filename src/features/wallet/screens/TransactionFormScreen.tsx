@@ -14,17 +14,23 @@ import { AppDispatch, RootState } from "@/store/store";
 import { formatAmountInput } from "@/utils/format";
 import { determineDefaultPaymentType } from "@/utils/transactionUtils";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import DateTimePicker, {
+  DateTimePickerEvent,
+} from "@react-native-community/datetimepicker";
+import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    Alert,
-    Keyboard,
-    ScrollView,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    TouchableWithoutFeedback,
-    View,
+  Alert,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { EntitySelectionModal } from "../components/EntitySelectionModal";
@@ -40,8 +46,9 @@ export default function TransactionFormScreen() {
   const { transactions } = useSelector((state: RootState) => state.wallet);
   // Destructure entities correctly from useVisionData
   const { entities } = useVisionData();
-  
-  const { addTransaction, deleteTransaction, updateTransaction } = useWalletTransactions();
+
+  const { addTransaction, deleteTransaction, updateTransaction } =
+    useWalletTransactions();
 
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
@@ -74,8 +81,13 @@ export default function TransactionFormScreen() {
     "credit_card" | "debit_card" | "cash" | "transfer" | "payroll" | null
   >(
     existingTransaction?.paymentType ||
-      (!isEditing ? determineDefaultPaymentType(transactions, type) : null),
+      determineDefaultPaymentType(transactions, type),
   );
+
+  const [date, setDate] = useState(
+    new Date(existingTransaction?.date || Date.now()),
+  );
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
   const [isPaymentTypeDropdownOpen, setIsPaymentTypeDropdownOpen] =
@@ -110,6 +122,7 @@ export default function TransactionFormScreen() {
   const handleSave = async () => {
     if (!amount || !description || !user?.uid) {
       Alert.alert("Error", "Por favor completa los campos requeridos");
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       return;
     }
 
@@ -117,27 +130,34 @@ export default function TransactionFormScreen() {
     try {
       let success = false;
       if (isEditing && existingTransaction) {
-        success = (await updateTransaction({
-          id: existingTransaction.id,
-          amount: amount,
-          description,
-          type,
-          category: selectedCategory || "General",
-          relatedEntityId: selectedEntityId || null,
-          oldAmount: existingTransaction.amount,
-          oldEntityId: existingTransaction.relatedEntityId,
-        })) || false;
+        success =
+          (await updateTransaction({
+            id: existingTransaction.id,
+            amount: amount,
+            description,
+            type,
+            category: selectedCategory || "General",
+            relatedEntityId: selectedEntityId || null,
+            oldAmount: existingTransaction.amount,
+            oldEntityId: existingTransaction.relatedEntityId,
+            date: date.getTime(),
+            paymentType: selectedPaymentType,
+          })) || false;
       } else {
-        success = (await addTransaction({
-          amount: amount,
-          description,
-          type,
-          category: selectedCategory || "General",
-          relatedEntityId: selectedEntityId || null,
-        })) || false;
+        success =
+          (await addTransaction({
+            amount: amount,
+            description,
+            type,
+            category: selectedCategory || "General",
+            relatedEntityId: selectedEntityId || null,
+            date: date.getTime(),
+            paymentType: selectedPaymentType,
+          })) || false;
       }
 
       if (success) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         if (!isEditing) {
           const isFirstTransaction = transactions.length === 0;
           const hasAsked = await AsyncStorage.getItem(
@@ -185,11 +205,12 @@ export default function TransactionFormScreen() {
           }
         }
         router.back();
+      } else {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       }
     } catch (error) {
       console.error("Error saving transaction:", error);
-      // Alert is already handled in the hook for some cases, but a fallback is good?
-      // actually hook alerts on error.
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
       setIsSaving(false);
     }
@@ -200,7 +221,10 @@ export default function TransactionFormScreen() {
 
     const success = await deleteTransaction(existingTransaction.id);
     if (success) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.back();
+    } else {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
   };
 
@@ -230,271 +254,265 @@ export default function TransactionFormScreen() {
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <View>
-            {/* Amount Input */}
-            <View style={{ marginVertical: Spacing.l }}>
-              <Typography
-                variant="caption"
-                style={{
-                  color: colors.textSecondary,
-                  marginBottom: Spacing.xs,
-                  textAlign: "center",
-                }}
-              >
-                {STRINGS.wallet.amount}
-              </Typography>
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  backgroundColor: colors.surface,
-                  borderRadius: BorderRadius.m,
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  paddingVertical: Spacing.s,
-                  paddingHorizontal: Spacing.m,
-                }}
-              >
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
+      >
+        <ScrollView contentContainerStyle={styles.content}>
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <View>
+              {/* Amount Input */}
+              <View style={{ marginVertical: Spacing.l }}>
                 <Typography
-                  variant="h2"
+                  variant="caption"
                   style={{
-                    color: type === "income" ? colors.success : colors.error,
-                    marginRight: Spacing.s,
-                  }}
-                >
-                  {type === "income" ? "+" : "-"}
-                </Typography>
-                <TextInput
-                  value={amount}
-                  onChangeText={(text) => setAmount(formatAmountInput(text))}
-                  placeholder="0.00"
-                  placeholderTextColor={colors.textSecondary}
-                  keyboardType="numeric"
-                  style={{
-                    fontSize: 36,
-                    fontWeight: "bold",
-                    color: colors.text,
+                    color: colors.textSecondary,
+                    marginBottom: Spacing.xs,
                     textAlign: "center",
-                    minWidth: 100,
-                    padding: 0,
                   }}
-                  autoFocus={!isEditing}
-                />
-              </View>
-            </View>
-
-            {/* Type Selector (if creating) */}
-            {!isEditing && (
-              <View
-                style={{
-                  flexDirection: "row",
-                  marginBottom: Spacing.l,
-                  backgroundColor: colors.surfaceHighlight,
-                  borderRadius: BorderRadius.m,
-                  padding: 4,
-                }}
-              >
-                <TouchableOpacity
-                  style={{
-                    flex: 1,
-                    padding: Spacing.s,
-                    alignItems: "center",
-                    backgroundColor:
-                      type === "expense" ? colors.surface : "transparent",
-                    borderRadius: BorderRadius.s,
-                  }}
-                  onPress={() => setType("expense")}
                 >
-                  <Typography
-                    weight="bold"
-                    style={{
-                      color:
-                        type === "expense"
-                          ? colors.error
-                          : colors.textSecondary,
-                    }}
-                  >
-                    Gasto
-                  </Typography>
-                </TouchableOpacity>
-                <TouchableOpacity
+                  {STRINGS.wallet.amount}
+                </Typography>
+                <View
                   style={{
-                    flex: 1,
-                    padding: Spacing.s,
+                    flexDirection: "row",
                     alignItems: "center",
-                    backgroundColor:
-                      type === "income" ? colors.surface : "transparent",
-                    borderRadius: BorderRadius.s,
-                  }}
-                  onPress={() => setType("income")}
-                >
-                  <Typography
-                    weight="bold"
-                    style={{
-                      color:
-                        type === "income"
-                          ? colors.success
-                          : colors.textSecondary,
-                    }}
-                  >
-                    Ingreso
-                  </Typography>
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {/* Description */}
-            <Input
-              label={STRINGS.wallet.description}
-              placeholder={STRINGS.wallet.descriptionPlaceholder}
-              value={description}
-              onChangeText={setDescription}
-            />
-
-            {/* Payment Type Selector */}
-            <View style={{ marginBottom: Spacing.m }}>
-              <Typography
-                variant="caption"
-                style={{ marginBottom: Spacing.xs, color: colors.text }}
-              >
-                Tipo de pago
-              </Typography>
-              <TouchableOpacity
-                onPress={() =>
-                  setIsPaymentTypeDropdownOpen(!isPaymentTypeDropdownOpen)
-                }
-                style={[
-                  styles.dropdown,
-                  {
+                    justifyContent: "center",
                     backgroundColor: colors.surface,
+                    borderRadius: BorderRadius.m,
+                    borderWidth: 1,
                     borderColor: colors.border,
-                    marginBottom: isPaymentTypeDropdownOpen ? 0 : Spacing.m,
-                  },
-                ]}
-              >
-                <View style={styles.dropdownHeader}>
+                    paddingVertical: Spacing.s,
+                    paddingHorizontal: Spacing.m,
+                  }}
+                >
                   <Typography
+                    variant="h2"
                     style={{
-                      color: selectedPaymentType
-                        ? colors.text
-                        : colors.textSecondary,
+                      color: type === "income" ? colors.success : colors.error,
+                      marginRight: Spacing.s,
                     }}
                   >
-                    {selectedPaymentType
-                      ? selectedPaymentType === "credit_card"
-                        ? "Tarjeta de crédito"
-                        : selectedPaymentType === "debit_card"
-                          ? "Tarjeta de débito"
-                          : selectedPaymentType === "cash"
-                            ? "Efectivo"
-                            : selectedPaymentType === "transfer"
-                              ? "Transferencia"
-                              : "Nómina"
-                      : "Seleccionar tipo de pago (opcional)"}
+                    {type === "income" ? "+" : "-"}
                   </Typography>
-                  <IconSymbol
-                    name="chevron.down"
-                    size={16}
-                    color={colors.text}
+                  <TextInput
+                    value={amount}
+                    onChangeText={(text) => setAmount(formatAmountInput(text))}
+                    placeholder="0.00"
+                    placeholderTextColor={colors.textSecondary}
+                    keyboardType="numeric"
+                    style={{
+                      fontSize: 36,
+                      fontWeight: "bold",
+                      color: colors.text,
+                      textAlign: "center",
+                      minWidth: 100,
+                      padding: 0,
+                    }}
+                    autoFocus={!isEditing}
                   />
                 </View>
-              </TouchableOpacity>
+              </View>
 
-              {isPaymentTypeDropdownOpen && (
+              {/* Type Selector (if creating) */}
+              {!isEditing && (
                 <View
-                  style={[
-                    styles.dropdownList,
-                    {
-                      borderColor: colors.border,
-                      backgroundColor: colors.surface,
-                    },
-                  ]}
+                  style={{
+                    flexDirection: "row",
+                    marginBottom: Spacing.l,
+                    backgroundColor: colors.surfaceHighlight,
+                    borderRadius: BorderRadius.m,
+                    padding: 4,
+                  }}
                 >
-                  {[
-                    { id: "credit_card", label: "Tarjeta de crédito" },
-                    { id: "debit_card", label: "Tarjeta de débito" },
-                    { id: "cash", label: "Efectivo" },
-                    { id: "transfer", label: "Transferencia" },
-                    { id: "payroll", label: "Nómina" },
-                  ].map((pt, index) => (
-                    <TouchableOpacity
-                      key={pt.id}
-                      onPress={() => {
-                        setSelectedPaymentType(pt.id as any);
-                        setIsPaymentTypeDropdownOpen(false);
-                      }}
+                  <TouchableOpacity
+                    style={{
+                      flex: 1,
+                      padding: Spacing.s,
+                      alignItems: "center",
+                      backgroundColor:
+                        type === "expense" ? colors.surface : "transparent",
+                      borderRadius: BorderRadius.s,
+                    }}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setType("expense");
+                    }}
+                  >
+                    <Typography
+                      weight="bold"
                       style={{
-                        padding: Spacing.m,
-                        borderTopWidth: index > 0 ? 1 : 0,
-                        borderTopColor: colors.border,
+                        color:
+                          type === "expense"
+                            ? colors.error
+                            : colors.textSecondary,
                       }}
                     >
-                      <Typography variant="body">{pt.label}</Typography>
-                    </TouchableOpacity>
-                  ))}
+                      Gasto
+                    </Typography>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={{
+                      flex: 1,
+                      padding: Spacing.s,
+                      alignItems: "center",
+                      backgroundColor:
+                        type === "income" ? colors.surface : "transparent",
+                      borderRadius: BorderRadius.s,
+                    }}
+                    onPress={() => setType("income")}
+                  >
+                    <Typography
+                      weight="bold"
+                      style={{
+                        color:
+                          type === "income"
+                            ? colors.success
+                            : colors.textSecondary,
+                      }}
+                    >
+                      Ingreso
+                    </Typography>
+                  </TouchableOpacity>
                 </View>
               )}
-            </View>
 
-            {/* Category Selector */}
-            <View style={{ marginBottom: Spacing.m }}>
-              <Typography
-                variant="caption"
-                style={{ marginBottom: Spacing.xs, color: colors.text }}
-              >
-                {STRINGS.wallet.category}
-              </Typography>
-              <TouchableOpacity
-                onPress={() =>
-                  setIsCategoryDropdownOpen(!isCategoryDropdownOpen)
-                }
-                style={[
-                  styles.dropdown,
-                  {
+              {/* Description */}
+              <Input
+                label={STRINGS.wallet.description}
+                placeholder={STRINGS.wallet.descriptionPlaceholder}
+                value={description}
+                onChangeText={setDescription}
+              />
+
+              {/* Date Picker */}
+              <View style={{ marginBottom: Spacing.m, marginTop: Spacing.m }}>
+                <Typography
+                  variant="caption"
+                  style={{
+                    color: colors.textSecondary,
+                    marginBottom: Spacing.xs,
+                  }}
+                >
+                  Fecha
+                </Typography>
+                <TouchableOpacity
+                  onPress={() => setShowDatePicker(true)}
+                  style={{
                     backgroundColor: colors.surface,
+                    padding: Spacing.m,
+                    borderRadius: BorderRadius.m,
+                    borderWidth: 1,
                     borderColor: colors.border,
-                    marginBottom: isCategoryDropdownOpen ? 0 : Spacing.m,
-                  },
-                ]}
-              >
-                <View style={styles.dropdownHeader}>
-                  <Typography
-                    style={{
-                      color: selectedCategory
-                        ? colors.text
-                        : colors.textSecondary,
-                    }}
-                  >
-                    {selectedCategory || STRINGS.wallet.selectCategory}
-                  </Typography>
+                    flexDirection: "row",
+                    alignItems: "center",
+                  }}
+                >
                   <IconSymbol
-                    name="chevron.down"
-                    size={16}
+                    name="calendar"
+                    size={20}
                     color={colors.text}
+                    style={{ marginRight: Spacing.s }}
                   />
-                </View>
-              </TouchableOpacity>
+                  <Typography>
+                    {date.toLocaleDateString("es-ES", {
+                      weekday: "long",
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    })}
+                  </Typography>
+                </TouchableOpacity>
+                {showDatePicker && (
+                  <DateTimePicker
+                    value={date}
+                    mode="date"
+                    display={Platform.OS === "ios" ? "spinner" : "default"}
+                    onChange={(
+                      event: DateTimePickerEvent,
+                      selectedDate?: Date,
+                    ) => {
+                      const currentDate = selectedDate || date;
+                      setShowDatePicker(Platform.OS === "ios");
+                      setDate(currentDate);
+                    }}
+                    maximumDate={new Date()}
+                  />
+                )}
+              </View>
 
-              {isCategoryDropdownOpen && (
-                <View
+              {/* Payment Type Selector */}
+              <View style={{ marginBottom: Spacing.m }}>
+                <Typography
+                  variant="caption"
+                  style={{ marginBottom: Spacing.xs, color: colors.text }}
+                >
+                  Tipo de pago
+                </Typography>
+                <TouchableOpacity
+                  onPress={() =>
+                    setIsPaymentTypeDropdownOpen(!isPaymentTypeDropdownOpen)
+                  }
                   style={[
-                    styles.dropdownList,
+                    styles.dropdown,
                     {
-                      borderColor: colors.border,
                       backgroundColor: colors.surface,
+                      borderColor: colors.border,
+                      marginBottom: isPaymentTypeDropdownOpen ? 0 : Spacing.m,
                     },
                   ]}
                 >
-                  <ScrollView nestedScrollEnabled style={{ maxHeight: 200 }}>
-                    {categories.map((cat, index) => (
+                  <View style={styles.dropdownHeader}>
+                    <Typography
+                      style={{
+                        color: selectedPaymentType
+                          ? colors.text
+                          : colors.textSecondary,
+                      }}
+                    >
+                      {selectedPaymentType
+                        ? selectedPaymentType === "credit_card"
+                          ? "Tarjeta de crédito"
+                          : selectedPaymentType === "debit_card"
+                            ? "Tarjeta de débito"
+                            : selectedPaymentType === "cash"
+                              ? "Efectivo"
+                              : selectedPaymentType === "transfer"
+                                ? "Transferencia"
+                                : "Nómina"
+                        : "Seleccionar tipo de pago (opcional)"}
+                    </Typography>
+                    <IconSymbol
+                      name="chevron.down"
+                      size={16}
+                      color={colors.text}
+                    />
+                  </View>
+                </TouchableOpacity>
+
+                {isPaymentTypeDropdownOpen && (
+                  <View
+                    style={[
+                      styles.dropdownList,
+                      {
+                        borderColor: colors.border,
+                        backgroundColor: colors.surface,
+                      },
+                    ]}
+                  >
+                    {[
+                      { id: "credit_card", label: "Tarjeta de crédito" },
+                      { id: "debit_card", label: "Tarjeta de débito" },
+                      { id: "cash", label: "Efectivo" },
+                      { id: "transfer", label: "Transferencia" },
+                      { id: "payroll", label: "Nómina" },
+                    ].map((pt, index) => (
                       <TouchableOpacity
-                        key={cat.id}
+                        key={pt.id}
                         onPress={() => {
-                          setSelectedCategory(cat.name);
-                          setIsCategoryDropdownOpen(false);
+                          setSelectedPaymentType(pt.id as any);
+                          setIsPaymentTypeDropdownOpen(false);
                         }}
                         style={{
                           padding: Spacing.m,
@@ -502,88 +520,162 @@ export default function TransactionFormScreen() {
                           borderTopColor: colors.border,
                         }}
                       >
-                        <Typography variant="body">{cat.name}</Typography>
+                        <Typography variant="body">{pt.label}</Typography>
                       </TouchableOpacity>
                     ))}
-                    <TouchableOpacity
-                      onPress={() => {
-                        router.push("/wallet/categories");
-                        setIsCategoryDropdownOpen(false);
-                      }}
+                  </View>
+                )}
+              </View>
+
+              {/* Category Selector */}
+              <View style={{ marginBottom: Spacing.m }}>
+                <Typography
+                  variant="caption"
+                  style={{ marginBottom: Spacing.xs, color: colors.text }}
+                >
+                  {STRINGS.wallet.category}
+                </Typography>
+                <TouchableOpacity
+                  onPress={() =>
+                    setIsCategoryDropdownOpen(!isCategoryDropdownOpen)
+                  }
+                  style={[
+                    styles.dropdown,
+                    {
+                      backgroundColor: colors.surface,
+                      borderColor: colors.border,
+                      marginBottom: isCategoryDropdownOpen ? 0 : Spacing.m,
+                    },
+                  ]}
+                >
+                  <View style={styles.dropdownHeader}>
+                    <Typography
                       style={{
-                        padding: Spacing.m,
-                        borderTopWidth: 1,
-                        borderTopColor: colors.border,
-                        flexDirection: "row",
-                        alignItems: "center",
+                        color: selectedCategory
+                          ? colors.text
+                          : colors.textSecondary,
                       }}
                     >
-                      <IconSymbol
-                        name="plus"
-                        size={16}
-                        color={colors.primary}
-                      />
-                      <Typography
-                        variant="body"
-                        style={{ color: colors.primary, marginLeft: Spacing.s }}
-                      >
-                        Administrar Categorías
-                      </Typography>
-                    </TouchableOpacity>
-                  </ScrollView>
-                </View>
-              )}
-            </View>
+                      {selectedCategory || STRINGS.wallet.selectCategory}
+                    </Typography>
+                    <IconSymbol
+                      name="chevron.down"
+                      size={16}
+                      color={colors.text}
+                    />
+                  </View>
+                </TouchableOpacity>
 
-            {/* Entity Selector */}
-            <View style={{ marginBottom: Spacing.xl }}>
-              <Typography
-                variant="caption"
-                style={{ marginBottom: Spacing.xs, color: colors.text }}
-              >
-                {STRINGS.vision.selectEntity}
-              </Typography>
-              <TouchableOpacity
-                onPress={() => setIsEntityModalVisible(true)}
-                style={[
-                  styles.dropdown,
-                  {
-                    backgroundColor: colors.surface,
-                    borderColor: colors.border,
-                  },
-                ]}
-              >
-                <View style={styles.dropdownHeader}>
-                  <Typography
-                    style={{
-                      color: selectedEntityId
-                        ? colors.text
-                        : colors.textSecondary,
-                    }}
+                {isCategoryDropdownOpen && (
+                  <View
+                    style={[
+                      styles.dropdownList,
+                      {
+                        borderColor: colors.border,
+                        backgroundColor: colors.surface,
+                      },
+                    ]}
                   >
-                    {selectedEntityId
-                      ? entities.find((e) => e.id === selectedEntityId)?.name ||
-                        STRINGS.vision.entityPlaceholder
-                      : STRINGS.vision.entityPlaceholder}
-                  </Typography>
-                  <IconSymbol
-                    name="chevron.down"
-                    size={16}
-                    color={colors.text}
-                  />
-                </View>
-              </TouchableOpacity>
-            </View>
+                    <ScrollView nestedScrollEnabled style={{ maxHeight: 200 }}>
+                      {categories.map((cat, index) => (
+                        <TouchableOpacity
+                          key={cat.id}
+                          onPress={() => {
+                            setSelectedCategory(cat.name);
+                            setIsCategoryDropdownOpen(false);
+                          }}
+                          style={{
+                            padding: Spacing.m,
+                            borderTopWidth: index > 0 ? 1 : 0,
+                            borderTopColor: colors.border,
+                          }}
+                        >
+                          <Typography variant="body">{cat.name}</Typography>
+                        </TouchableOpacity>
+                      ))}
+                      <TouchableOpacity
+                        onPress={() => {
+                          router.push("/wallet/categories");
+                          setIsCategoryDropdownOpen(false);
+                        }}
+                        style={{
+                          padding: Spacing.m,
+                          borderTopWidth: 1,
+                          borderTopColor: colors.border,
+                          flexDirection: "row",
+                          alignItems: "center",
+                        }}
+                      >
+                        <IconSymbol
+                          name="plus"
+                          size={16}
+                          color={colors.primary}
+                        />
+                        <Typography
+                          variant="body"
+                          style={{
+                            color: colors.primary,
+                            marginLeft: Spacing.s,
+                          }}
+                        >
+                          Administrar Categorías
+                        </Typography>
+                      </TouchableOpacity>
+                    </ScrollView>
+                  </View>
+                )}
+              </View>
 
-            <Button
-              title={STRINGS.common.save}
-              onPress={handleSave}
-              loading={isSaving}
-              variant="primary"
-            />
-          </View>
-        </TouchableWithoutFeedback>
-      </ScrollView>
+              {/* Entity Selector */}
+              <View style={{ marginBottom: Spacing.xl }}>
+                <Typography
+                  variant="caption"
+                  style={{ marginBottom: Spacing.xs, color: colors.text }}
+                >
+                  {STRINGS.vision.selectEntity}
+                </Typography>
+                <TouchableOpacity
+                  onPress={() => setIsEntityModalVisible(true)}
+                  style={[
+                    styles.dropdown,
+                    {
+                      backgroundColor: colors.surface,
+                      borderColor: colors.border,
+                    },
+                  ]}
+                >
+                  <View style={styles.dropdownHeader}>
+                    <Typography
+                      style={{
+                        color: selectedEntityId
+                          ? colors.text
+                          : colors.textSecondary,
+                      }}
+                    >
+                      {selectedEntityId
+                        ? entities.find((e) => e.id === selectedEntityId)
+                            ?.name || STRINGS.vision.entityPlaceholder
+                        : STRINGS.vision.entityPlaceholder}
+                    </Typography>
+                    <IconSymbol
+                      name="chevron.down"
+                      size={16}
+                      color={colors.text}
+                    />
+                  </View>
+                </TouchableOpacity>
+              </View>
+
+              <Button
+                title={STRINGS.common.save}
+                onPress={handleSave}
+                loading={isSaving}
+                variant="primary"
+              />
+            </View>
+          </TouchableWithoutFeedback>
+        </ScrollView>
+      </KeyboardAvoidingView>
 
       <EntitySelectionModal
         visible={isEntityModalVisible}

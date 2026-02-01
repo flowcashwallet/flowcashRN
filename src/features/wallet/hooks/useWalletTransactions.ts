@@ -18,6 +18,14 @@ interface TransactionData {
   type: "income" | "expense";
   category?: string | null;
   relatedEntityId?: string | null;
+  date?: number;
+  paymentType?:
+    | "credit_card"
+    | "debit_card"
+    | "cash"
+    | "transfer"
+    | "payroll"
+    | null;
 }
 
 interface UpdateTransactionData extends TransactionData {
@@ -50,7 +58,8 @@ export const useWalletTransactions = () => {
           ...(data.relatedEntityId
             ? { relatedEntityId: data.relatedEntityId as string }
             : {}),
-          date: Date.now(),
+          date: data.date || Date.now(),
+          paymentType: data.paymentType,
         }),
       ).unwrap();
 
@@ -180,6 +189,10 @@ export const useWalletTransactions = () => {
             category: data.category || null,
             relatedEntityId: data.relatedEntityId || null,
             amount: newAmount,
+            ...(data.date ? { date: data.date } : {}),
+            ...(data.paymentType !== undefined
+              ? { paymentType: data.paymentType }
+              : {}),
           },
         }),
       ).unwrap();
