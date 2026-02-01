@@ -18,6 +18,9 @@ interface WalletHeaderProps {
   onDeleteMonth: () => void;
   streak: StreakInfo;
   onPressStreak: () => void;
+  onMonthPress?: () => void;
+  showYear?: boolean;
+  year?: number;
 }
 
 export const WalletHeader: React.FC<WalletHeaderProps> = ({
@@ -28,6 +31,9 @@ export const WalletHeader: React.FC<WalletHeaderProps> = ({
   onDeleteMonth,
   streak,
   onPressStreak,
+  onMonthPress,
+  showYear = false,
+  year,
 }) => {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
@@ -76,15 +82,26 @@ export const WalletHeader: React.FC<WalletHeaderProps> = ({
         }}
       >
         <StreakBadge streak={streak} onPress={onPressStreak} />
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
+        <TouchableOpacity
+          style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
+          onPress={onMonthPress}
+          activeOpacity={onMonthPress ? 0.7 : 1}
+        >
           <Typography
             variant="h3"
             weight="bold"
             style={{ color: colors.textSecondary }}
           >
-            {currentMonthName}
+            {currentMonthName} {showYear && year ? year : ""}
           </Typography>
-        </View>
+          {onMonthPress && (
+            <IconSymbol
+              name="chevron.down"
+              size={20}
+              color={colors.textSecondary}
+            />
+          )}
+        </TouchableOpacity>
         <TouchableOpacity onPress={onDeleteMonth}>
           <IconSymbol
             name="trash.fill"
@@ -96,24 +113,27 @@ export const WalletHeader: React.FC<WalletHeaderProps> = ({
       <Typography variant="caption" style={{ color: colors.textSecondary }}>
         {STRINGS.wallet.balanceTotal}
       </Typography>
-      
-      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", marginTop: Spacing.xs }}>
-        <Typography
-          variant="h1"
-          weight="bold"
-          style={{ color: colors.text }}
-        >
+
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "center",
+          marginTop: Spacing.xs,
+        }}
+      >
+        <Typography variant="h1" weight="bold" style={{ color: colors.text }}>
           {isBalanceVisible ? formatCurrency(balance) : "****"}
         </Typography>
-        <TouchableOpacity 
-          onPress={() => setIsBalanceVisible(!isBalanceVisible)} 
+        <TouchableOpacity
+          onPress={() => setIsBalanceVisible(!isBalanceVisible)}
           style={{ marginLeft: Spacing.s }}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <IconSymbol 
-            name={isBalanceVisible ? "eye.fill" : "eye.slash.fill"} 
-            size={24} 
-            color={colors.textSecondary} 
+          <IconSymbol
+            name={isBalanceVisible ? "eye.fill" : "eye.slash.fill"}
+            size={24}
+            color={colors.textSecondary}
           />
         </TouchableOpacity>
       </View>

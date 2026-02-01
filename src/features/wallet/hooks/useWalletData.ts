@@ -27,6 +27,7 @@ export const useWalletData = () => {
   const streak = useStreak(transactions, repairedDays);
 
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date());
 
   useEffect(() => {
     if (user?.uid) {
@@ -51,9 +52,8 @@ export const useWalletData = () => {
   };
 
   // Filter transactions for current month
-  const currentDate = new Date();
-  const currentMonth = currentDate.getMonth();
-  const currentYear = currentDate.getFullYear();
+  const currentMonth = selectedDate.getMonth();
+  const currentYear = selectedDate.getFullYear();
   const currentMonthName = STRINGS.wallet.months[currentMonth];
 
   const currentMonthTransactions = transactions.filter((t) => {
@@ -91,5 +91,7 @@ export const useWalletData = () => {
     streakFreezes,
     repairedDays,
     categories,
+    selectedDate,
+    setSelectedDate,
   };
 };

@@ -14,6 +14,7 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
+import { MonthYearPickerModal } from "../components/MonthYearPickerModal";
 import { QuickActions } from "../components/QuickActions";
 import { StreakCalendarModal } from "../components/StreakCalendarModal";
 import { TransactionFilterModal } from "../components/TransactionFilterModal";
@@ -38,12 +39,15 @@ export default function WalletScreen() {
     streakFreezes,
     repairedDays,
     categories,
+    selectedDate,
+    setSelectedDate,
   } = useWalletData();
 
   const { deleteTransaction, deleteMonthlyTransactions } =
     useWalletTransactions();
 
   const [calendarVisible, setCalendarVisible] = useState(false);
+  const [datePickerVisible, setDatePickerVisible] = useState(false);
   const [filterVisible, setFilterVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState<{
@@ -119,6 +123,9 @@ export default function WalletScreen() {
           onDeleteMonth={handleDeleteMonthly}
           streak={streak}
           onPressStreak={() => setCalendarVisible(true)}
+          onMonthPress={() => setDatePickerVisible(true)}
+          showYear={selectedDate.getFullYear() !== new Date().getFullYear()}
+          year={selectedDate.getFullYear()}
         />
 
         <QuickActions
@@ -206,6 +213,13 @@ export default function WalletScreen() {
         onClose={() => setCalendarVisible(false)}
         transactions={currentMonthTransactions}
         repairedDays={repairedDays || []}
+      />
+
+      <MonthYearPickerModal
+        visible={datePickerVisible}
+        onClose={() => setDatePickerVisible(false)}
+        selectedDate={selectedDate}
+        onSelect={setSelectedDate}
       />
 
       <TransactionFilterModal

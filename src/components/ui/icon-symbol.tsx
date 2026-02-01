@@ -21,6 +21,8 @@ const MAPPING = {
   "paperplane.fill": "send",
   "chevron.left.forwardslash.chevron.right": "code",
   "chevron.right": "chevron-right",
+  "chevron.left": "chevron-left",
+  "chevron.down": "keyboard-arrow-down",
   "creditcard.fill": "account-balance-wallet",
   "chart.pie.fill": "pie-chart",
   "eye.fill": "visibility",

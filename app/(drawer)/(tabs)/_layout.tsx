@@ -114,11 +114,7 @@ export default function TabLayout() {
           options={{
             title: STRINGS.tabs.vision,
             tabBarIcon: ({ color }) => (
-              <IconSymbol
-                size={24}
-                name="building.columns.fill"
-                color={color}
-              />
+              <IconSymbol size={24} name="building.columns.fill" color={color} />
             ),
           }}
         />
