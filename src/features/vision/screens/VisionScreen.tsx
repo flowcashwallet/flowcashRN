@@ -5,6 +5,10 @@ import { EntityDetailModal } from "@/features/vision/components/EntityDetailModa
 import { VisionEntityList } from "@/features/vision/components/VisionEntityList";
 import { VisionFilterModal } from "@/features/vision/components/VisionFilterModal";
 import { VisionHeader } from "@/features/vision/components/VisionHeader";
+import {
+    SortOption,
+    VisionSortModal,
+} from "@/features/vision/components/VisionSortModal";
 import { VisionEntity } from "@/features/vision/data/visionSlice";
 import { useVisionData } from "@/features/vision/hooks/useVisionData";
 import {
@@ -51,6 +55,8 @@ export default function VisionScreen() {
   );
   const [filterVisible, setFilterVisible] = useState(false);
   const [filterCategory, setFilterCategory] = useState<string | null>(null);
+  const [sortVisible, setSortVisible] = useState(false);
+  const [sortBy, setSortBy] = useState<SortOption>("amount");
 
   const filteredAssets = assets.filter(
     (item) => !filterCategory || item.category === filterCategory,
@@ -58,6 +64,19 @@ export default function VisionScreen() {
   const filteredLiabilities = liabilities.filter(
     (item) => !filterCategory || item.category === filterCategory,
   );
+
+  const sortEntities = (entities: VisionEntity[]) => {
+    return [...entities].sort((a, b) => {
+      if (sortBy === "amount") {
+        return b.amount - a.amount; // Descending
+      } else {
+        return a.name.localeCompare(b.name); // Ascending
+      }
+    });
+  };
+
+  const sortedAssets = sortEntities(filteredAssets);
+  const sortedLiabilities = sortEntities(filteredLiabilities);
 
   const handleTabChange = (tab: "asset" | "liability") => {
     setActiveTab(tab);
@@ -178,13 +197,14 @@ export default function VisionScreen() {
         <VisionEntityList
           activeTab={activeTab}
           setActiveTab={handleTabChange}
-          assets={filteredAssets}
-          liabilities={filteredLiabilities}
+          assets={sortedAssets}
+          liabilities={sortedLiabilities}
           onAddPress={onAddPress}
           onEntityPress={onEntityPress}
           onDeleteEntity={handleDeleteEntity}
           onFilterPress={() => setFilterVisible(true)}
           activeFilterCategory={filterCategory}
+          onSortPress={() => setSortVisible(true)}
         />
       </ScrollView>
 
@@ -195,6 +215,13 @@ export default function VisionScreen() {
         currentCategory={filterCategory}
         onApply={setFilterCategory}
         onClear={() => setFilterCategory(null)}
+      />
+
+      <VisionSortModal
+        visible={sortVisible}
+        onClose={() => setSortVisible(false)}
+        currentSort={sortBy}
+        onApply={setSortBy}
       />
 
       <AddEntityModal

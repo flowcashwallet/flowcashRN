@@ -25,6 +25,7 @@ interface VisionEntityListProps {
   onDeleteEntity: (id: string) => void;
   onFilterPress: () => void;
   activeFilterCategory: string | null;
+  onSortPress: () => void;
 }
 
 const CollapsibleGroup = ({
@@ -103,6 +104,7 @@ export const VisionEntityList: React.FC<VisionEntityListProps> = ({
   onDeleteEntity,
   onFilterPress,
   activeFilterCategory,
+  onSortPress,
 }) => {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
@@ -264,6 +266,22 @@ export const VisionEntityList: React.FC<VisionEntityListProps> = ({
               : STRINGS.vision.liabilities}
           </Typography>
           <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <TouchableOpacity onPress={onSortPress} style={{ marginRight: 12 }}>
+              <View
+                style={[
+                  styles.addButton,
+                  {
+                    backgroundColor: colors.surfaceHighlight,
+                  },
+                ]}
+              >
+                <IconSymbol
+                  name="arrow.up.arrow.down"
+                  size={20}
+                  color={colors.textSecondary}
+                />
+              </View>
+            </TouchableOpacity>
             <TouchableOpacity
               onPress={onFilterPress}
               style={{ marginRight: 12 }}
