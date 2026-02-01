@@ -19,8 +19,11 @@ import {
     registerForPushNotificationsAsync,
     scheduleCreditCardReminder,
 } from "@/services/notifications";
-import React, { useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import React, { useEffect, useState } from "react";
 import { Alert, RefreshControl, ScrollView, StyleSheet } from "react-native";
+
+const VISION_SORT_PREF_KEY = "vision_sort_preference";
 
 export default function VisionScreen() {
   const {
@@ -57,6 +60,29 @@ export default function VisionScreen() {
   const [filterCategory, setFilterCategory] = useState<string | null>(null);
   const [sortVisible, setSortVisible] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("amount");
+
+  useEffect(() => {
+    const loadSortPreference = async () => {
+      try {
+        const savedSort = await AsyncStorage.getItem(VISION_SORT_PREF_KEY);
+        if (savedSort) {
+          setSortBy(savedSort as SortOption);
+        }
+      } catch (error) {
+        console.error("Failed to load sort preference:", error);
+      }
+    };
+    loadSortPreference();
+  }, []);
+
+  const handleSortChange = async (option: SortOption) => {
+    setSortBy(option);
+    try {
+      await AsyncStorage.setItem(VISION_SORT_PREF_KEY, option);
+    } catch (error) {
+      console.error("Failed to save sort preference:", error);
+    }
+  };
 
   const filteredAssets = assets.filter(
     (item) => !filterCategory || item.category === filterCategory,
@@ -221,7 +247,7 @@ export default function VisionScreen() {
         visible={sortVisible}
         onClose={() => setSortVisible(false)}
         currentSort={sortBy}
-        onApply={setSortBy}
+        onApply={handleSortChange}
       />
 
       <AddEntityModal
