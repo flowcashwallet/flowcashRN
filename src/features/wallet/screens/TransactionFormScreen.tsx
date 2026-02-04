@@ -4,24 +4,16 @@ import { Input } from "@/components/atoms/Input";
 import { Typography } from "@/components/atoms/Typography";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { BorderRadius, Colors, Spacing } from "@/constants/theme";
-import { useVisionData } from "@/features/vision/hooks/useVisionData";
-import { fetchCategories } from "@/features/wallet/data/categoriesSlice";
-import { useWalletTransactions } from "@/features/wallet/hooks/useWalletTransactions";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import STRINGS from "@/i18n/es.json";
-import { registerForPushNotificationsAsync } from "@/services/notifications";
-import { AppDispatch, RootState } from "@/store/store";
 import { formatAmountInput } from "@/utils/format";
-import { determineDefaultPaymentType } from "@/utils/transactionUtils";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker, {
   DateTimePickerEvent,
 } from "@react-native-community/datetimepicker";
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
-  Alert,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -32,247 +24,52 @@ import {
   TouchableWithoutFeedback,
   View,
 } from "react-native";
-import { useDispatch, useSelector } from "react-redux";
 import { EntitySelectionModal } from "../components/EntitySelectionModal";
+import { useTransactionForm } from "../hooks/useTransactionForm";
 
 export default function TransactionFormScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { id, initialType } = params;
 
-  const dispatch = useDispatch<AppDispatch>();
-  const { user } = useSelector((state: RootState) => state.auth);
-  const { categories } = useSelector((state: RootState) => state.categories);
-  const { transactions } = useSelector((state: RootState) => state.wallet);
-  // Destructure entities correctly from useVisionData
-  const { entities } = useVisionData();
-
-  const { addTransaction, deleteTransaction, updateTransaction } =
-    useWalletTransactions();
+  const {
+    type,
+    setType,
+    amount,
+    setAmount,
+    description,
+    setDescription,
+    selectedCategory,
+    setSelectedCategory,
+    selectedEntityId,
+    setSelectedEntityId,
+    selectedPaymentType,
+    setSelectedPaymentType,
+    date,
+    setDate,
+    isSaving,
+    isEditing,
+    handleSave,
+    handleDelete,
+    frequentCategories,
+    frequentEntities,
+    categories,
+    entities,
+    isNotificationSetupVisible,
+    setIsNotificationSetupVisible,
+  } = useTransactionForm({
+    id: id as string,
+    initialType: initialType as "income" | "expense",
+  });
 
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
 
-  const isEditing = !!id;
-  const existingTransaction = isEditing
-    ? transactions.find((t) => t.id === id)
-    : null;
-
-  const [type, setType] = useState<"income" | "expense">(
-    (existingTransaction?.type as "income" | "expense") ||
-      (initialType as "income" | "expense") ||
-      "expense",
-  );
-  const [amount, setAmount] = useState(
-    existingTransaction
-      ? formatAmountInput(existingTransaction.amount.toFixed(2))
-      : "",
-  );
-  const [description, setDescription] = useState(
-    existingTransaction?.description || "",
-  );
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(
-    existingTransaction?.category || null,
-  );
-  const [selectedEntityId, setSelectedEntityId] = useState<string | null>(
-    existingTransaction?.relatedEntityId || null,
-  );
-  const [selectedPaymentType, setSelectedPaymentType] = useState<
-    "credit_card" | "debit_card" | "cash" | "transfer" | "payroll" | null
-  >(
-    existingTransaction?.paymentType ||
-      determineDefaultPaymentType(transactions, type),
-  );
-
-  const [date, setDate] = useState(
-    new Date(existingTransaction?.date || Date.now()),
-  );
   const [showDatePicker, setShowDatePicker] = useState(false);
-
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
   const [isPaymentTypeDropdownOpen, setIsPaymentTypeDropdownOpen] =
     useState(false);
   const [isEntityModalVisible, setIsEntityModalVisible] = useState(false);
-  const [isNotificationSetupVisible, setIsNotificationSetupVisible] =
-    useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-
-  // Calculate frequent categories
-  const frequentCategories = React.useMemo(() => {
-    if (!transactions || transactions.length === 0) return [];
-
-    const categoryCounts: Record<string, number> = {};
-    transactions
-      .filter((t) => t.type === type) // Filter by current type (income/expense)
-      .forEach((t) => {
-        if (t.category) {
-          categoryCounts[t.category] = (categoryCounts[t.category] || 0) + 1;
-        }
-      });
-
-    return Object.entries(categoryCounts)
-      .sort((a, b) => b[1] - a[1]) // Sort by frequency desc
-      .slice(0, 5) // Take top 5
-      .map(([cat]) => cat);
-  }, [transactions, type]);
-
-  // Calculate frequent entities
-  const frequentEntities = React.useMemo(() => {
-    if (
-      !transactions ||
-      transactions.length === 0 ||
-      !entities ||
-      entities.length === 0
-    )
-      return [];
-
-    const entityCounts: Record<string, number> = {};
-    transactions
-      //.filter((t) => t.type === type) // Maybe entities usage depends on type too? Probably yes (paying with a specific card vs receiving income)
-      .forEach((t) => {
-        if (t.relatedEntityId) {
-          entityCounts[t.relatedEntityId] =
-            (entityCounts[t.relatedEntityId] || 0) + 1;
-        }
-      });
-
-    return Object.entries(entityCounts)
-      .sort((a, b) => b[1] - a[1]) // Sort by frequency desc
-      .slice(0, 5) // Take top 5
-      .map(([id]) => entities.find((e) => e.id === id))
-      .filter((e) => e !== undefined); // Ensure entity still exists
-  }, [transactions, entities]);
-
-  useEffect(() => {
-    if (user?.uid && categories.length === 0) {
-      dispatch(fetchCategories(user.uid));
-    }
-  }, [user, dispatch, categories.length]);
-
-  // Update default payment type when type changes (only if creating and not manually set - strictly speaking, we just want to follow the "default" logic)
-  // However, the user requirement is to just "check the last 10 transactions...".
-  // If the user switches types, we should probably re-suggest the default payment type for that new transaction type.
-  useEffect(() => {
-    if (!isEditing) {
-      const suggestedPaymentType = determineDefaultPaymentType(
-        transactions,
-        type,
-      );
-      // We only update if the user hasn't selected a payment type yet?
-      // Or we can always update it since switching types (Income <-> Expense) implies a context switch.
-      // Let's go with updating it.
-      setSelectedPaymentType(suggestedPaymentType);
-    }
-  }, [type, transactions, isEditing]);
-
-  const handleSave = async () => {
-    if (!amount || !description || !user?.uid) {
-      Alert.alert("Error", "Por favor completa los campos requeridos");
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      return;
-    }
-
-    setIsSaving(true);
-    try {
-      let success = false;
-      if (isEditing && existingTransaction) {
-        success =
-          (await updateTransaction({
-            id: existingTransaction.id,
-            amount: amount,
-            description,
-            type,
-            category: selectedCategory || "General",
-            relatedEntityId: selectedEntityId || null,
-            oldAmount: existingTransaction.amount,
-            oldEntityId: existingTransaction.relatedEntityId,
-            date: date.getTime(),
-            paymentType: selectedPaymentType,
-          })) || false;
-      } else {
-        success =
-          (await addTransaction({
-            amount: amount,
-            description,
-            type,
-            category: selectedCategory || "General",
-            relatedEntityId: selectedEntityId || null,
-            date: date.getTime(),
-            paymentType: selectedPaymentType,
-          })) || false;
-      }
-
-      if (success) {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        if (!isEditing) {
-          const isFirstTransaction = transactions.length === 0;
-          const hasAsked = await AsyncStorage.getItem(
-            "has_asked_initial_reminder",
-          );
-
-          if (isFirstTransaction && !hasAsked) {
-            Alert.alert(
-              "¡Primera transacción!",
-              "¿Te gustaría configurar un recordatorio diario para no olvidar registrar tus gastos?",
-              [
-                {
-                  text: "No, gracias",
-                  style: "cancel",
-                  onPress: async () => {
-                    await AsyncStorage.setItem(
-                      "has_asked_initial_reminder",
-                      "true",
-                    );
-                    router.back();
-                  },
-                },
-                {
-                  text: "Sí, configurar",
-                  onPress: async () => {
-                    await AsyncStorage.setItem(
-                      "has_asked_initial_reminder",
-                      "true",
-                    );
-                    const granted = await registerForPushNotificationsAsync();
-                    if (granted) {
-                      setIsNotificationSetupVisible(true);
-                    } else {
-                      Alert.alert(
-                        "Permisos requeridos",
-                        "No se pudieron habilitar las notificaciones. Verifica tus ajustes.",
-                        [{ text: "OK", onPress: () => router.back() }],
-                      );
-                    }
-                  },
-                },
-              ],
-            );
-            return; // Don't route back yet
-          }
-        }
-        router.back();
-      } else {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      }
-    } catch (error) {
-      console.error("Error saving transaction:", error);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!existingTransaction) return;
-
-    const success = await deleteTransaction(existingTransaction.id);
-    if (success) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      router.back();
-    } else {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-    }
-  };
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -818,12 +615,26 @@ export default function TransactionFormScreen() {
                 </TouchableOpacity>
               </View>
 
-              <Button
-                title={STRINGS.common.save}
-                onPress={handleSave}
-                loading={isSaving}
-                variant="primary"
-              />
+              <View style={{ flexDirection: "row", gap: Spacing.m }}>
+                <View style={{ flex: 1 }}>
+                  <Button
+                    title={STRINGS.common.save}
+                    onPress={() => handleSave(true)}
+                    loading={isSaving}
+                    variant="primary"
+                  />
+                </View>
+                {!isEditing && (
+                  <View style={{ flex: 1 }}>
+                    <Button
+                      title="Guardar y otro"
+                      onPress={() => handleSave(false)}
+                      loading={isSaving}
+                      variant="outline"
+                    />
+                  </View>
+                )}
+              </View>
             </View>
           </TouchableWithoutFeedback>
         </ScrollView>
@@ -832,7 +643,7 @@ export default function TransactionFormScreen() {
       <EntitySelectionModal
         visible={isEntityModalVisible}
         onClose={() => setIsEntityModalVisible(false)}
-        onSelect={setSelectedEntityId}
+        onSelect={(id) => setSelectedEntityId(id)}
         visionEntities={entities}
         selectedEntityId={selectedEntityId}
       />
@@ -843,10 +654,7 @@ export default function TransactionFormScreen() {
           setIsNotificationSetupVisible(false);
           router.back();
         }}
-        onSave={() => {
-          setIsNotificationSetupVisible(false);
-          router.back();
-        }}
+        onSave={() => {}}
       />
     </View>
   );
@@ -861,32 +669,35 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: Spacing.m,
-    paddingTop: 60, // Adjust for status bar
+    paddingTop: Platform.OS === "ios" ? 60 : 20,
     paddingBottom: Spacing.m,
   },
   headerButton: {
     width: 40,
+    height: 40,
+    justifyContent: "center",
     alignItems: "center",
   },
   content: {
     padding: Spacing.m,
-    paddingBottom: Spacing.xl,
+    paddingBottom: 100,
   },
   dropdown: {
-    paddingHorizontal: Spacing.m,
-    paddingVertical: Spacing.m,
     borderRadius: BorderRadius.m,
     borderWidth: 1,
   },
   dropdownHeader: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
+    justifyContent: "space-between",
+    padding: Spacing.m,
   },
   dropdownList: {
+    marginTop: -1,
+    borderBottomLeftRadius: BorderRadius.m,
+    borderBottomRightRadius: BorderRadius.m,
     borderWidth: 1,
-    borderRadius: BorderRadius.m,
-    marginBottom: Spacing.m,
-    marginTop: -5,
+    borderTopWidth: 0,
+    overflow: "hidden",
   },
 });
