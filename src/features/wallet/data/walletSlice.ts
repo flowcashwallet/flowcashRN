@@ -16,10 +16,11 @@ export interface Transaction {
   id: string;
   userId: string;
   amount: number;
-  type: "income" | "expense";
+  type: "income" | "expense" | "transfer";
   description: string;
   category?: string | null; // e.g. "🍔 Comida"
-  relatedEntityId?: string | null; // ID of the Asset or Liability
+  relatedEntityId?: string | null; // ID of the Asset or Liability (Source for Transfer)
+  transferRelatedEntityId?: string | null; // ID of the Destination Entity for Transfer
   date: number; // timestamp
   paymentType?:
     | "credit_card"
@@ -65,6 +66,7 @@ export const fetchTransactions = createAsyncThunk(
           description: data.description,
           category: data.category,
           relatedEntityId: data.relatedEntityId,
+          transferRelatedEntityId: data.transferRelatedEntityId,
           date: data.date,
           paymentType: data.paymentType,
         });

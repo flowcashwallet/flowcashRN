@@ -13,7 +13,7 @@ import { useWalletTransactions } from "./useWalletTransactions";
 
 export interface UseTransactionFormProps {
   id?: string;
-  initialType?: "income" | "expense";
+  initialType?: "income" | "expense" | "transfer";
 }
 
 export const useTransactionForm = ({
@@ -35,9 +35,9 @@ export const useTransactionForm = ({
     ? transactions.find((t) => t.id === id)
     : null;
 
-  const [type, setType] = useState<"income" | "expense">(
-    (existingTransaction?.type as "income" | "expense") ||
-      (initialType as "income" | "expense") ||
+  const [type, setType] = useState<"income" | "expense" | "transfer">(
+    (existingTransaction?.type as "income" | "expense" | "transfer") ||
+      (initialType as "income" | "expense" | "transfer") ||
       "expense",
   );
   const [amount, setAmount] = useState(
@@ -54,11 +54,19 @@ export const useTransactionForm = ({
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(
     existingTransaction?.relatedEntityId || null,
   );
+  const [transferRelatedEntityId, setTransferRelatedEntityId] = useState<
+    string | null
+  >(existingTransaction?.transferRelatedEntityId || null);
   const [selectedPaymentType, setSelectedPaymentType] = useState<
     "credit_card" | "debit_card" | "cash" | "transfer" | "payroll" | null
   >(
     existingTransaction?.paymentType ||
-      determineDefaultPaymentType(transactions, type),
+      (type === "transfer"
+        ? "transfer"
+        : determineDefaultPaymentType(
+            transactions,
+            type as "income" | "expense",
+          )),
   );
   const [date, setDate] = useState(
     new Date(existingTransaction?.date || Date.now()),
@@ -78,11 +86,15 @@ export const useTransactionForm = ({
   // Update default payment type
   useEffect(() => {
     if (!isEditing) {
-      const suggestedPaymentType = determineDefaultPaymentType(
-        transactions,
-        type,
-      );
-      setSelectedPaymentType(suggestedPaymentType);
+      if (type === "transfer") {
+        setSelectedPaymentType("transfer");
+      } else {
+        const suggestedPaymentType = determineDefaultPaymentType(
+          transactions,
+          type as "income" | "expense",
+        );
+        setSelectedPaymentType(suggestedPaymentType);
+      }
     }
   }, [type, transactions, isEditing]);
 
@@ -123,6 +135,7 @@ export const useTransactionForm = ({
     setAmount("");
     setDescription("");
     setSelectedCategory(null);
+    setTransferRelatedEntityId(null);
     // Keep date and payment type as they are likely to be reused in batch entry
     // Keep entity as well? Maybe reset entity? Let's keep it for now.
     // Resetting entity might be annoying if entering multiple expenses for the same credit card.
@@ -133,6 +146,27 @@ export const useTransactionForm = ({
       Alert.alert("Error", "Por favor completa los campos requeridos");
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       return false;
+    }
+
+    if (type === "transfer") {
+      if (!selectedEntityId) {
+        Alert.alert("Error", "Por favor selecciona una cuenta de origen");
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        return false;
+      }
+      if (!transferRelatedEntityId) {
+        Alert.alert("Error", "Por favor selecciona una cuenta de destino");
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        return false;
+      }
+      if (selectedEntityId === transferRelatedEntityId) {
+        Alert.alert(
+          "Error",
+          "La cuenta de origen y destino no pueden ser la misma",
+        );
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        return false;
+      }
     }
 
     setIsSaving(true);
@@ -147,8 +181,11 @@ export const useTransactionForm = ({
             type,
             category: selectedCategory || "General",
             relatedEntityId: selectedEntityId || null,
+            transferRelatedEntityId: transferRelatedEntityId || null,
             oldAmount: existingTransaction.amount,
             oldEntityId: existingTransaction.relatedEntityId,
+            oldTransferRelatedEntityId:
+              existingTransaction.transferRelatedEntityId,
             date: date.getTime(),
             paymentType: selectedPaymentType,
           })) || false;
@@ -160,6 +197,7 @@ export const useTransactionForm = ({
             type,
             category: selectedCategory || "General",
             relatedEntityId: selectedEntityId || null,
+            transferRelatedEntityId: transferRelatedEntityId || null,
             date: date.getTime(),
             paymentType: selectedPaymentType,
           })) || false;
@@ -225,6 +263,8 @@ export const useTransactionForm = ({
     setSelectedCategory,
     selectedEntityId,
     setSelectedEntityId,
+    transferRelatedEntityId,
+    setTransferRelatedEntityId,
     selectedPaymentType,
     setSelectedPaymentType,
     date,

@@ -43,6 +43,8 @@ export default function TransactionFormScreen() {
     setSelectedCategory,
     selectedEntityId,
     setSelectedEntityId,
+    transferRelatedEntityId,
+    setTransferRelatedEntityId,
     selectedPaymentType,
     setSelectedPaymentType,
     date,
@@ -70,6 +72,8 @@ export default function TransactionFormScreen() {
   const [isPaymentTypeDropdownOpen, setIsPaymentTypeDropdownOpen] =
     useState(false);
   const [isEntityModalVisible, setIsEntityModalVisible] = useState(false);
+  const [isDestEntityModalVisible, setIsDestEntityModalVisible] =
+    useState(false);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -86,7 +90,9 @@ export default function TransactionFormScreen() {
             ? "Editar Transacción"
             : type === "income"
               ? STRINGS.wallet.newIncome
-              : STRINGS.wallet.newExpense}
+              : type === "transfer"
+                ? "Nueva Transferencia"
+                : STRINGS.wallet.newExpense}
         </Typography>
         <View style={styles.headerButton}>
           {isEditing && (
@@ -218,6 +224,29 @@ export default function TransactionFormScreen() {
                       Ingreso
                     </Typography>
                   </TouchableOpacity>
+                  <TouchableOpacity
+                    style={{
+                      flex: 1,
+                      padding: Spacing.s,
+                      alignItems: "center",
+                      backgroundColor:
+                        type === "transfer" ? colors.surface : "transparent",
+                      borderRadius: BorderRadius.s,
+                    }}
+                    onPress={() => setType("transfer")}
+                  >
+                    <Typography
+                      weight="bold"
+                      style={{
+                        color:
+                          type === "transfer"
+                            ? colors.text
+                            : colors.textSecondary,
+                      }}
+                    >
+                      Transf.
+                    </Typography>
+                  </TouchableOpacity>
                 </View>
               )}
 
@@ -273,10 +302,7 @@ export default function TransactionFormScreen() {
                     mode="date"
                     display={Platform.OS === "ios" ? "inline" : "default"}
                     themeVariant={colorScheme ?? "light"}
-                    onChange={(
-                      event: DateTimePickerEvent,
-                      selectedDate?: Date,
-                    ) => {
+                    onChange={(_: DateTimePickerEvent, selectedDate?: Date) => {
                       const currentDate = selectedDate || date;
                       setShowDatePicker(false);
                       setDate(currentDate);
@@ -377,152 +403,157 @@ export default function TransactionFormScreen() {
               </View>
 
               {/* Category Selector */}
-              <View style={{ marginBottom: Spacing.m }}>
-                <Typography
-                  variant="caption"
-                  style={{ marginBottom: Spacing.xs, color: colors.text }}
-                >
-                  {STRINGS.wallet.category}
-                </Typography>
-
-                {/* Quick Category Chips */}
-                {frequentCategories.length > 0 && (
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    style={{ marginBottom: Spacing.s }}
-                    contentContainerStyle={{ gap: 8 }}
+              {type !== "transfer" && (
+                <View style={{ marginBottom: Spacing.m }}>
+                  <Typography
+                    variant="caption"
+                    style={{ marginBottom: Spacing.xs, color: colors.text }}
                   >
-                    {frequentCategories.map((cat) => (
-                      <TouchableOpacity
-                        key={cat}
-                        onPress={() => {
-                          setSelectedCategory(cat);
-                          Haptics.selectionAsync();
-                        }}
-                        style={{
-                          backgroundColor:
-                            selectedCategory === cat
-                              ? colors.primary
-                              : colors.surface,
-                          paddingHorizontal: Spacing.m,
-                          paddingVertical: 6,
-                          borderRadius: BorderRadius.l,
-                          borderWidth: 1,
-                          borderColor:
-                            selectedCategory === cat
-                              ? colors.primary
-                              : colors.border,
-                        }}
-                      >
-                        <Typography
+                    {STRINGS.wallet.category}
+                  </Typography>
+
+                  {/* Quick Category Chips */}
+                  {frequentCategories.length > 0 && (
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      style={{ marginBottom: Spacing.s }}
+                      contentContainerStyle={{ gap: 8 }}
+                    >
+                      {frequentCategories.map((cat) => (
+                        <TouchableOpacity
+                          key={cat}
+                          onPress={() => {
+                            setSelectedCategory(cat);
+                            Haptics.selectionAsync();
+                          }}
                           style={{
-                            color:
+                            backgroundColor:
                               selectedCategory === cat
-                                ? "#FFFFFF"
-                                : colors.text,
-                            fontWeight:
-                              selectedCategory === cat ? "bold" : "normal",
-                            fontSize: 13,
+                                ? colors.primary
+                                : colors.surface,
+                            paddingHorizontal: Spacing.m,
+                            paddingVertical: 6,
+                            borderRadius: BorderRadius.l,
+                            borderWidth: 1,
+                            borderColor:
+                              selectedCategory === cat
+                                ? colors.primary
+                                : colors.border,
                           }}
                         >
-                          {cat}
-                        </Typography>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                )}
+                          <Typography
+                            style={{
+                              color:
+                                selectedCategory === cat
+                                  ? "#FFFFFF"
+                                  : colors.text,
+                              fontWeight:
+                                selectedCategory === cat ? "bold" : "normal",
+                              fontSize: 13,
+                            }}
+                          >
+                            {cat}
+                          </Typography>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  )}
 
-                <TouchableOpacity
-                  onPress={() =>
-                    setIsCategoryDropdownOpen(!isCategoryDropdownOpen)
-                  }
-                  style={[
-                    styles.dropdown,
-                    {
-                      backgroundColor: colors.surface,
-                      borderColor: colors.border,
-                      marginBottom: isCategoryDropdownOpen ? 0 : Spacing.m,
-                    },
-                  ]}
-                >
-                  <View style={styles.dropdownHeader}>
-                    <Typography
-                      style={{
-                        color: selectedCategory
-                          ? colors.text
-                          : colors.textSecondary,
-                      }}
-                    >
-                      {selectedCategory || STRINGS.wallet.selectCategory}
-                    </Typography>
-                    <IconSymbol
-                      name="chevron.down"
-                      size={16}
-                      color={colors.text}
-                    />
-                  </View>
-                </TouchableOpacity>
-
-                {isCategoryDropdownOpen && (
-                  <View
+                  <TouchableOpacity
+                    onPress={() =>
+                      setIsCategoryDropdownOpen(!isCategoryDropdownOpen)
+                    }
                     style={[
-                      styles.dropdownList,
+                      styles.dropdown,
                       {
-                        borderColor: colors.border,
                         backgroundColor: colors.surface,
+                        borderColor: colors.border,
+                        marginBottom: isCategoryDropdownOpen ? 0 : Spacing.m,
                       },
                     ]}
                   >
-                    <ScrollView nestedScrollEnabled style={{ maxHeight: 200 }}>
-                      {categories.map((cat, index) => (
+                    <View style={styles.dropdownHeader}>
+                      <Typography
+                        style={{
+                          color: selectedCategory
+                            ? colors.text
+                            : colors.textSecondary,
+                        }}
+                      >
+                        {selectedCategory || STRINGS.wallet.selectCategory}
+                      </Typography>
+                      <IconSymbol
+                        name="chevron.down"
+                        size={16}
+                        color={colors.text}
+                      />
+                    </View>
+                  </TouchableOpacity>
+
+                  {isCategoryDropdownOpen && (
+                    <View
+                      style={[
+                        styles.dropdownList,
+                        {
+                          borderColor: colors.border,
+                          backgroundColor: colors.surface,
+                        },
+                      ]}
+                    >
+                      <ScrollView
+                        nestedScrollEnabled
+                        style={{ maxHeight: 200 }}
+                      >
+                        {categories.map((cat, index) => (
+                          <TouchableOpacity
+                            key={cat.id}
+                            onPress={() => {
+                              setSelectedCategory(cat.name);
+                              setIsCategoryDropdownOpen(false);
+                            }}
+                            style={{
+                              padding: Spacing.m,
+                              borderTopWidth: index > 0 ? 1 : 0,
+                              borderTopColor: colors.border,
+                            }}
+                          >
+                            <Typography variant="body">{cat.name}</Typography>
+                          </TouchableOpacity>
+                        ))}
                         <TouchableOpacity
-                          key={cat.id}
                           onPress={() => {
-                            setSelectedCategory(cat.name);
+                            router.push("/wallet/categories");
                             setIsCategoryDropdownOpen(false);
                           }}
                           style={{
                             padding: Spacing.m,
-                            borderTopWidth: index > 0 ? 1 : 0,
+                            borderTopWidth: 1,
                             borderTopColor: colors.border,
+                            flexDirection: "row",
+                            alignItems: "center",
                           }}
                         >
-                          <Typography variant="body">{cat.name}</Typography>
+                          <IconSymbol
+                            name="plus"
+                            size={16}
+                            color={colors.primary}
+                          />
+                          <Typography
+                            variant="body"
+                            style={{
+                              color: colors.primary,
+                              marginLeft: Spacing.s,
+                            }}
+                          >
+                            Administrar Categorías
+                          </Typography>
                         </TouchableOpacity>
-                      ))}
-                      <TouchableOpacity
-                        onPress={() => {
-                          router.push("/wallet/categories");
-                          setIsCategoryDropdownOpen(false);
-                        }}
-                        style={{
-                          padding: Spacing.m,
-                          borderTopWidth: 1,
-                          borderTopColor: colors.border,
-                          flexDirection: "row",
-                          alignItems: "center",
-                        }}
-                      >
-                        <IconSymbol
-                          name="plus"
-                          size={16}
-                          color={colors.primary}
-                        />
-                        <Typography
-                          variant="body"
-                          style={{
-                            color: colors.primary,
-                            marginLeft: Spacing.s,
-                          }}
-                        >
-                          Administrar Categorías
-                        </Typography>
-                      </TouchableOpacity>
-                    </ScrollView>
-                  </View>
-                )}
-              </View>
+                      </ScrollView>
+                    </View>
+                  )}
+                </View>
+              )}
 
               {/* Entity Selector */}
               <View style={{ marginBottom: Spacing.xl }}>
@@ -530,7 +561,9 @@ export default function TransactionFormScreen() {
                   variant="caption"
                   style={{ marginBottom: Spacing.xs, color: colors.text }}
                 >
-                  {STRINGS.vision.selectEntity}
+                  {type === "transfer"
+                    ? "Cuenta de Origen"
+                    : STRINGS.vision.selectEntity}
                 </Typography>
 
                 {/* Quick Entity Chips */}
@@ -615,6 +648,49 @@ export default function TransactionFormScreen() {
                 </TouchableOpacity>
               </View>
 
+              {type === "transfer" && (
+                <View style={{ marginBottom: Spacing.xl }}>
+                  <Typography
+                    variant="caption"
+                    style={{ marginBottom: Spacing.xs, color: colors.text }}
+                  >
+                    Cuenta de Destino
+                  </Typography>
+
+                  <TouchableOpacity
+                    onPress={() => setIsDestEntityModalVisible(true)}
+                    style={[
+                      styles.dropdown,
+                      {
+                        backgroundColor: colors.surface,
+                        borderColor: colors.border,
+                      },
+                    ]}
+                  >
+                    <View style={styles.dropdownHeader}>
+                      <Typography
+                        style={{
+                          color: transferRelatedEntityId
+                            ? colors.text
+                            : colors.textSecondary,
+                        }}
+                      >
+                        {transferRelatedEntityId
+                          ? entities.find(
+                              (e) => e.id === transferRelatedEntityId,
+                            )?.name || "Seleccionar cuenta destino"
+                          : "Seleccionar cuenta destino"}
+                      </Typography>
+                      <IconSymbol
+                        name="chevron.down"
+                        size={16}
+                        color={colors.text}
+                      />
+                    </View>
+                  </TouchableOpacity>
+                </View>
+              )}
+
               <View style={{ flexDirection: "row", gap: Spacing.m }}>
                 <View style={{ flex: 1 }}>
                   <Button
@@ -646,6 +722,14 @@ export default function TransactionFormScreen() {
         onSelect={(id) => setSelectedEntityId(id)}
         visionEntities={entities}
         selectedEntityId={selectedEntityId}
+      />
+
+      <EntitySelectionModal
+        visible={isDestEntityModalVisible}
+        onClose={() => setIsDestEntityModalVisible(false)}
+        onSelect={(id) => setTransferRelatedEntityId(id)}
+        visionEntities={entities}
+        selectedEntityId={transferRelatedEntityId}
       />
 
       <NotificationSetupModal

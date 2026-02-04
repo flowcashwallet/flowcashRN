@@ -15,9 +15,10 @@ import {
 interface TransactionData {
   amount: string;
   description: string;
-  type: "income" | "expense";
+  type: "income" | "expense" | "transfer";
   category?: string | null;
   relatedEntityId?: string | null;
+  transferRelatedEntityId?: string | null;
   date?: number;
   paymentType?:
     | "credit_card"
@@ -32,6 +33,7 @@ interface UpdateTransactionData extends TransactionData {
   id: string;
   oldAmount: number;
   oldEntityId?: string | null;
+  oldTransferRelatedEntityId?: string | null;
 }
 
 export const useWalletTransactions = () => {
@@ -58,35 +60,62 @@ export const useWalletTransactions = () => {
           ...(data.relatedEntityId
             ? { relatedEntityId: data.relatedEntityId as string }
             : {}),
+          ...(data.transferRelatedEntityId
+            ? {
+                transferRelatedEntityId: data.transferRelatedEntityId as string,
+              }
+            : {}),
           date: data.date || Date.now(),
           paymentType: data.paymentType,
         }),
       ).unwrap();
 
-      // Update Vision Entity if associated
+      const transAmount = parseAmount(data.amount);
+
+      // Update Vision Entity if associated (Source)
       if (data.relatedEntityId) {
         const entity = visionEntities.find(
           (e) => e.id === data.relatedEntityId,
         );
         if (entity) {
-          const transAmount = parseAmount(data.amount);
           let newAmount = entity.amount;
+          // If Transfer, treat as Expense (Money leaving source)
+          const effectiveType =
+            data.type === "transfer" ? "expense" : data.type;
 
           if (entity.type === "asset") {
-            if (data.type === "income") {
+            if (effectiveType === "income") {
               newAmount += transAmount;
             } else {
               newAmount -= transAmount;
             }
           } else {
             // Liability
-            if (data.type === "income") {
+            if (effectiveType === "income") {
               newAmount -= transAmount;
             } else {
               newAmount += transAmount;
             }
           }
           dispatch(updateVisionEntity({ ...entity, amount: newAmount }));
+        }
+      }
+
+      // Update Destination Entity (Transfer)
+      if (data.type === "transfer" && data.transferRelatedEntityId) {
+        const destEntity = visionEntities.find(
+          (e) => e.id === data.transferRelatedEntityId,
+        );
+        if (destEntity) {
+          let newAmount = destEntity.amount;
+          // Treat as Income (Money entering destination)
+          if (destEntity.type === "asset") {
+            newAmount += transAmount;
+          } else {
+            // Liability (Debt Reduced)
+            newAmount -= transAmount;
+          }
+          dispatch(updateVisionEntity({ ...destEntity, amount: newAmount }));
         }
       }
       return true;
@@ -180,6 +209,50 @@ export const useWalletTransactions = () => {
       }
     }
 
+    // Handle Transfer Destination Updates
+    const oldTransferEntityId = data.oldTransferRelatedEntityId;
+    const newTransferEntityId = data.transferRelatedEntityId;
+
+    if (
+      oldTransferEntityId !== newTransferEntityId ||
+      oldAmount !== newAmount ||
+      type !== "transfer" // If type changed from transfer, we need to revert old
+    ) {
+      // 1. Revert Old Destination (if it existed)
+      if (oldTransferEntityId) {
+        const oldDest = visionEntities.find(
+          (e) => e.id === oldTransferEntityId,
+        );
+        if (oldDest) {
+          let revertAmount = oldDest.amount;
+          // Revert logic (inverse of add):
+          if (oldDest.type === "asset") {
+            revertAmount -= oldAmount;
+          } else {
+            revertAmount += oldAmount;
+          }
+          dispatch(updateVisionEntity({ ...oldDest, amount: revertAmount }));
+        }
+      }
+
+      // 2. Apply New Destination (if type is transfer)
+      if (type === "transfer" && newTransferEntityId) {
+        const newDest = visionEntities.find(
+          (e) => e.id === newTransferEntityId,
+        );
+        if (newDest) {
+          let applyAmount = newDest.amount;
+          // Apply logic (same as add):
+          if (newDest.type === "asset") {
+            applyAmount += newAmount;
+          } else {
+            applyAmount -= newAmount;
+          }
+          dispatch(updateVisionEntity({ ...newDest, amount: applyAmount }));
+        }
+      }
+    }
+
     try {
       await dispatch(
         updateTransactionAction({
@@ -188,6 +261,7 @@ export const useWalletTransactions = () => {
             description: data.description,
             category: data.category || null,
             relatedEntityId: data.relatedEntityId || null,
+            transferRelatedEntityId: data.transferRelatedEntityId || null,
             amount: newAmount,
             ...(data.date ? { date: data.date } : {}),
             ...(data.paymentType !== undefined
@@ -251,6 +325,38 @@ export const useWalletTransactions = () => {
                     ).unwrap();
                   } catch (error) {
                     console.error("Error reverting entity balance:", error);
+                  }
+                }
+              }
+
+              // Revert Destination Entity (Transfer)
+              if (
+                transaction &&
+                transaction.type === "transfer" &&
+                transaction.transferRelatedEntityId
+              ) {
+                const destEntity = visionEntities.find(
+                  (e) => e.id === transaction.transferRelatedEntityId,
+                );
+                if (destEntity) {
+                  let newAmount = destEntity.amount;
+                  const transAmount = transaction.amount;
+                  // Revert Income (Subtract)
+                  if (destEntity.type === "asset") {
+                    newAmount -= transAmount;
+                  } else {
+                    // Liability (Debt was reduced, so add it back)
+                    newAmount += transAmount;
+                  }
+                  try {
+                    await dispatch(
+                      updateVisionEntity({ ...destEntity, amount: newAmount }),
+                    ).unwrap();
+                  } catch (error) {
+                    console.error(
+                      "Error reverting dest entity balance:",
+                      error,
+                    );
                   }
                 }
               }

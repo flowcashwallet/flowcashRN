@@ -5,11 +5,11 @@ import STRINGS from "@/i18n/es.json";
 import { formatCurrency } from "@/utils/format";
 import React from "react";
 import {
-  Alert,
-  Platform,
-  StyleSheet,
-  TouchableOpacity,
-  View,
+    Alert,
+    Platform,
+    StyleSheet,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import Swipeable from "react-native-gesture-handler/Swipeable";
 import { Typography } from "../atoms/Typography";
@@ -19,7 +19,7 @@ interface TransactionItemProps {
   amount: number;
   description: string;
   date: number;
-  type: "income" | "expense";
+  type: "income" | "expense" | "transfer";
   category?: string | null;
   onDelete?: (id: string) => void;
   onPress?: () => void;
@@ -39,7 +39,13 @@ export function TransactionItem({
   const colors = Colors[colorScheme ?? "light"];
 
   const isIncome = type === "income";
-  const iconColor = isIncome ? colors.success : colors.error;
+  const isTransfer = type === "transfer";
+
+  const iconColor = isIncome
+    ? colors.success
+    : isTransfer
+      ? colors.text
+      : colors.error;
 
   // Extract emoji from category string (e.g. "🍔 Comida" -> "🍔")
   const emoji = category ? category.slice(0, 2) : null;
@@ -118,7 +124,11 @@ export function TransactionItem({
           <View
             style={{
               width: 6,
-              backgroundColor: isIncome ? colors.success : colors.error,
+              backgroundColor: isIncome
+                ? colors.success
+                : isTransfer
+                  ? colors.text
+                  : colors.error,
             }}
           />
 
@@ -138,7 +148,9 @@ export function TransactionItem({
                 {
                   backgroundColor: isIncome
                     ? "rgba(0, 242, 96, 0.1)"
-                    : "rgba(255, 65, 108, 0.1)",
+                    : isTransfer
+                      ? "rgba(128, 128, 128, 0.1)"
+                      : "rgba(255, 65, 108, 0.1)",
                 },
               ]}
             >
@@ -146,7 +158,13 @@ export function TransactionItem({
                 <Typography variant="h3">{emoji}</Typography>
               ) : (
                 <IconSymbol
-                  name={isIncome ? "arrow.down.left" : "arrow.up.right"}
+                  name={
+                    isIncome
+                      ? "arrow.down.left"
+                      : isTransfer
+                        ? "arrow.right"
+                        : "arrow.up.right"
+                  }
                   size={24}
                   color={iconColor}
                 />
@@ -167,7 +185,11 @@ export function TransactionItem({
                 variant="body"
                 weight="bold"
                 style={{
-                  color: isIncome ? colors.success : colors.error,
+                  color: isIncome
+                    ? colors.success
+                    : isTransfer
+                      ? colors.text
+                      : colors.error,
                   marginBottom: 4,
                 }}
               >
