@@ -428,16 +428,18 @@ export default function TransactionFormScreen() {
                   <DateTimePicker
                     value={date}
                     mode="date"
-                    display={Platform.OS === "ios" ? "spinner" : "default"}
+                    display={Platform.OS === "ios" ? "inline" : "default"}
+                    themeVariant={colorScheme ?? "light"}
                     onChange={(
                       event: DateTimePickerEvent,
                       selectedDate?: Date,
                     ) => {
                       const currentDate = selectedDate || date;
-                      setShowDatePicker(Platform.OS === "ios");
+                      setShowDatePicker(false);
                       setDate(currentDate);
                     }}
                     maximumDate={new Date()}
+                    style={Platform.OS === 'ios' ? { backgroundColor: colors.surface } : undefined}
                   />
                 )}
               </View>
