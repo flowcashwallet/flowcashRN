@@ -64,6 +64,7 @@ export const useWalletData = () => {
   });
 
   const balance = currentMonthTransactions.reduce((acc, curr) => {
+    if (curr.type === "transfer") return acc;
     return curr.type === "income" ? acc + curr.amount : acc - curr.amount;
   }, 0);
 

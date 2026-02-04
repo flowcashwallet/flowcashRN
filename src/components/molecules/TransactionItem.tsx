@@ -154,17 +154,17 @@ export function TransactionItem({
                 },
               ]}
             >
-              {emoji ? (
+              {isTransfer ? (
+                <IconSymbol
+                  name="arrow.right.arrow.left"
+                  size={24}
+                  color={iconColor}
+                />
+              ) : emoji ? (
                 <Typography variant="h3">{emoji}</Typography>
               ) : (
                 <IconSymbol
-                  name={
-                    isIncome
-                      ? "arrow.down.left"
-                      : isTransfer
-                        ? "arrow.right"
-                        : "arrow.up.right"
-                  }
+                  name={isIncome ? "arrow.down.left" : "arrow.up.right"}
                   size={24}
                   color={iconColor}
                 />

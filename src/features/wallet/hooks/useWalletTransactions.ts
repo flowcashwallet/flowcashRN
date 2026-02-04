@@ -427,6 +427,31 @@ export const useWalletTransactions = () => {
                 entityChanges[t.relatedEntityId] =
                   (entityChanges[t.relatedEntityId] || 0) + change;
               }
+
+              // Handle Transfer Destination Reversal
+              if (
+                t.type === "transfer" &&
+                t.transferRelatedEntityId
+              ) {
+                const transAmount = t.amount;
+                let change = 0;
+
+                const destEntity = visionEntities.find(
+                  (e) => e.id === t.transferRelatedEntityId,
+                );
+                if (destEntity) {
+                  // Revert logic (inverse of Add Transaction)
+                  if (destEntity.type === "asset") {
+                    change = -transAmount;
+                  } else {
+                    // Liability (Debt was reduced, so add it back)
+                    change = transAmount;
+                  }
+                }
+
+                entityChanges[t.transferRelatedEntityId] =
+                  (entityChanges[t.transferRelatedEntityId] || 0) + change;
+              }
             });
 
             // Apply updates

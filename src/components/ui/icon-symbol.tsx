@@ -43,6 +43,7 @@ const MAPPING = {
   "xmark.circle.fill": "cancel",
   "chart.bar.fill": "bar-chart",
   "lightbulb.fill": "lightbulb",
+  "arrow.right.arrow.left": "swap-horiz",
 } as IconMapping;
 
 /**
