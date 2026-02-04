@@ -97,6 +97,52 @@ export default function TransactionFormScreen() {
     useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Calculate frequent categories
+  const frequentCategories = React.useMemo(() => {
+    if (!transactions || transactions.length === 0) return [];
+
+    const categoryCounts: Record<string, number> = {};
+    transactions
+      .filter((t) => t.type === type) // Filter by current type (income/expense)
+      .forEach((t) => {
+        if (t.category) {
+          categoryCounts[t.category] = (categoryCounts[t.category] || 0) + 1;
+        }
+      });
+
+    return Object.entries(categoryCounts)
+      .sort((a, b) => b[1] - a[1]) // Sort by frequency desc
+      .slice(0, 5) // Take top 5
+      .map(([cat]) => cat);
+  }, [transactions, type]);
+
+  // Calculate frequent entities
+  const frequentEntities = React.useMemo(() => {
+    if (
+      !transactions ||
+      transactions.length === 0 ||
+      !entities ||
+      entities.length === 0
+    )
+      return [];
+
+    const entityCounts: Record<string, number> = {};
+    transactions
+      //.filter((t) => t.type === type) // Maybe entities usage depends on type too? Probably yes (paying with a specific card vs receiving income)
+      .forEach((t) => {
+        if (t.relatedEntityId) {
+          entityCounts[t.relatedEntityId] =
+            (entityCounts[t.relatedEntityId] || 0) + 1;
+        }
+      });
+
+    return Object.entries(entityCounts)
+      .sort((a, b) => b[1] - a[1]) // Sort by frequency desc
+      .slice(0, 5) // Take top 5
+      .map(([id]) => entities.find((e) => e.id === id))
+      .filter((e) => e !== undefined); // Ensure entity still exists
+  }, [transactions, entities]);
+
   useEffect(() => {
     if (user?.uid && categories.length === 0) {
       dispatch(fetchCategories(user.uid));
@@ -439,7 +485,11 @@ export default function TransactionFormScreen() {
                       setDate(currentDate);
                     }}
                     maximumDate={new Date()}
-                    style={Platform.OS === 'ios' ? { backgroundColor: colors.surface } : undefined}
+                    style={
+                      Platform.OS === "ios"
+                        ? { backgroundColor: colors.surface }
+                        : undefined
+                    }
                   />
                 )}
               </View>
@@ -537,6 +587,55 @@ export default function TransactionFormScreen() {
                 >
                   {STRINGS.wallet.category}
                 </Typography>
+
+                {/* Quick Category Chips */}
+                {frequentCategories.length > 0 && (
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    style={{ marginBottom: Spacing.s }}
+                    contentContainerStyle={{ gap: 8 }}
+                  >
+                    {frequentCategories.map((cat) => (
+                      <TouchableOpacity
+                        key={cat}
+                        onPress={() => {
+                          setSelectedCategory(cat);
+                          Haptics.selectionAsync();
+                        }}
+                        style={{
+                          backgroundColor:
+                            selectedCategory === cat
+                              ? colors.primary
+                              : colors.surface,
+                          paddingHorizontal: Spacing.m,
+                          paddingVertical: 6,
+                          borderRadius: BorderRadius.l,
+                          borderWidth: 1,
+                          borderColor:
+                            selectedCategory === cat
+                              ? colors.primary
+                              : colors.border,
+                        }}
+                      >
+                        <Typography
+                          style={{
+                            color:
+                              selectedCategory === cat
+                                ? "#FFFFFF"
+                                : colors.text,
+                            fontWeight:
+                              selectedCategory === cat ? "bold" : "normal",
+                            fontSize: 13,
+                          }}
+                        >
+                          {cat}
+                        </Typography>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                )}
+
                 <TouchableOpacity
                   onPress={() =>
                     setIsCategoryDropdownOpen(!isCategoryDropdownOpen)
@@ -636,6 +735,57 @@ export default function TransactionFormScreen() {
                 >
                   {STRINGS.vision.selectEntity}
                 </Typography>
+
+                {/* Quick Entity Chips */}
+                {frequentEntities.length > 0 && (
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    style={{ marginBottom: Spacing.s }}
+                    contentContainerStyle={{ gap: 8 }}
+                  >
+                    {frequentEntities.map((entity) => (
+                      <TouchableOpacity
+                        key={entity!.id}
+                        onPress={() => {
+                          setSelectedEntityId(entity!.id);
+                          Haptics.selectionAsync();
+                        }}
+                        style={{
+                          backgroundColor:
+                            selectedEntityId === entity!.id
+                              ? colors.primary
+                              : colors.surface,
+                          paddingHorizontal: Spacing.m,
+                          paddingVertical: 6,
+                          borderRadius: BorderRadius.l,
+                          borderWidth: 1,
+                          borderColor:
+                            selectedEntityId === entity!.id
+                              ? colors.primary
+                              : colors.border,
+                        }}
+                      >
+                        <Typography
+                          style={{
+                            color:
+                              selectedEntityId === entity!.id
+                                ? "#FFFFFF"
+                                : colors.text,
+                            fontWeight:
+                              selectedEntityId === entity!.id
+                                ? "bold"
+                                : "normal",
+                            fontSize: 13,
+                          }}
+                        >
+                          {entity!.name}
+                        </Typography>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                )}
+
                 <TouchableOpacity
                   onPress={() => setIsEntityModalVisible(true)}
                   style={[
