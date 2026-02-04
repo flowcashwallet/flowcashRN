@@ -1,13 +1,15 @@
 import { NotificationDashboardModal } from "@/components/NotificationDashboardModal";
+import { OnboardingTutorial } from "@/components/OnboardingTutorial";
 import { HapticTab } from "@/components/haptic-tab";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import STRINGS from "@/i18n/es.json";
 import { registerForPushNotificationsAsync } from "@/services/notifications";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { DrawerActions } from "@react-navigation/native";
 import { Tabs, useNavigation } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 export default function TabLayout() {
@@ -16,6 +18,22 @@ export default function TabLayout() {
   const colors = Colors[colorScheme ?? "light"];
   const [isNotificationModalVisible, setIsNotificationModalVisible] =
     useState(false);
+  const [isTutorialVisible, setIsTutorialVisible] = useState(false);
+
+  useEffect(() => {
+    checkTutorial();
+  }, []);
+
+  const checkTutorial = async () => {
+    try {
+      const hasSeen = await AsyncStorage.getItem("has_seen_onboarding_v1");
+      if (!hasSeen) {
+        setIsTutorialVisible(true);
+      }
+    } catch (error) {
+      console.error("Error checking tutorial status:", error);
+    }
+  };
 
   const handleNotificationPress = async () => {
     await registerForPushNotificationsAsync();
@@ -82,12 +100,24 @@ export default function TabLayout() {
             </TouchableOpacity>
           ),
           headerRight: () => (
-            <TouchableOpacity
-              onPress={handleNotificationPress}
-              style={{ marginRight: 16 }}
-            >
-              <IconSymbol name="bell.fill" size={24} color={colors.text} />
-            </TouchableOpacity>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <TouchableOpacity
+                onPress={() => setIsTutorialVisible(true)}
+                style={{ marginRight: 16 }}
+              >
+                <IconSymbol
+                  name="questionmark.circle.fill"
+                  size={24}
+                  color={colors.text}
+                />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleNotificationPress}
+                style={{ marginRight: 16 }}
+              >
+                <IconSymbol name="bell.fill" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
           ),
         }}
       >
@@ -114,7 +144,11 @@ export default function TabLayout() {
           options={{
             title: STRINGS.tabs.vision,
             tabBarIcon: ({ color }) => (
-              <IconSymbol size={24} name="building.columns.fill" color={color} />
+              <IconSymbol
+                size={24}
+                name="building.columns.fill"
+                color={color}
+              />
             ),
           }}
         />
@@ -131,6 +165,10 @@ export default function TabLayout() {
       <NotificationDashboardModal
         visible={isNotificationModalVisible}
         onClose={() => setIsNotificationModalVisible(false)}
+      />
+      <OnboardingTutorial
+        visible={isTutorialVisible}
+        onClose={() => setIsTutorialVisible(false)}
       />
     </>
   );

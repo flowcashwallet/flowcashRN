@@ -44,6 +44,7 @@ const MAPPING = {
   "chart.bar.fill": "bar-chart",
   "lightbulb.fill": "lightbulb",
   "arrow.right.arrow.left": "swap-horiz",
+  "questionmark.circle.fill": "help",
 } as IconMapping;
 
 /**
