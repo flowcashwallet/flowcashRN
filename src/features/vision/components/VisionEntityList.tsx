@@ -142,15 +142,17 @@ export const VisionEntityList: React.FC<VisionEntityListProps> = ({
             styles.card,
             {
               backgroundColor: colors.surface,
-              ...Platform.select({
-                ios: {
-                  shadowColor: "#000",
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 0.3,
-                  shadowRadius: 8,
-                },
-                android: { elevation: 4 },
-              }),
+              ...(colorScheme === "dark"
+                ? Platform.select({
+                    ios: {
+                      shadowColor: "#000",
+                      shadowOffset: { width: 0, height: 4 },
+                      shadowOpacity: 0.3,
+                      shadowRadius: 8,
+                    },
+                    android: { elevation: 4 },
+                  })
+                : {}),
             },
           ]}
         >

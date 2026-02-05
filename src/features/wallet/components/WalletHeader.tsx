@@ -6,7 +6,6 @@ import STRINGS from "@/i18n/es.json";
 import { formatCurrency } from "@/utils/format";
 import React, { useState } from "react";
 import { Platform, StyleSheet, TouchableOpacity, View } from "react-native";
-import { PieChart } from "react-native-gifted-charts";
 import { StreakInfo } from "../hooks/useStreak";
 import { StreakBadge } from "./StreakBadge";
 
@@ -50,15 +49,17 @@ export const WalletHeader: React.FC<WalletHeaderProps> = ({
           padding: Spacing.l,
           borderRadius: BorderRadius.xl,
           backgroundColor: colors.surfaceHighlight,
-          ...Platform.select({
-            ios: {
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 10 },
-              shadowOpacity: 0.3,
-              shadowRadius: 20,
-            },
-            android: { elevation: 10 },
-          }),
+          ...(colorScheme === "dark"
+            ? Platform.select({
+                ios: {
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 10 },
+                  shadowOpacity: 0.3,
+                  shadowRadius: 20,
+                },
+                android: { elevation: 10 },
+              })
+            : {}),
         },
       ]}
     >
@@ -179,7 +180,10 @@ export const WalletHeader: React.FC<WalletHeaderProps> = ({
             />
           </View>
           <View>
-            <Typography variant="caption" style={{ color: colors.textSecondary }}>
+            <Typography
+              variant="caption"
+              style={{ color: colors.textSecondary }}
+            >
               Ingresos
             </Typography>
             <Typography
@@ -206,7 +210,10 @@ export const WalletHeader: React.FC<WalletHeaderProps> = ({
             <IconSymbol name="arrow.up.right" size={16} color={colors.error} />
           </View>
           <View style={{ alignItems: "flex-end" }}>
-            <Typography variant="caption" style={{ color: colors.textSecondary }}>
+            <Typography
+              variant="caption"
+              style={{ color: colors.textSecondary }}
+            >
               Gastos
             </Typography>
             <Typography

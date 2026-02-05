@@ -1,84 +1,111 @@
 /**
- * Premium Slate Theme Palette
- * A sophisticated dark theme using deep slate greys and vibrant indigo accents.
- * Designed to reduce visual noise while maintaining high readability.
+ * Dual Theme Configuration
+ * Light Mode: "Glacial Breeze" (Mint/Ice + Teal)
+ * Dark Mode: "Midnight Teal" (Dark Slate + Teal)
  */
 
 import { Platform } from "react-native";
 
-const palette = {
-  // Brand Colors
-  primary: "#6366F1", // Indigo 500 - Sophisticated, vibrant but not harsh
-  secondary: "#8B5CF6", // Violet 500 - Elegant secondary
-  accent: "#EC4899", // Pink 500 - Playful accent for highlights
-
-  // Backgrounds - Using Slate scale for a premium feel
-  backgroundLight: "#F8FAFC", // Slate 50
-  backgroundDark: "#020617", // Slate 950 - Rich, deep dark (almost black)
-
-  // Surfaces
-  surfaceLight: "#FFFFFF",
-  surfaceDark: "#0F172A", // Slate 900 - Dark surface
-  surfaceDarkHighlight: "#1E293B", // Slate 800 - Slightly lighter for cards/headers
-  surfaceDarkActive: "#334155", // Slate 700 - Active states
+// --- LIGHT THEME (Glacial Breeze) ---
+const lightPalette = {
+  // Backgrounds
+  background: "#F0FDFA", // Ice/Mint 50
+  surface: "#FFFFFF", // Pure White
+  surfaceHighlight: "#E0F2FE", // Sky 100
+  surfaceActive: "#CCFBF1", // Teal 100
 
   // Text
-  textLight: "#0F172A", // Slate 900
-  textDark: "#F8FAFC", // Slate 50 - High contrast white/off-white
-  textGrey: "#94A3B8", // Slate 400 - Readable muted text
+  text: "#0F172A", // Slate 900
+  textSecondary: "#475569", // Slate 600
 
-  // Functional Colors - Softened for dark mode
-  success: "#34D399", // Emerald 400 - Soft Mint
-  error: "#F87171", // Red 400 - Soft Salmon
+  // Brand
+  primary: "#0D9488", // Teal 600
+  secondary: "#0284C7", // Sky 600
+  accent: "#6366F1", // Indigo 500
+
+  // Functional
+  success: "#059669", // Emerald 600
+  error: "#DC2626", // Red 600
+  warning: "#D97706", // Amber 600
+  grey: "#94A3B8", // Slate 400
+  border: "#E2E8F0", // Slate 200
+
+  gradients: {
+    primary: ["#0D9488", "#115E59"] as const,
+    success: ["#34D399", "#10B981"] as const,
+    error: ["#F87171", "#EF4444"] as const,
+  },
+};
+
+// --- DARK THEME (Midnight Teal) ---
+const darkPalette = {
+  // Backgrounds
+  background: "#0F172A", // Slate 900 - Deep Blue/Grey
+  surface: "#1E293B", // Slate 800 - Lighter Blue/Grey
+  surfaceHighlight: "#334155", // Slate 700
+  surfaceActive: "#1E293B", // Slate 800
+
+  // Text
+  text: "#F1F5F9", // Slate 100 - White-ish
+  textSecondary: "#94A3B8", // Slate 400 - Light Grey
+
+  // Brand (Adjusted for Dark Mode contrast)
+  primary: "#2DD4BF", // Teal 400 - Brighter/Lighter Teal
+  secondary: "#38BDF8", // Sky 400 - Brighter Sky
+  accent: "#818CF8", // Indigo 400
+
+  // Functional
+  success: "#34D399", // Emerald 400
+  error: "#F87171", // Red 400
   warning: "#FBBF24", // Amber 400
   grey: "#64748B", // Slate 500
+  border: "#334155", // Slate 700
 
-  // Gradients
   gradients: {
-    primary: ["#6366F1", "#4338CA"] as const, // Indigo 500 -> Indigo 700
-    success: ["#34D399", "#10B981"] as const, // Emerald 400 -> Emerald 500
-    error: ["#F87171", "#EF4444"] as const, // Red 400 -> Red 500
+    primary: ["#2DD4BF", "#0D9488"] as const, // Lighter to Darker Teal
+    success: ["#34D399", "#10B981"] as const,
+    error: ["#F87171", "#EF4444"] as const,
   },
 };
 
 export const Colors = {
   light: {
-    text: palette.textDark, // Force dark mode look even in light map for consistency
-    textSecondary: palette.textGrey,
-    background: palette.backgroundDark,
-    surface: palette.surfaceDark,
-    surfaceHighlight: palette.surfaceDarkHighlight,
-    surfaceActive: palette.surfaceDarkActive,
-    tint: palette.primary,
-    icon: palette.textGrey,
-    tabIconDefault: palette.grey,
-    tabIconSelected: palette.primary,
-    border: "#1E293B", // Slate 800
-    primary: palette.primary,
-    secondary: palette.secondary,
-    accent: palette.accent,
-    error: palette.error,
-    success: palette.success,
-    gradients: palette.gradients,
+    text: lightPalette.text,
+    textSecondary: lightPalette.textSecondary,
+    background: lightPalette.background,
+    surface: lightPalette.surface,
+    surfaceHighlight: lightPalette.surfaceHighlight,
+    surfaceActive: lightPalette.surfaceActive,
+    tint: lightPalette.primary,
+    icon: lightPalette.textSecondary,
+    tabIconDefault: lightPalette.grey,
+    tabIconSelected: lightPalette.primary,
+    border: lightPalette.border,
+    primary: lightPalette.primary,
+    secondary: lightPalette.secondary,
+    accent: lightPalette.accent,
+    error: lightPalette.error,
+    success: lightPalette.success,
+    gradients: lightPalette.gradients,
   },
   dark: {
-    text: palette.textDark,
-    textSecondary: palette.textGrey,
-    background: palette.backgroundDark,
-    surface: palette.surfaceDark,
-    surfaceHighlight: palette.surfaceDarkHighlight,
-    surfaceActive: palette.surfaceDarkActive,
-    tint: palette.primary,
-    icon: palette.textGrey,
-    tabIconDefault: palette.grey,
-    tabIconSelected: palette.primary,
-    border: "#1E293B", // Slate 800
-    primary: palette.primary,
-    secondary: palette.secondary,
-    accent: palette.accent,
-    error: palette.error,
-    success: palette.success,
-    gradients: palette.gradients,
+    text: darkPalette.text,
+    textSecondary: darkPalette.textSecondary,
+    background: darkPalette.background,
+    surface: darkPalette.surface,
+    surfaceHighlight: darkPalette.surfaceHighlight,
+    surfaceActive: darkPalette.surfaceActive,
+    tint: darkPalette.primary,
+    icon: darkPalette.textSecondary,
+    tabIconDefault: darkPalette.grey,
+    tabIconSelected: darkPalette.primary,
+    border: darkPalette.border,
+    primary: darkPalette.primary,
+    secondary: darkPalette.secondary,
+    accent: darkPalette.accent,
+    error: darkPalette.error,
+    success: darkPalette.success,
+    gradients: darkPalette.gradients,
   },
 };
 
@@ -98,18 +125,3 @@ export const BorderRadius = {
   xl: 24,
   round: 9999,
 };
-
-export const Fonts = Platform.select({
-  ios: {
-    sans: "system-ui",
-    serif: "ui-serif",
-    rounded: "ui-rounded",
-    mono: "ui-monospace",
-  },
-  default: {
-    sans: "normal",
-    serif: "serif",
-    rounded: "normal",
-    mono: "monospace",
-  },
-});
