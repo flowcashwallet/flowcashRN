@@ -22,106 +22,78 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
 
+  const ActionButton = ({
+    icon,
+    label,
+    color,
+    onPress,
+    bgColor,
+  }: {
+    icon: string;
+    label: string;
+    color: string;
+    onPress: () => void;
+    bgColor: string;
+  }) => (
+    <TouchableOpacity
+      onPress={onPress}
+      style={{ flex: 1, alignItems: "center", gap: Spacing.xs }}
+      activeOpacity={0.7}
+    >
+      <View
+        style={{
+          width: 50,
+          height: 50,
+          borderRadius: BorderRadius.l,
+          backgroundColor: bgColor,
+          justifyContent: "center",
+          alignItems: "center",
+          borderWidth: 1,
+          borderColor: color,
+        }}
+      >
+        <IconSymbol name={icon as any} size={24} color={color} />
+      </View>
+      <Typography
+        variant="caption"
+        weight="medium"
+        style={{ color: colors.text }}
+      >
+        {label}
+      </Typography>
+    </TouchableOpacity>
+  );
+
   return (
     <View style={styles.actions}>
-      <TouchableOpacity
+      <ActionButton
+        icon="arrow.down.left"
+        label={STRINGS.wallet.income}
+        color={colors.success}
+        bgColor="rgba(0, 242, 96, 0.1)"
         onPress={onPressIncome}
-        style={{ flex: 1, marginRight: Spacing.s }}
-        activeOpacity={0.8}
-      >
-        <View
-          style={{
-            backgroundColor: "rgba(0, 242, 96, 0.1)",
-            borderColor: colors.success,
-            borderWidth: 1,
-            paddingVertical: Spacing.m,
-            alignItems: "center",
-            borderRadius: BorderRadius.m,
-          }}
-        >
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-            <IconSymbol
-              name="arrow.down.left"
-              size={20}
-              color={colors.success}
-            />
-            <Typography
-              variant="body"
-              weight="bold"
-              style={{ color: colors.success }}
-            >
-              {STRINGS.wallet.income}
-            </Typography>
-          </View>
-        </View>
-      </TouchableOpacity>
-
-      <TouchableOpacity
+      />
+      <ActionButton
+        icon="arrow.up.right"
+        label={STRINGS.wallet.expense}
+        color={colors.error}
+        bgColor="rgba(255, 65, 108, 0.1)"
         onPress={onPressExpense}
-        style={{ flex: 1, marginHorizontal: Spacing.s }}
-        activeOpacity={0.8}
-      >
-        <View
-          style={{
-            backgroundColor: "rgba(255, 65, 108, 0.1)",
-            borderColor: colors.error,
-            borderWidth: 1,
-            paddingVertical: Spacing.m,
-            alignItems: "center",
-            borderRadius: BorderRadius.m,
-          }}
-        >
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-            <IconSymbol name="arrow.up.right" size={20} color={colors.error} />
-            <Typography
-              variant="body"
-              weight="bold"
-              style={{ color: colors.error }}
-            >
-              {STRINGS.wallet.expense}
-            </Typography>
-          </View>
-        </View>
-      </TouchableOpacity>
-
-      <View style={{ flex: 0.5, gap: Spacing.xs }}>
-        <TouchableOpacity
-          onPress={onPressCategories}
-          style={{ flex: 1, marginLeft: Spacing.s }}
-          activeOpacity={0.8}
-        >
-          <View
-            style={{
-              backgroundColor: "rgba(76, 201, 240, 0.1)",
-              borderColor: colors.primary,
-              borderWidth: 1,
-              paddingVertical: Spacing.s,
-              alignItems: "center",
-              borderRadius: BorderRadius.s,
-            }}
-          >
-            <IconSymbol name="list.bullet" size={16} color={colors.primary} />
-          </View>
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={onPressSubscriptions}
-          style={{ flex: 1, marginLeft: Spacing.s }}
-          activeOpacity={0.8}
-        >
-          <View
-            style={{
-              backgroundColor: "rgba(255, 206, 86, 0.1)",
-              borderColor: "#FFCE56",
-              borderWidth: 1,
-              paddingVertical: Spacing.s,
-              alignItems: "center",
-              borderRadius: BorderRadius.s,
-            }}
-          >
-            <IconSymbol name="arrow.triangle.2.circlepath" size={16} color="#FFCE56" />
-          </View>
-        </TouchableOpacity>
-      </View>
+      />
+      <ActionButton
+        icon="list.bullet"
+        label="Categorías"
+        color={colors.primary}
+        bgColor="rgba(76, 201, 240, 0.1)"
+        onPress={onPressCategories}
+      />
+      <ActionButton
+        icon="arrow.triangle.2.circlepath"
+        label="Suscrip."
+        color="#FFCE56"
+        bgColor="rgba(255, 206, 86, 0.1)"
+        onPress={onPressSubscriptions}
+      />
     </View>
   );
 };

@@ -39,18 +39,8 @@ export const WalletHeader: React.FC<WalletHeaderProps> = ({
   const colors = Colors[colorScheme ?? "light"];
   const [isBalanceVisible, setIsBalanceVisible] = useState(true);
 
-  const chartData = [
-    {
-      value: income > 0 ? income : 0.01,
-      color: colors.success,
-      text: STRINGS.wallet.incomes,
-    },
-    {
-      value: expense > 0 ? expense : 0.01,
-      color: colors.error,
-      text: STRINGS.wallet.expenses,
-    },
-  ];
+  const total = income + expense;
+  const incomePercentage = total > 0 ? (income / total) * 100 : 0;
 
   return (
     <View
@@ -78,7 +68,7 @@ export const WalletHeader: React.FC<WalletHeaderProps> = ({
           justifyContent: "space-between",
           width: "100%",
           alignItems: "center",
-          marginBottom: Spacing.s,
+          marginBottom: Spacing.m,
         }}
       >
         <StreakBadge streak={streak} onPress={onPressStreak} />
@@ -102,14 +92,10 @@ export const WalletHeader: React.FC<WalletHeaderProps> = ({
             />
           )}
         </TouchableOpacity>
-        <TouchableOpacity onPress={onDeleteMonth}>
-          <IconSymbol
-            name="trash.fill"
-            size={24}
-            color={colors.textSecondary}
-          />
-        </TouchableOpacity>
+        {/* Placeholder View for alignment, replacing the trash icon */}
+        <View style={{ width: 40 }} />
       </View>
+
       <Typography variant="caption" style={{ color: colors.textSecondary }}>
         {STRINGS.wallet.balanceTotal}
       </Typography>
@@ -120,6 +106,7 @@ export const WalletHeader: React.FC<WalletHeaderProps> = ({
           alignItems: "center",
           justifyContent: "center",
           marginTop: Spacing.xs,
+          marginBottom: Spacing.l,
         }}
       >
         <Typography variant="h1" weight="bold" style={{ color: colors.text }}>
@@ -138,23 +125,99 @@ export const WalletHeader: React.FC<WalletHeaderProps> = ({
         </TouchableOpacity>
       </View>
 
-      <View style={styles.chartContainer}>
-        <PieChart
-          data={chartData}
-          donut
-          radius={60}
-          innerRadius={45}
-          backgroundColor="transparent"
-          centerLabelComponent={() => (
-            <Typography
-              variant="caption"
-              weight="medium"
-              style={{ color: colors.text }}
-            >
-              {STRINGS.wallet.summary}
-            </Typography>
-          )}
+      {/* Progress Bar */}
+      <View
+        style={{
+          width: "100%",
+          height: 8,
+          backgroundColor: colors.surface,
+          borderRadius: 4,
+          overflow: "hidden",
+          flexDirection: "row",
+          marginBottom: Spacing.m,
+        }}
+      >
+        <View
+          style={{
+            width: `${incomePercentage}%`,
+            height: "100%",
+            backgroundColor: colors.success,
+          }}
         />
+        <View
+          style={{
+            flex: 1,
+            height: "100%",
+            backgroundColor: colors.error,
+          }}
+        />
+      </View>
+
+      {/* Summary Row */}
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "space-between",
+          width: "100%",
+        }}
+      >
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <View
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 16,
+              backgroundColor: "rgba(0, 242, 96, 0.1)",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            <IconSymbol
+              name="arrow.down.left"
+              size={16}
+              color={colors.success}
+            />
+          </View>
+          <View>
+            <Typography variant="caption" style={{ color: colors.textSecondary }}>
+              Ingresos
+            </Typography>
+            <Typography
+              variant="body"
+              weight="bold"
+              style={{ color: colors.success }}
+            >
+              {isBalanceVisible ? formatCurrency(income) : "****"}
+            </Typography>
+          </View>
+        </View>
+
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <View
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 16,
+              backgroundColor: "rgba(255, 65, 108, 0.1)",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            <IconSymbol name="arrow.up.right" size={16} color={colors.error} />
+          </View>
+          <View style={{ alignItems: "flex-end" }}>
+            <Typography variant="caption" style={{ color: colors.textSecondary }}>
+              Gastos
+            </Typography>
+            <Typography
+              variant="body"
+              weight="bold"
+              style={{ color: colors.error }}
+            >
+              {isBalanceVisible ? formatCurrency(expense) : "****"}
+            </Typography>
+          </View>
+        </View>
       </View>
     </View>
   );
