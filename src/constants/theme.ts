@@ -1,49 +1,62 @@
 /**
- * Modern Blue Theme Palette
+ * Premium Slate Theme Palette
+ * A sophisticated dark theme using deep slate greys and vibrant indigo accents.
+ * Designed to reduce visual noise while maintaining high readability.
  */
 
 import { Platform } from "react-native";
 
 const palette = {
-  primary: "#003366", // Navy Blue
-  secondary: "#007AFF", // Bright Blue
-  accent: "#4CC9F0", // Light Blue/Cyan
-  backgroundLight: "#F0F4F8", // Very Light Blueish Grey
-  backgroundDark: "#0B0D17", // Deep Dark Blue (New Vision)
+  // Brand Colors
+  primary: "#6366F1", // Indigo 500 - Sophisticated, vibrant but not harsh
+  secondary: "#8B5CF6", // Violet 500 - Elegant secondary
+  accent: "#EC4899", // Pink 500 - Playful accent for highlights
+
+  // Backgrounds - Using Slate scale for a premium feel
+  backgroundLight: "#F8FAFC", // Slate 50
+  backgroundDark: "#020617", // Slate 950 - Rich, deep dark (almost black)
+
+  // Surfaces
   surfaceLight: "#FFFFFF",
-  surfaceDark: "#1A1D3D", // Dark Card (New Vision)
-  surfaceDarkHighlight: "#101223", // Header Card (New Vision)
-  surfaceDarkActive: "#2D3456", // Active Tab (New Vision)
-  textLight: "#172B4D",
-  textDark: "#FFFFFF",
-  textGrey: "#A0A0A0",
-  success: "#14dc64ff", // Bright Green (New Vision)
-  error: "#FF416C", // Bright Pink/Red (New Vision)
-  warning: "#FFAB00",
-  grey: "#97A0AF",
+  surfaceDark: "#0F172A", // Slate 900 - Dark surface
+  surfaceDarkHighlight: "#1E293B", // Slate 800 - Slightly lighter for cards/headers
+  surfaceDarkActive: "#334155", // Slate 700 - Active states
+
+  // Text
+  textLight: "#0F172A", // Slate 900
+  textDark: "#F8FAFC", // Slate 50 - High contrast white/off-white
+  textGrey: "#94A3B8", // Slate 400 - Readable muted text
+
+  // Functional Colors - Softened for dark mode
+  success: "#34D399", // Emerald 400 - Soft Mint
+  error: "#F87171", // Red 400 - Soft Salmon
+  warning: "#FBBF24", // Amber 400
+  grey: "#64748B", // Slate 500
+
+  // Gradients
   gradients: {
-    primary: ["#0056D2", "#003366"] as const, // Bright Blue to Navy Blue
-    success: ["#00F260", "#0575E6"] as const,
-    error: ["#FF416C", "#FF4B2B"] as const,
+    primary: ["#6366F1", "#4338CA"] as const, // Indigo 500 -> Indigo 700
+    success: ["#34D399", "#10B981"] as const, // Emerald 400 -> Emerald 500
+    error: ["#F87171", "#EF4444"] as const, // Red 400 -> Red 500
   },
 };
 
 export const Colors = {
   light: {
-    text: palette.textDark, // Force white text for dark blue theme
+    text: palette.textDark, // Force dark mode look even in light map for consistency
     textSecondary: palette.textGrey,
-    background: palette.backgroundDark, // Force dark background
+    background: palette.backgroundDark,
     surface: palette.surfaceDark,
     surfaceHighlight: palette.surfaceDarkHighlight,
     surfaceActive: palette.surfaceDarkActive,
-    tint: palette.accent,
+    tint: palette.primary,
     icon: palette.textGrey,
     tabIconDefault: palette.grey,
-    tabIconSelected: palette.accent,
-    border: "#1E4976", // Dark blue border
-    primary: palette.accent, // Lighter blue for better contrast on dark
+    tabIconSelected: palette.primary,
+    border: "#1E293B", // Slate 800
+    primary: palette.primary,
     secondary: palette.secondary,
-    accent: palette.primary,
+    accent: palette.accent,
     error: palette.error,
     success: palette.success,
     gradients: palette.gradients,
@@ -55,14 +68,14 @@ export const Colors = {
     surface: palette.surfaceDark,
     surfaceHighlight: palette.surfaceDarkHighlight,
     surfaceActive: palette.surfaceDarkActive,
-    tint: palette.accent,
+    tint: palette.primary,
     icon: palette.textGrey,
-    tabIconDefault: "#6B7D8C",
-    tabIconSelected: palette.accent,
-    border: "#1E4976",
-    primary: palette.accent, // Lighter blue for dark mode
+    tabIconDefault: palette.grey,
+    tabIconSelected: palette.primary,
+    border: "#1E293B", // Slate 800
+    primary: palette.primary,
     secondary: palette.secondary,
-    accent: palette.primary,
+    accent: palette.accent,
     error: palette.error,
     success: palette.success,
     gradients: palette.gradients,
@@ -98,12 +111,5 @@ export const Fonts = Platform.select({
     serif: "serif",
     rounded: "normal",
     mono: "monospace",
-  },
-  web: {
-    sans: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-    serif: "Georgia, 'Times New Roman', serif",
-    rounded:
-      "'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif",
-    mono: "Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
   },
 });
