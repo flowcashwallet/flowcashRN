@@ -144,6 +144,9 @@ export default function WalletScreen() {
           onPressCategories={() => {
             router.push("/wallet/categories");
           }}
+          onPressSubscriptions={() => {
+            router.push("/wallet/subscriptions");
+          }}
         />
 
         <View

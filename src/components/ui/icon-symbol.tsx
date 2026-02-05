@@ -45,6 +45,8 @@ const MAPPING = {
   "lightbulb.fill": "lightbulb",
   "arrow.right.arrow.left": "swap-horiz",
   "questionmark.circle.fill": "help",
+  "list.bullet": "list",
+  "arrow.triangle.2.circlepath": "autorenew",
 } as IconMapping;
 
 /**

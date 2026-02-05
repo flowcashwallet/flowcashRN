@@ -42,5 +42,11 @@ service cloud.firestore {
       allow create: if isCreatingOwnedResource();
       allow read, update, delete: if isResourceOwner();
     }
+
+    // Subscriptions: Document ID is auto-generated, check userId field
+    match /subscriptions/{subscriptionId} {
+      allow create: if isCreatingOwnedResource();
+      allow read, update, delete: if isResourceOwner();
+    }
   }
 }

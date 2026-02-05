@@ -7,6 +7,10 @@ import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchCategories } from "../data/categoriesSlice";
 import { fetchGamificationData } from "../data/gamificationSlice";
+import {
+  fetchSubscriptions,
+  processDueSubscriptions,
+} from "../data/subscriptionSlice";
 import { fetchTransactions } from "../data/walletSlice";
 import { useStreak } from "./useStreak";
 
@@ -35,6 +39,9 @@ export const useWalletData = () => {
       dispatch(fetchVisionEntities(user.uid));
       dispatch(fetchGamificationData(user.uid));
       dispatch(fetchCategories(user.uid));
+      dispatch(fetchSubscriptions(user.uid)).then(() => {
+        dispatch(processDueSubscriptions());
+      });
     }
   }, [dispatch, user]);
 

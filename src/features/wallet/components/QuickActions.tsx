@@ -10,12 +10,14 @@ interface QuickActionsProps {
   onPressIncome: () => void;
   onPressExpense: () => void;
   onPressCategories: () => void;
+  onPressSubscriptions: () => void;
 }
 
 export const QuickActions: React.FC<QuickActionsProps> = ({
   onPressIncome,
   onPressExpense,
   onPressCategories,
+  onPressSubscriptions,
 }) => {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
@@ -82,24 +84,44 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
         </View>
       </TouchableOpacity>
 
-      <TouchableOpacity
-        onPress={onPressCategories}
-        style={{ flex: 0.5, marginLeft: Spacing.s }}
-        activeOpacity={0.8}
-      >
-        <View
-          style={{
-            backgroundColor: "rgba(76, 201, 240, 0.1)",
-            borderColor: colors.primary,
-            borderWidth: 1,
-            paddingVertical: Spacing.m,
-            alignItems: "center",
-            borderRadius: BorderRadius.m,
-          }}
+      <View style={{ flex: 0.5, gap: Spacing.xs }}>
+        <TouchableOpacity
+          onPress={onPressCategories}
+          style={{ flex: 1, marginLeft: Spacing.s }}
+          activeOpacity={0.8}
         >
-          <IconSymbol name="list.bullet" size={20} color={colors.primary} />
-        </View>
-      </TouchableOpacity>
+          <View
+            style={{
+              backgroundColor: "rgba(76, 201, 240, 0.1)",
+              borderColor: colors.primary,
+              borderWidth: 1,
+              paddingVertical: Spacing.s,
+              alignItems: "center",
+              borderRadius: BorderRadius.s,
+            }}
+          >
+            <IconSymbol name="list.bullet" size={16} color={colors.primary} />
+          </View>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={onPressSubscriptions}
+          style={{ flex: 1, marginLeft: Spacing.s }}
+          activeOpacity={0.8}
+        >
+          <View
+            style={{
+              backgroundColor: "rgba(255, 206, 86, 0.1)",
+              borderColor: "#FFCE56",
+              borderWidth: 1,
+              paddingVertical: Spacing.s,
+              alignItems: "center",
+              borderRadius: BorderRadius.s,
+            }}
+          >
+            <IconSymbol name="arrow.triangle.2.circlepath" size={16} color="#FFCE56" />
+          </View>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };

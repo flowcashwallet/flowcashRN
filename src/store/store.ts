@@ -4,6 +4,7 @@ import budgetReducer from "../features/budget/budgetSlice";
 import visionReducer from "../features/vision/data/visionSlice";
 import categoriesReducer from "../features/wallet/data/categoriesSlice";
 import gamificationReducer from "../features/wallet/data/gamificationSlice";
+import subscriptionReducer from "../features/wallet/data/subscriptionSlice";
 import walletReducer from "../features/wallet/data/walletSlice";
 
 export const store = configureStore({
@@ -14,6 +15,7 @@ export const store = configureStore({
     vision: visionReducer,
     budget: budgetReducer,
     gamification: gamificationReducer,
+    subscriptions: subscriptionReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

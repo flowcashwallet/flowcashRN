@@ -37,6 +37,12 @@ export default function WalletLayout() {
           presentation: "modal",
         }}
       />
+      <Stack.Screen
+        name="subscriptions"
+        options={{
+          headerShown: false,
+        }}
+      />
     </Stack>
   );
 }
