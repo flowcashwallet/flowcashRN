@@ -1,6 +1,7 @@
 import { useVisionData } from "@/features/vision/hooks/useVisionData";
 import { AppDispatch, RootState } from "@/store/store";
 import { formatAmountInput } from "@/utils/format";
+import { predictCategory } from "@/utils/smartCategorization";
 import { determineDefaultPaymentType } from "@/utils/transactionUtils";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Haptics from "expo-haptics";
@@ -51,6 +52,8 @@ export const useTransactionForm = ({
   const [selectedCategory, setSelectedCategory] = useState<string | null>(
     existingTransaction?.category || null,
   );
+  const [manualCategorySelection, setManualCategorySelection] = useState(false);
+
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(
     existingTransaction?.relatedEntityId || null,
   );
@@ -131,14 +134,33 @@ export const useTransactionForm = ({
       .filter((e) => e !== undefined);
   }, [transactions, entities]);
 
+  // Smart Categorization Logic
+  useEffect(() => {
+    if (manualCategorySelection) return;
+    if (!description) return;
+
+    const predicted = predictCategory(description);
+    if (predicted && selectedCategory !== predicted) {
+      setSelectedCategory(predicted);
+      Haptics.selectionAsync(); // Subtle feedback
+    }
+  }, [description, manualCategorySelection]);
+
+  const handleCategorySelect = (category: string | null) => {
+    setSelectedCategory(category);
+    // If user manually selects (even null/clearing), we mark as manual to stop auto-overwrite
+    // Or maybe if they clear it, they want auto again?
+    // Let's stick to: if they interact, it's manual.
+    setManualCategorySelection(true);
+  };
+
   const resetForm = () => {
     setAmount("");
     setDescription("");
     setSelectedCategory(null);
+    setManualCategorySelection(false);
     setTransferRelatedEntityId(null);
     // Keep date and payment type as they are likely to be reused in batch entry
-    // Keep entity as well? Maybe reset entity? Let's keep it for now.
-    // Resetting entity might be annoying if entering multiple expenses for the same credit card.
   };
 
   const handleSave = async (shouldClose = true) => {
@@ -260,7 +282,7 @@ export const useTransactionForm = ({
     description,
     setDescription,
     selectedCategory,
-    setSelectedCategory,
+    setSelectedCategory: handleCategorySelect,
     selectedEntityId,
     setSelectedEntityId,
     transferRelatedEntityId,
