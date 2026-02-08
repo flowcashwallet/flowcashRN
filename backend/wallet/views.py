@@ -52,7 +52,7 @@ class BudgetViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return Budget.objects.filter(user=self.request.user)
 
-    @action(detail=False, methods=['get', 'post', 'put'], url_path='current')
+    @action(detail=False, methods=['get', 'post', 'put', 'patch', 'delete'], url_path='current')
     def current(self, request):
         # Get or create the budget for the user
         budget, created = Budget.objects.get_or_create(user=request.user)
@@ -61,8 +61,12 @@ class BudgetViewSet(viewsets.ModelViewSet):
             serializer = self.get_serializer(budget)
             return Response(serializer.data)
         
-        elif request.method in ['POST', 'PUT']:
-            serializer = self.get_serializer(budget, data=request.data, partial=(request.method == 'PUT'))
+        elif request.method in ['POST', 'PUT', 'PATCH']:
+            serializer = self.get_serializer(budget, data=request.data, partial=(request.method in ['PATCH', 'PUT']))
             serializer.is_valid(raise_exception=True)
             serializer.save()
             return Response(serializer.data)
+            
+        elif request.method == 'DELETE':
+            budget.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
