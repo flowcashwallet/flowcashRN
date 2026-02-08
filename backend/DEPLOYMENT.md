@@ -5,6 +5,7 @@ Este proyecto está configurado para ser desplegado fácilmente en plataformas c
 ## Requisitos Previos
 
 El proyecto ya cuenta con la configuración necesaria:
+
 - `requirements.txt`: Lista de dependencias (incluye `gunicorn` y `psycopg2`).
 - `config/settings.py`: Configurado para leer variables de entorno y servir archivos estáticos con `Whitenoise`.
 - `build.sh`: Script para instalar dependencias y ejecutar migraciones automáticamente.
@@ -20,13 +21,19 @@ El proyecto ya cuenta con la configuración necesaria:
     - **Root Directory**: `backend` (IMPORTANTE: Indica que el proyecto está en la carpeta backend).
     - **Environment**: `Python 3`.
     - **Build Command**: `./build.sh` (Esto ejecutará el script que instala dependencias y migra la BD).
-    - **Start Command**: `gunicorn config.wsgi:application`
+    - **Start Command**: `./start.sh` (Script personalizado que inicia migraciones, admin y gunicorn).
 4.  **Variables de Entorno (Environment Variables)**:
     Agrega las siguientes variables en la sección "Environment":
     - `PYTHON_VERSION`: `3.9.6` (o la versión que uses).
     - `SECRET_KEY`: Genera una clave segura (puedes usar un generador online).
     - `DEBUG`: `False` (Opcional, por defecto es False en Render si no se define).
     - `WEB_CONCURRENCY`: `4` (Recomendado para Gunicorn).
+
+    **Para Crear Usuario Admin automáticamente:**
+    - `DJANGO_SUPERUSER_USERNAME`: Tu usuario (ej. `admin`).
+    - `DJANGO_SUPERUSER_PASSWORD`: Tu contraseña segura.
+    - `DJANGO_SUPERUSER_EMAIL`: Tu email (ej. `admin@example.com`).
+
 5.  **Crear Servicio**: Haz clic en "Create Web Service".
 
 Render detectará automáticamente el archivo `requirements.txt` en la carpeta `backend`, instalará todo, y ejecutará el `build.sh`.
@@ -53,5 +60,6 @@ Una vez desplegado, Render te dará una URL (ej. `https://mi-wallet-backend.onre
 ## Siguientes Pasos (Frontend)
 
 Una vez tengas la URL del backend desplegado:
+
 1.  Actualizaremos las llamadas a la API en la app móvil.
 2.  Cambiaremos la lógica de Firebase por llamadas `fetch` o `axios` a estos endpoints.
