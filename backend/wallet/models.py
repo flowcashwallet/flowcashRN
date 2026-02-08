@@ -87,3 +87,43 @@ class Subscription(models.Model):
 
     def __str__(self):
         return f"{self.name} - {self.amount}"
+
+class VisionEntity(models.Model):
+    ENTITY_TYPES = [
+        ('asset', 'Asset'),
+        ('liability', 'Liability'),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='vision_entities')
+    name = models.CharField(max_length=255)
+    description = models.TextField(null=True, blank=True)
+    amount = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    type = models.CharField(max_length=20, choices=ENTITY_TYPES)
+    category = models.CharField(max_length=100, null=True, blank=True)
+    
+    # Crypto
+    is_crypto = models.BooleanField(default=False)
+    crypto_symbol = models.CharField(max_length=20, null=True, blank=True)
+    crypto_amount = models.DecimalField(max_digits=20, decimal_places=8, null=True, blank=True)
+    
+    # Credit Card
+    is_credit_card = models.BooleanField(default=False)
+    cutoff_date = models.IntegerField(null=True, blank=True)
+    payment_date = models.IntegerField(null=True, blank=True)
+    issuer_bank = models.CharField(max_length=100, null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.name} ({self.type})"
+
+class GamificationStats(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='gamification_stats')
+    streak_freezes = models.IntegerField(default=3)
+    repaired_days = models.JSONField(default=list)
+    
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Gamification for {self.user.username}"

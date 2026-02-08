@@ -1,8 +1,8 @@
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from .models import Transaction, Budget, Category, Subscription
-from .serializers import TransactionSerializer, BudgetSerializer, CategorySerializer, SubscriptionSerializer
+from .models import Transaction, Budget, Category, Subscription, VisionEntity, GamificationStats
+from .serializers import TransactionSerializer, BudgetSerializer, CategorySerializer, SubscriptionSerializer, VisionEntitySerializer, GamificationStatsSerializer
 
 class CategoryViewSet(viewsets.ModelViewSet):
     serializer_class = CategorySerializer
@@ -37,6 +37,34 @@ class SubscriptionViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return Subscription.objects.filter(user=self.request.user).order_by('next_payment_date')
+
+class VisionEntityViewSet(viewsets.ModelViewSet):
+    serializer_class = VisionEntitySerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return VisionEntity.objects.filter(user=self.request.user).order_by('-amount')
+
+class GamificationStatsViewSet(viewsets.ModelViewSet):
+    serializer_class = GamificationStatsSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return GamificationStats.objects.filter(user=self.request.user)
+
+    @action(detail=False, methods=['get', 'post', 'put', 'patch'], url_path='current')
+    def current(self, request):
+        stats, created = GamificationStats.objects.get_or_create(user=request.user)
+        
+        if request.method == 'GET':
+            serializer = self.get_serializer(stats)
+            return Response(serializer.data)
+        
+        elif request.method in ['POST', 'PUT', 'PATCH']:
+            serializer = self.get_serializer(stats, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data)
 
 class TransactionViewSet(viewsets.ModelViewSet):
     serializer_class = TransactionSerializer

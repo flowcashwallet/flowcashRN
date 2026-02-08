@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Transaction, Budget, FixedExpense, Category, Subscription
+from .models import Transaction, Budget, FixedExpense, Category, Subscription, VisionEntity, GamificationStats
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -20,6 +20,33 @@ class SubscriptionSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data['user'] = self.context['request'].user
         return super().create(validated_data)
+
+class VisionEntitySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = VisionEntity
+        fields = '__all__'
+        read_only_fields = ('user', 'created_at', 'updated_at')
+
+    def create(self, validated_data):
+        validated_data['user'] = self.context['request'].user
+        return super().create(validated_data)
+
+class GamificationStatsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = GamificationStats
+        fields = ['id', 'streak_freezes', 'repaired_days', 'updated_at']
+        read_only_fields = ('user', 'updated_at')
+
+    def create(self, validated_data):
+        # Ensure only one stats object per user
+        user = self.context['request'].user
+        stats, created = GamificationStats.objects.get_or_create(user=user, defaults=validated_data)
+        if not created:
+             # If exists, just update
+            for attr, value in validated_data.items():
+                setattr(stats, attr, value)
+            stats.save()
+        return stats
 
 class TransactionSerializer(serializers.ModelSerializer):
     class Meta:
