@@ -36,6 +36,11 @@ export default function AnalyticsScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
   const [datePickerVisible, setDatePickerVisible] = useState(false);
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
+
+  const handleCategoryPress = (category: string) => {
+    setExpandedCategory((prev) => (prev === category ? null : category));
+  };
 
   return (
     <ThemedView style={styles.container}>
@@ -164,17 +169,35 @@ export default function AnalyticsScreen() {
               </Text>
             ) : (
               topCategories.map((cat, index) => (
-                <View
+                <TouchableOpacity
                   key={index}
+                  onPress={() => handleCategoryPress(cat.category)}
+                  activeOpacity={0.7}
                   style={[
                     styles.categoryItem,
                     index === topCategories.length - 1 && { marginBottom: 0 },
                   ]}
                 >
                   <View style={styles.categoryHeader}>
-                    <Text style={[styles.categoryName, { color: colors.text }]}>
-                      {cat.category}
-                    </Text>
+                    <View
+                      style={{ flexDirection: "row", alignItems: "center" }}
+                    >
+                      <IconSymbol
+                        name={
+                          expandedCategory === cat.category
+                            ? "chevron.down"
+                            : "chevron.right"
+                        }
+                        size={16}
+                        color={colors.textSecondary}
+                        style={{ marginRight: 8 }}
+                      />
+                      <Text
+                        style={[styles.categoryName, { color: colors.text }]}
+                      >
+                        {cat.category}
+                      </Text>
+                    </View>
                     <Text
                       style={[styles.categoryAmount, { color: colors.text }]}
                     >
@@ -202,7 +225,67 @@ export default function AnalyticsScreen() {
                   >
                     {cat.percentage.toFixed(1)}% del total
                   </Text>
-                </View>
+
+                  {/* Transactions Dropdown */}
+                  {expandedCategory === cat.category && (
+                    <View
+                      style={{
+                        marginTop: Spacing.m,
+                        paddingLeft: Spacing.m,
+                        borderLeftWidth: 2,
+                        borderLeftColor: colors.border,
+                      }}
+                    >
+                      {cat.transactions.map((t) => (
+                        <View
+                          key={t.id}
+                          style={{
+                            marginBottom: Spacing.s,
+                            paddingBottom: Spacing.s,
+                            borderBottomWidth: 1,
+                            borderBottomColor: colors.border,
+                          }}
+                        >
+                          <View
+                            style={{
+                              flexDirection: "row",
+                              justifyContent: "space-between",
+                            }}
+                          >
+                            <Text
+                              style={{
+                                color: colors.text,
+                                fontSize: FontSize.s,
+                                flex: 1,
+                              }}
+                              numberOfLines={1}
+                            >
+                              {t.description}
+                            </Text>
+                            <Text
+                              style={{
+                                color: colors.text,
+                                fontWeight: "bold",
+                                fontSize: FontSize.s,
+                              }}
+                            >
+                              ${t.amount.toFixed(2)}
+                            </Text>
+                          </View>
+                          <Text
+                            style={{
+                              color: colors.textSecondary,
+                              fontSize: FontSize.xs,
+                              marginTop: 2,
+                            }}
+                          >
+                            {new Date(t.date).toLocaleDateString()}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                </TouchableOpacity>
               ))
             )}
           </Card>

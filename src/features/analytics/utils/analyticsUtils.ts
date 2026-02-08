@@ -11,6 +11,7 @@ export interface CategoryInsight {
   category: string;
   totalAmount: number;
   percentage: number;
+  transactions: Transaction[];
 }
 
 export const calculateRecurringExpenses = (
@@ -47,18 +48,25 @@ export const calculateTopCategories = (
 ): CategoryInsight[] => {
   const expenses = transactions.filter((t) => t.type === "expense");
   const totalExpenses = expenses.reduce((sum, t) => sum + t.amount, 0);
-  const grouped: Record<string, number> = {};
+  const grouped: Record<string, { amount: number; transactions: Transaction[] }> =
+    {};
 
   expenses.forEach((t) => {
     const cat = t.category || "Sin categoría";
-    grouped[cat] = (grouped[cat] || 0) + t.amount;
+    if (!grouped[cat]) {
+      grouped[cat] = { amount: 0, transactions: [] };
+    }
+    grouped[cat].amount += t.amount;
+    grouped[cat].transactions.push(t);
   });
 
   return Object.keys(grouped)
     .map((key) => ({
       category: key,
-      totalAmount: grouped[key],
-      percentage: totalExpenses > 0 ? (grouped[key] / totalExpenses) * 100 : 0,
+      totalAmount: grouped[key].amount,
+      percentage:
+        totalExpenses > 0 ? (grouped[key].amount / totalExpenses) * 100 : 0,
+      transactions: grouped[key].transactions.sort((a, b) => b.date - a.date),
     }))
     .sort((a, b) => b.totalAmount - a.totalAmount)
     .slice(0, 5); // Top 5
