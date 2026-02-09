@@ -105,14 +105,45 @@ Si el panel de administración se ve sin estilos:
 
 ## 5. Migración de Datos (Render -> Supabase)
 
-Si necesitas mover datos existentes:
+Si necesitas mover datos existentes, sigue estos pasos para obtener las URLs y ejecutar la migración.
 
-1.  Ejecuta `run_remote_migrations.py` primero para crear la estructura de tablas vacías.
-2.  Usa `pg_dump` y `psql` para copiar los datos:
+### 1. Obtener las URLs de Conexión
+
+Antes de empezar, necesitas tener a mano las cadenas de conexión de ambas bases de datos.
+
+#### A. URL de Render (`URL_RENDER`)
+
+1. Entra a tu Dashboard en [dashboard.render.com](https://dashboard.render.com).
+2. Selecciona tu servicio de **PostgreSQL**.
+3. Baja hasta la sección **"Connections"**.
+4. Copia la **"External Database URL"**.
+   - _Nota:_ Esta URL suele empezar con `postgres://` y terminar en `.render.com`.
+
+#### B. URL de Supabase Directa (`URL_SUPABASE_PUERTO_5432`)
+
+1. Entra a tu proyecto en [supabase.com](https://supabase.com).
+2. Haz click en el botón **"Connect"** (arriba a la derecha).
+3. Ve a la pestaña **"ORM"** o **"URI"**.
+4. Asegúrate de que el **Mode** esté en **Session** (esto es crucial, el puerto debe ser **5432**).
+5. Copia la cadena de conexión.
+   - _Nota:_ Reemplaza `[YOUR-PASSWORD]` por tu contraseña real.
+
+### 2. Ejecutar la Migración
+
+1.  Ejecuta `run_remote_migrations.py` primero para crear la estructura de tablas vacías en Supabase (si no lo has hecho aún).
+2.  Usa `pg_dump` y `psql` desde tu terminal local para copiar los datos:
 
 ```bash
 # Comando (ejecutar en tu terminal local):
-pg_dump "URL_RENDER" --no-owner --no-acl --data-only --exclude-table=django_migrations --exclude-table=auth_permission --exclude-table=django_content_type | psql "URL_SUPABASE_PUERTO_5432"
+# Reemplaza las URLs por las que obtuviste en el paso anterior.
+# ¡Cuidado! Las comillas dobles "" son importantes si la URL tiene caracteres especiales.
+
+pg_dump "tu_url_externa_de_render" \
+  --no-owner --no-acl --data-only \
+  --exclude-table=django_migrations \
+  --exclude-table=auth_permission \
+  --exclude-table=django_content_type \
+  | psql "tu_url_directa_de_supabase_5432"
 ```
 
 _Excluimos tablas de permisos y contenido porque Django ya las crea automáticamente al migrar._
