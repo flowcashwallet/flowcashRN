@@ -1,5 +1,61 @@
 {% extends "admin/base.html" %} {% block branding %}
 <h1 id="site-name">
-  <a href="{% url 'admin:index' %}">Wallet Admin (Fixed v2)</a>
+  <a href="{% url 'admin:index' %}">Wallet Admin (Fixed v3)</a>
 </h1>
+{% endblock %} {% block extrahead %} {{ block.super }}
+<style>
+  /* 
+       🛠️ FIX NUCLEAR: Forzar Flexbox en el Admin
+       Sobrescribe cualquier regla de responsive.css o admin-auto-filters
+    */
+
+  /* 1. Forzar contenedor principal a ser FLEX ROW */
+  div#changelist {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: flex-start !important;
+    justify-content: space-between !important;
+  }
+
+  /* 2. El contenido (tabla) toma el espacio restante */
+  #changelist #changelist-form {
+    flex-grow: 1 !important;
+    flex-shrink: 1 !important;
+    min-width: 0 !important; /* Permite que la tabla se encoja si es necesario */
+    margin-right: 20px !important; /* Separación con el filtro */
+  }
+
+  /* 3. El filtro (sidebar) se fuerza a la derecha con ancho fijo */
+  #changelist #changelist-filter {
+    display: block !important;
+    position: relative !important; /* Evitar absolute que lo saque del flujo */
+    width: 260px !important;
+    min-width: 260px !important;
+    flex: 0 0 260px !important; /* No crecer, no encoger, base 260px */
+    order: 99 !important; /* Mover al final visualmente */
+    background: #fff !important;
+    margin: 0 !important;
+  }
+
+  /* Corrección para modo oscuro si el usuario lo tiene */
+  @media (prefers-color-scheme: dark) {
+    #changelist #changelist-filter {
+      background: #121212 !important;
+    }
+  }
+
+  /* 
+       Solo permitir que baje a bloque en móviles REALMENTE pequeños (<600px)
+       Vercel/Render a veces reportan anchos raros, así que somos permisivos.
+    */
+  @media (max-width: 600px) {
+    div#changelist {
+      display: block !important;
+    }
+    #changelist #changelist-filter {
+      width: 100% !important;
+      margin-top: 20px !important;
+    }
+  }
+</style>
 {% endblock %}
