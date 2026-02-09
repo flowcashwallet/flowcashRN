@@ -11,19 +11,27 @@ import { AppDispatch, RootState } from "@/store/store";
 import { formatCurrency } from "@/utils/format";
 import React, { useEffect } from "react";
 import {
-  Alert,
-  Keyboard,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  View,
+    Alert,
+    Keyboard,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    TouchableOpacity,
+    TouchableWithoutFeedback,
+    View,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 
-export const BudgetSetupWizard = () => {
+export interface BudgetSetupWizardProps {
+  onCancel?: () => void;
+  onFinish?: () => void;
+}
+
+export const BudgetSetupWizard = ({
+  onCancel,
+  onFinish,
+}: BudgetSetupWizardProps) => {
   const dispatch = useDispatch<AppDispatch>();
   const { user } = useSelector((state: RootState) => state.auth);
   const { categories } = useSelector((state: RootState) => state.categories);
@@ -47,6 +55,13 @@ export const BudgetSetupWizard = () => {
     formatAmountInput,
     getRawAmount,
   } = useBudgetSetup();
+
+  const handleWizardFinish = async () => {
+    await handleFinish();
+    if (onFinish) {
+      onFinish();
+    }
+  };
 
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
@@ -72,20 +87,35 @@ export const BudgetSetupWizard = () => {
               { backgroundColor: colors.surfaceHighlight },
             ]}
           >
-            <Typography
-              variant="h2"
-              weight="bold"
-              style={{ color: colors.text }}
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+              }}
             >
-              {step === 1
-                ? "Configura tu Presupuesto"
-                : step === 2
-                  ? "Gastos Fijos"
-                  : "Resumen"}
-            </Typography>
-            <Typography style={{ color: colors.textSecondary }}>
-              Paso {step} de 3
-            </Typography>
+              <View>
+                <Typography
+                  variant="h2"
+                  weight="bold"
+                  style={{ color: colors.text }}
+                >
+                  {step === 1
+                    ? "Configura tu Presupuesto"
+                    : step === 2
+                      ? "Gastos Fijos"
+                      : "Resumen"}
+                </Typography>
+                <Typography style={{ color: colors.textSecondary }}>
+                  Paso {step} de 3
+                </Typography>
+              </View>
+              {onCancel && (
+                <TouchableOpacity onPress={onCancel} style={{ padding: 4 }}>
+                  <IconSymbol name="xmark" size={24} color={colors.text} />
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
 
           {step === 1 && (
@@ -354,7 +384,7 @@ export const BudgetSetupWizard = () => {
                 />
                 <Button
                   title="Finalizar"
-                  onPress={handleFinish}
+                  onPress={handleWizardFinish}
                   style={{ flex: 1 }}
                 />
               </View>

@@ -2,11 +2,12 @@ import { ThemedView } from "@/components/themed-view";
 import { BudgetDashboard } from "@/features/budget/components/BudgetDashboard";
 import { BudgetSetupWizard } from "@/features/budget/components/BudgetSetupWizard";
 import { useBudgetData } from "@/features/budget/hooks/useBudgetData";
-import React from "react";
+import React, { useState } from "react";
 import { ActivityIndicator, StyleSheet } from "react-native";
 
 export default function BudgetScreen() {
   const { isSetup, budgetLoading, colors } = useBudgetData();
+  const [isEditing, setIsEditing] = useState(false);
 
   if (budgetLoading) {
     return (
@@ -18,7 +19,14 @@ export default function BudgetScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      {isSetup ? <BudgetDashboard /> : <BudgetSetupWizard />}
+      {isSetup && !isEditing ? (
+        <BudgetDashboard onEdit={() => setIsEditing(true)} />
+      ) : (
+        <BudgetSetupWizard
+          onCancel={isSetup ? () => setIsEditing(false) : undefined}
+          onFinish={() => setIsEditing(false)}
+        />
+      )}
     </ThemedView>
   );
 }

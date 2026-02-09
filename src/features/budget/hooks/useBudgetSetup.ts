@@ -3,16 +3,24 @@ import {
   formatAmountInput,
   getRawAmount,
 } from "@/features/budget/components/BudgetHelpers";
-import { AppDispatch } from "@/store/store";
+import { AppDispatch, RootState } from "@/store/store";
 import { useState } from "react";
 import { Alert, Keyboard } from "react-native";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 
 export const useBudgetSetup = () => {
   const dispatch = useDispatch<AppDispatch>();
+  const { monthlyIncome, fixedExpenses, isSetup } = useSelector(
+    (state: RootState) => state.budget,
+  );
+
   const [step, setStep] = useState(1);
-  const [income, setIncome] = useState("");
-  const [expenses, setExpenses] = useState<FixedExpense[]>([]);
+  const [income, setIncome] = useState(
+    isSetup ? formatAmountInput(monthlyIncome.toFixed(2)) : "",
+  );
+  const [expenses, setExpenses] = useState<FixedExpense[]>(
+    isSetup ? [...fixedExpenses] : [],
+  );
 
   // Expense Form State
   const [expenseName, setExpenseName] = useState("");

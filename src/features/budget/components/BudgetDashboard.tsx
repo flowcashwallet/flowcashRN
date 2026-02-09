@@ -1,16 +1,21 @@
 import { Button } from "@/components/atoms/Button";
 import { Card } from "@/components/atoms/Card";
 import { Typography } from "@/components/atoms/Typography";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { BorderRadius, Spacing } from "@/constants/theme";
 import { useBudgetDashboard } from "@/features/budget/hooks/useBudgetDashboard";
 import { RootState } from "@/store/store";
 import { formatCurrency } from "@/utils/format";
 import React from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { BarChart, PieChart } from "react-native-gifted-charts";
 import { useSelector } from "react-redux";
 
-export const BudgetDashboard = () => {
+export interface BudgetDashboardProps {
+  onEdit?: () => void;
+}
+
+export const BudgetDashboard = ({ onEdit }: BudgetDashboardProps) => {
   const { user } = useSelector((state: RootState) => state.auth);
   const {
     colors,
@@ -33,15 +38,35 @@ export const BudgetDashboard = () => {
       <View
         style={[
           styles.headerGradient,
-          { backgroundColor: colors.surfaceHighlight },
+          { backgroundColor: colors.surfaceHighlight, alignItems: undefined },
         ]}
       >
-        <Typography variant="h2" weight="bold" style={{ color: colors.text }}>
-          Tu Presupuesto
-        </Typography>
-        <Typography style={{ color: colors.textSecondary }}>
-          {monthName} {currentYear}
-        </Typography>
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            width: "100%",
+            alignItems: "center",
+          }}
+        >
+          <View>
+            <Typography
+              variant="h2"
+              weight="bold"
+              style={{ color: colors.text }}
+            >
+              Tu Presupuesto
+            </Typography>
+            <Typography style={{ color: colors.textSecondary }}>
+              {monthName} {currentYear}
+            </Typography>
+          </View>
+          {onEdit && (
+            <TouchableOpacity onPress={onEdit} style={{ padding: 8 }}>
+              <IconSymbol name="pencil" size={24} color={colors.text} />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       <Card style={{ marginBottom: Spacing.l, paddingVertical: Spacing.l }}>
