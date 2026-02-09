@@ -46,13 +46,12 @@ export const useWalletTransactions = () => {
   const [isSaving, setIsSaving] = useState(false);
 
   const addTransaction = async (data: TransactionData) => {
-    if (!data.amount || !data.description || !user?.uid) return;
+    if (!data.amount || !data.description || !user?.id) return;
 
     setIsSaving(true);
     try {
       await dispatch(
         addTransactionAction({
-          userId: user.uid,
           amount: parseAmount(data.amount),
           description: data.description,
           type: data.type,
@@ -129,7 +128,7 @@ export const useWalletTransactions = () => {
   };
 
   const updateTransaction = async (data: UpdateTransactionData) => {
-    if (!user?.uid) return;
+    if (!user?.id) return;
     setIsSaving(true);
 
     const newAmount = parseAmount(data.amount);
@@ -429,10 +428,7 @@ export const useWalletTransactions = () => {
               }
 
               // Handle Transfer Destination Reversal
-              if (
-                t.type === "transfer" &&
-                t.transferRelatedEntityId
-              ) {
+              if (t.type === "transfer" && t.transferRelatedEntityId) {
                 const transAmount = t.amount;
                 let change = 0;
 

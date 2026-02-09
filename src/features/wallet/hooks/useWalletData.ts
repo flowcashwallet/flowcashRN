@@ -34,24 +34,24 @@ export const useWalletData = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
 
   useEffect(() => {
-    if (user?.uid) {
-      dispatch(fetchTransactions(user.uid));
-      dispatch(fetchVisionEntities(user.uid));
-      dispatch(fetchGamificationData(user.uid));
-      dispatch(fetchCategories(user.uid));
-      dispatch(fetchSubscriptions(user.uid)).then(() => {
+    if (user?.id) {
+      dispatch(fetchTransactions());
+      dispatch(fetchVisionEntities());
+      dispatch(fetchGamificationData());
+      dispatch(fetchCategories(user.id.toString()));
+      dispatch(fetchSubscriptions(user.id.toString())).then(() => {
         dispatch(processDueSubscriptions());
       });
     }
   }, [dispatch, user]);
 
   const onRefresh = () => {
-    if (user?.uid) {
+    if (user?.id) {
       setRefreshing(true);
       Promise.all([
-        dispatch(fetchTransactions(user.uid)).unwrap(),
-        dispatch(fetchGamificationData(user.uid)).unwrap(),
-        dispatch(fetchCategories(user.uid)).unwrap(),
+        dispatch(fetchTransactions()).unwrap(),
+        dispatch(fetchGamificationData()).unwrap(),
+        dispatch(fetchCategories(user.id.toString())).unwrap(),
       ])
         .then(() => setRefreshing(false))
         .catch(() => setRefreshing(false));

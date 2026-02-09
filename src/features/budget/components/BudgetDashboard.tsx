@@ -24,7 +24,7 @@ export const BudgetDashboard = () => {
     totalActualExpense,
     totalActualIncome,
     totalFixedExpenses,
-  } = useBudgetDashboard(user?.uid);
+  } = useBudgetDashboard();
 
   return (
     <ScrollView

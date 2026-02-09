@@ -1,16 +1,7 @@
+import { fetchWithAuth } from "@/utils/apiClient";
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  getDocs,
-  query,
-  updateDoc,
-  where,
-} from "firebase/firestore";
-import { db } from "../../../services/firebaseConfig";
-import { RootState } from "../../../store/store";
+import { endpoints } from "../../../services/api";
+import { AppDispatch, RootState } from "../../../store/store";
 import { updateVisionEntity } from "../../vision/data/visionSlice";
 import { addTransaction } from "./walletSlice";
 
@@ -42,17 +33,31 @@ const initialState: SubscriptionState = {
 
 export const fetchSubscriptions = createAsyncThunk(
   "subscriptions/fetch",
-  async (userId: string, { rejectWithValue }) => {
+  async (userId: string, { getState, dispatch, rejectWithValue }) => {
     try {
-      const q = query(
-        collection(db, "subscriptions"),
-        where("userId", "==", userId),
+      const response = await fetchWithAuth(
+        endpoints.wallet.subscriptions,
+        {},
+        dispatch as AppDispatch,
+        getState as () => RootState,
       );
-      const querySnapshot = await getDocs(q);
-      const subscriptions: Subscription[] = [];
-      querySnapshot.forEach((doc) => {
-        subscriptions.push({ id: doc.id, ...doc.data() } as Subscription);
-      });
+
+      if (!response.ok) throw new Error("Failed to fetch subscriptions");
+      const data = await response.json();
+
+      const subscriptions: Subscription[] = data.map((sub: any) => ({
+        id: sub.id.toString(),
+        userId: userId,
+        name: sub.name,
+        amount: parseFloat(sub.amount),
+        category: sub.category,
+        frequency: sub.frequency,
+        nextPaymentDate: new Date(sub.next_payment_date).getTime(),
+        relatedEntityId: sub.related_entity_id,
+        reminderEnabled: sub.reminder_enabled,
+        description: sub.description,
+        icon: sub.icon,
+      }));
       return subscriptions;
     } catch (error: any) {
       return rejectWithValue(error.message);
@@ -62,13 +67,43 @@ export const fetchSubscriptions = createAsyncThunk(
 
 export const addSubscription = createAsyncThunk(
   "subscriptions/add",
-  async (subscription: Omit<Subscription, "id">, { rejectWithValue }) => {
+  async (
+    subscription: Omit<Subscription, "id">,
+    { getState, dispatch, rejectWithValue },
+  ) => {
     try {
-      const docRef = await addDoc(
-        collection(db, "subscriptions"),
-        subscription,
+      const backendSub = {
+        name: subscription.name,
+        amount: subscription.amount,
+        category: subscription.category,
+        frequency: subscription.frequency,
+        next_payment_date: new Date(subscription.nextPaymentDate).toISOString(),
+        related_entity_id: subscription.relatedEntityId,
+        reminder_enabled: subscription.reminderEnabled,
+        description: subscription.description,
+        icon: subscription.icon,
+      };
+
+      const response = await fetchWithAuth(
+        endpoints.wallet.subscriptions,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(backendSub),
+        },
+        dispatch as AppDispatch,
+        getState as () => RootState,
       );
-      return { id: docRef.id, ...subscription };
+
+      if (!response.ok) throw new Error("Failed to add subscription");
+      const data = await response.json();
+
+      return {
+        ...subscription,
+        id: data.id.toString(),
+      };
     } catch (error: any) {
       console.error("Error adding subscription:", error);
       return rejectWithValue(error.message);
@@ -78,10 +113,38 @@ export const addSubscription = createAsyncThunk(
 
 export const updateSubscription = createAsyncThunk(
   "subscriptions/update",
-  async (subscription: Subscription, { rejectWithValue }) => {
+  async (
+    subscription: Subscription,
+    { getState, dispatch, rejectWithValue },
+  ) => {
     try {
-      const docRef = doc(db, "subscriptions", subscription.id);
-      await updateDoc(docRef, { ...subscription });
+      const backendSub = {
+        name: subscription.name,
+        amount: subscription.amount,
+        category: subscription.category,
+        frequency: subscription.frequency,
+        next_payment_date: new Date(subscription.nextPaymentDate).toISOString(),
+        related_entity_id: subscription.relatedEntityId,
+        reminder_enabled: subscription.reminderEnabled,
+        description: subscription.description,
+        icon: subscription.icon,
+      };
+
+      const response = await fetchWithAuth(
+        `${endpoints.wallet.subscriptions}${subscription.id}/`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(backendSub),
+        },
+        dispatch as AppDispatch,
+        getState as () => RootState,
+      );
+
+      if (!response.ok) throw new Error("Failed to update subscription");
+
       return subscription;
     } catch (error: any) {
       return rejectWithValue(error.message);
@@ -91,9 +154,19 @@ export const updateSubscription = createAsyncThunk(
 
 export const deleteSubscription = createAsyncThunk(
   "subscriptions/delete",
-  async (id: string, { rejectWithValue }) => {
+  async (id: string, { getState, dispatch, rejectWithValue }) => {
     try {
-      await deleteDoc(doc(db, "subscriptions", id));
+      const response = await fetchWithAuth(
+        `${endpoints.wallet.subscriptions}${id}/`,
+        {
+          method: "DELETE",
+        },
+        dispatch as AppDispatch,
+        getState as () => RootState,
+      );
+
+      if (!response.ok) throw new Error("Failed to delete subscription");
+
       return id;
     } catch (error: any) {
       return rejectWithValue(error.message);
@@ -110,7 +183,7 @@ export const processDueSubscriptions = createAsyncThunk(
       const { user } = state.auth;
       const { entities } = state.vision;
 
-      if (!user?.uid) return;
+      if (!(user as any)?.id) return;
 
       const now = new Date();
       const dueSubscriptions = subscriptions.filter((sub) => {
@@ -128,7 +201,7 @@ export const processDueSubscriptions = createAsyncThunk(
       for (const sub of dueSubscriptions) {
         // 1. Create Transaction
         const transactionData = {
-          userId: user.uid,
+          userId: (user as any).id,
           amount: sub.amount,
           type: "expense" as const,
           description: `Suscripción: ${sub.name}`,

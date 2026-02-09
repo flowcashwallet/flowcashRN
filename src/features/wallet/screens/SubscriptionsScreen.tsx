@@ -74,8 +74,8 @@ export default function SubscriptionsScreen() {
   };
 
   useEffect(() => {
-    if (user?.uid) {
-      dispatch(fetchSubscriptions(user.uid));
+    if (user?.id) {
+      dispatch(fetchSubscriptions(user.id.toString()));
     }
   }, [user, dispatch]);
 
@@ -107,10 +107,10 @@ export default function SubscriptionsScreen() {
   };
 
   const handleSave = async () => {
-    if (!user?.uid || !name || !amount) return;
+    if (!user?.id || !name || !amount) return;
 
     const subscriptionData = {
-      userId: user.uid,
+      userId: user.id.toString(),
       name,
       amount: parseFloat(amount),
       category: "General", // TODO: Add category selector
@@ -138,7 +138,7 @@ export default function SubscriptionsScreen() {
       if (count > 0) {
         Alert.alert("Éxito", "Suscripción guardada y transacción generada.");
         // Refresh transactions to ensure wallet is up to date
-        dispatch(fetchTransactions(user.uid));
+        dispatch(fetchTransactions());
       } else {
         Alert.alert("Éxito", "Suscripción guardada.");
       }

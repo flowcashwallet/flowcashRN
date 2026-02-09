@@ -8,11 +8,9 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Colors, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import STRINGS from "@/i18n/es.json";
-import { auth, db } from "@/services/firebaseConfig";
+import { endpoints } from "@/services/api";
 import { AppDispatch, RootState } from "@/store/store";
 import { useRouter } from "expo-router";
-import { createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -25,7 +23,7 @@ import {
   View,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
-import { setError, setLoading } from "../authSlice";
+import { setAuthData, setError, setLoading } from "../authSlice";
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -100,35 +98,54 @@ export default function RegisterScreen() {
     dispatch(setError(null));
 
     try {
-      // 1. Create Authentication User
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        email,
-        password,
-      );
-      const user = userCredential.user;
-
-      // 2. Save User Profile in Firestore
-      await setDoc(doc(db, "users", user.uid), {
-        firstName,
-        lastName,
-        dob,
-        email,
-        createdAt: new Date().toISOString(),
+      const response = await fetch(endpoints.auth.register, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username: email,
+          email,
+          password,
+          first_name: firstName,
+          last_name: lastName,
+        }),
       });
 
-      console.log("User registered and profile created:", user.uid);
-      // Navigation is handled by auth state listener in _layout
+      const data = await response.json();
+
+      if (!response.ok) {
+        // Handle Django errors
+        // Django returns { field: ["error message"], ... }
+        let errorMessage = "Error en el registro";
+        if (data.username) errorMessage = `Usuario: ${data.username[0]}`;
+        else if (data.email) errorMessage = `Email: ${data.email[0]}`;
+        else if (data.password)
+          errorMessage = `Contraseña: ${data.password[0]}`;
+        else if (data.detail) errorMessage = data.detail;
+
+        throw new Error(errorMessage);
+      }
+
+      console.log("User registered:", data);
+
+      // Auto-login if tokens are present
+      if (data.access && data.refresh) {
+        dispatch(
+          setAuthData({
+            token: data.access,
+            refreshToken: data.refresh,
+            user: data.user,
+          }),
+        );
+        router.replace("/(drawer)/(tabs)");
+      } else {
+        // Fallback if no tokens (shouldn't happen with updated backend)
+        router.replace("/login");
+      }
     } catch (err: any) {
       console.error("Registration Error:", err);
-      let msg = err.message;
-      if (err.code === "auth/email-already-in-use")
-        msg = "El correo ya está registrado";
-      if (err.code === "auth/weak-password")
-        msg = "La contraseña debe tener al menos 6 caracteres";
-      if (err.code === "auth/invalid-email") msg = STRINGS.auth.invalidEmail;
-
-      dispatch(setError(msg));
+      dispatch(setError(err.message || "Error desconocido"));
     } finally {
       dispatch(setLoading(false));
     }

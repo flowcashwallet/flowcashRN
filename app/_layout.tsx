@@ -1,6 +1,5 @@
-import { setUser } from "@/features/auth/authSlice";
-import { auth } from "@/services/firebaseConfig";
-import { RootState, store } from "@/store/store";
+import { loadUserFromStorage } from "@/features/auth/authSlice";
+import { AppDispatch, RootState, store } from "@/store/store";
 import {
   DarkTheme,
   DefaultTheme,
@@ -8,7 +7,6 @@ import {
 } from "@react-navigation/native";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { onAuthStateChanged } from "firebase/auth";
 import { useEffect, useState } from "react";
 import "react-native-gesture-handler";
 import "react-native-reanimated";
@@ -22,47 +20,32 @@ export const unstable_settings = {
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
-  const { isAuthenticated } = useSelector((state: RootState) => state.auth);
-  const dispatch = useDispatch();
+  const { isAuthenticated, loading } = useSelector((state: RootState) => state.auth);
+  const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
   const segments = useSegments();
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
-  }, []);
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        console.log("AuthStateChanged: User is logged in:", user.uid);
-        dispatch(setUser({ uid: user.uid, email: user.email }));
-      } else {
-        console.log("AuthStateChanged: User is logged out");
-        dispatch(setUser(null));
-      }
-    });
-    return unsubscribe;
+    // Load user from storage on app start
+    dispatch(loadUserFromStorage());
   }, [dispatch]);
 
   useEffect(() => {
-    if (!isMounted) return;
+    if (!isMounted || loading) return;
 
     // Check if user is in an auth screen (login or register)
-    // segments[0] might be undefined initially or empty string?
-    // Let's check specifically for "login" or "register"
     const inAuthGroup = segments[0] === "login" || segments[0] === "register";
 
     if (!isAuthenticated && !inAuthGroup) {
       // If not authenticated and trying to access protected route, redirect to login
-      // But we need to be careful not to loop.
-      // If segments is empty (root), redirect to login.
       router.replace("/login");
     } else if (isAuthenticated && inAuthGroup) {
       // If authenticated and on login/register, redirect to home
       router.replace("/(drawer)/(tabs)/budget");
     }
-  }, [isAuthenticated, segments, isMounted, router]);
+  }, [isAuthenticated, segments, isMounted, loading, router]);
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>

@@ -46,14 +46,14 @@ export const BudgetSetupWizard = () => {
     handleFinish,
     formatAmountInput,
     getRawAmount,
-  } = useBudgetSetup(user?.uid);
+  } = useBudgetSetup();
 
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
 
   useEffect(() => {
-    if (user?.uid && categories.length === 0) {
-      dispatch(fetchCategories(user.uid));
+    if (user?.id && categories.length === 0) {
+      dispatch(fetchCategories(user.id.toString()));
     }
   }, [user, dispatch, categories.length]);
 

@@ -62,7 +62,7 @@ export const StreakCalendarModal: React.FC<StreakCalendarModalProps> = ({
   }, [activeDates, repairedDays]);
 
   const handleRepair = async (dateStr: string) => {
-    if (!user?.uid) return;
+    if (!user?.id) return;
 
     if (streakFreezes <= 0) {
       Alert.alert(
@@ -84,7 +84,7 @@ export const StreakCalendarModal: React.FC<StreakCalendarModalProps> = ({
           onPress: async () => {
             try {
               await dispatch(
-                consumeStreakFreeze({ userId: user.uid, date: dateStr }),
+                consumeStreakFreeze({ date: dateStr }),
               ).unwrap();
             } catch (error) {
               Alert.alert(STRINGS.common.error, STRINGS.streak.restoreError);

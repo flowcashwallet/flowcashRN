@@ -20,18 +20,18 @@ export const useVisionData = () => {
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    if (user?.uid) {
-      dispatch(fetchVisionEntities(user.uid));
-      dispatch(fetchTransactions(user.uid));
+    if (user?.id) {
+      dispatch(fetchVisionEntities());
+      dispatch(fetchTransactions());
     }
   }, [dispatch, user]);
 
   const onRefresh = useCallback(() => {
-    if (user?.uid) {
+    if (user?.id) {
       setRefreshing(true);
       Promise.all([
-        dispatch(fetchVisionEntities(user.uid)).unwrap(),
-        dispatch(fetchTransactions(user.uid)).unwrap(),
+        dispatch(fetchVisionEntities()).unwrap(),
+        dispatch(fetchTransactions()).unwrap(),
       ])
         .then(() => setRefreshing(false))
         .catch(() => setRefreshing(false));

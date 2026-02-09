@@ -11,11 +11,11 @@ import { AppDispatch, RootState } from "@/store/store";
 import { formatAmountInput, formatCurrency } from "@/utils/format";
 import React, { useEffect, useState } from "react";
 import {
-  Modal,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  View,
+    Modal,
+    ScrollView,
+    StyleSheet,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 
@@ -23,7 +23,7 @@ interface UpdateTransactionData {
   id: string;
   amount: string;
   description: string;
-  type: "income" | "expense";
+  type: "income" | "expense" | "transfer";
   category?: string | null;
   relatedEntityId?: string | null;
   oldAmount: number;
@@ -69,8 +69,8 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
   const [editEntitySearchQuery, setEditEntitySearchQuery] = useState("");
 
   useEffect(() => {
-    if (visible && user?.uid && categories.length === 0) {
-      dispatch(fetchCategories(user.uid));
+    if (visible && user?.id && categories.length === 0) {
+      dispatch(fetchCategories(user.id.toString()));
     }
   }, [visible, user, dispatch, categories.length]);
 

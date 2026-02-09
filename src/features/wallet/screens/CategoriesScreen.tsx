@@ -49,16 +49,21 @@ export default function CategoriesScreen() {
   const [isModalVisible, setIsModalVisible] = useState(false);
 
   useEffect(() => {
-    if (user?.uid) {
-      dispatch(fetchCategories(user.uid));
+    if (user?.id) {
+      dispatch(fetchCategories(user.id.toString()));
     }
   }, [dispatch, user]);
 
   const handleAddCategory = async () => {
-    if (!newCategoryName.trim() || !user?.uid) return;
+    console.log("Add category:", newCategoryName);
+    console.log("User:", user);
+    if (!newCategoryName.trim() || !user?.id) return;
     try {
       await dispatch(
-        addCategory({ userId: user.uid, name: newCategoryName.trim() }),
+        addCategory({
+          userId: user.id.toString(),
+          name: newCategoryName.trim(),
+        }),
       ).unwrap();
       setNewCategoryName("");
       setIsModalVisible(false);

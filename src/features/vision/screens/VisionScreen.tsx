@@ -45,7 +45,7 @@ export default function VisionScreen() {
     handleDeleteEntity,
     handleAddTransactionToEntity,
     handleUpdateCryptoPrice,
-  } = useVisionOperations(user?.uid);
+  } = useVisionOperations(user?.id?.toString());
 
   const [addModalVisible, setAddModalVisible] = useState(false);
   const [detailModalVisible, setDetailModalVisible] = useState(false);

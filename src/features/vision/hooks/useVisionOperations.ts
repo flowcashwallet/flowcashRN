@@ -172,7 +172,7 @@ export const useVisionOperations = (userId?: string) => {
       ).unwrap();
 
       // Refresh transactions
-      dispatch(fetchTransactions(userId));
+      dispatch(fetchTransactions());
 
       return { ...data.entity, amount: newAmount };
     } catch (error: any) {

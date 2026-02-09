@@ -1,15 +1,7 @@
+import { endpoints } from "@/services/api";
+import { AppDispatch, RootState } from "@/store/store";
+import { fetchWithAuth } from "@/utils/apiClient";
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  getDocs,
-  query,
-  updateDoc,
-  where,
-} from "firebase/firestore";
-import { db } from "../../../services/firebaseConfig";
 
 export interface VisionEntity {
   id: string;
@@ -42,35 +34,60 @@ const initialState: VisionState = {
   error: null,
 };
 
+// Helper to map backend data to frontend model
+const mapBackendToFrontend = (data: any): VisionEntity => ({
+  id: data.id.toString(),
+  userId: data.user?.toString() || "",
+  name: data.name,
+  description: data.description,
+  amount: parseFloat(data.amount),
+  type: data.type,
+  createdAt: new Date(data.created_at).getTime(),
+  isCrypto: data.is_crypto,
+  cryptoSymbol: data.crypto_symbol,
+  cryptoAmount: data.crypto_amount ? parseFloat(data.crypto_amount) : undefined,
+  category: data.category,
+  isCreditCard: data.is_credit_card,
+  cutoffDate: data.cutoff_date,
+  paymentDate: data.payment_date,
+  issuerBank: data.issuer_bank,
+});
+
+// Helper to map frontend model to backend data
+const mapFrontendToBackend = (entity: Partial<VisionEntity>) => {
+  return {
+    name: entity.name,
+    description: entity.description,
+    amount: entity.amount,
+    type: entity.type,
+    category: entity.category,
+    is_crypto: entity.isCrypto,
+    crypto_symbol: entity.cryptoSymbol,
+    crypto_amount: entity.cryptoAmount,
+    is_credit_card: entity.isCreditCard,
+    cutoff_date: entity.cutoffDate,
+    payment_date: entity.paymentDate,
+    issuer_bank: entity.issuerBank,
+  };
+};
+
 export const fetchVisionEntities = createAsyncThunk(
   "vision/fetchEntities",
-  async (userId: string, { rejectWithValue }) => {
+  async (_, { rejectWithValue, getState, dispatch }) => {
     try {
-      const q = query(collection(db, "vision"), where("userId", "==", userId));
-      const querySnapshot = await getDocs(q);
-      const entities: VisionEntity[] = [];
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        entities.push({
-          id: doc.id,
-          userId: data.userId,
-          name: data.name,
-          description: data.description,
-          amount: data.amount || 0,
-          type: data.type,
-          createdAt: data.createdAt,
-          isCrypto: data.isCrypto,
-          cryptoSymbol: data.cryptoSymbol,
-          cryptoAmount: data.cryptoAmount,
-          category: data.category,
-          // Credit Card Fields
-          isCreditCard: data.isCreditCard,
-          cutoffDate: data.cutoffDate,
-          paymentDate: data.paymentDate,
-          issuerBank: data.issuerBank,
-        });
-      });
-      return entities;
+      const response = await fetchWithAuth(
+        endpoints.wallet.vision,
+        {},
+        dispatch as AppDispatch,
+        getState as () => RootState,
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch vision entities");
+      }
+
+      const data = await response.json();
+      return data.map(mapBackendToFrontend);
     } catch (error: any) {
       console.error("Error fetching vision entities:", error);
       return rejectWithValue(error.message);
@@ -80,14 +97,33 @@ export const fetchVisionEntities = createAsyncThunk(
 
 export const addVisionEntity = createAsyncThunk(
   "vision/addEntity",
-  async (entity: Omit<VisionEntity, "id">, { rejectWithValue }) => {
+  async (
+    entity: Omit<VisionEntity, "id">,
+    { rejectWithValue, getState, dispatch },
+  ) => {
     try {
-      // Remove undefined fields to avoid Firestore errors
-      const cleanEntity = Object.fromEntries(
-        Object.entries(entity).filter(([_, v]) => v !== undefined),
+      const backendData = mapFrontendToBackend(entity);
+
+      const response = await fetchWithAuth(
+        endpoints.wallet.vision,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(backendData),
+        },
+        dispatch as AppDispatch,
+        getState as () => RootState,
       );
-      const docRef = await addDoc(collection(db, "vision"), cleanEntity);
-      return { ...entity, id: docRef.id };
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(JSON.stringify(errorData));
+      }
+
+      const data = await response.json();
+      return mapBackendToFrontend(data);
     } catch (error: any) {
       console.error("Error adding vision entity:", error);
       return rejectWithValue(error.message);
@@ -97,9 +133,21 @@ export const addVisionEntity = createAsyncThunk(
 
 export const deleteVisionEntity = createAsyncThunk(
   "vision/deleteEntity",
-  async (entityId: string, { rejectWithValue }) => {
+  async (entityId: string, { rejectWithValue, getState, dispatch }) => {
     try {
-      await deleteDoc(doc(db, "vision", entityId));
+      const response = await fetchWithAuth(
+        `${endpoints.wallet.vision}${entityId}/`,
+        {
+          method: "DELETE",
+        },
+        dispatch as AppDispatch,
+        getState as () => RootState,
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to delete vision entity");
+      }
+
       return entityId;
     } catch (error: any) {
       console.error("Error deleting vision entity:", error);
@@ -110,15 +158,30 @@ export const deleteVisionEntity = createAsyncThunk(
 
 export const updateVisionEntity = createAsyncThunk(
   "vision/updateEntity",
-  async (entity: VisionEntity, { rejectWithValue }) => {
+  async (entity: VisionEntity, { rejectWithValue, getState, dispatch }) => {
     try {
       const { id, ...data } = entity;
-      // Remove undefined fields to avoid Firestore errors
-      const cleanData = Object.fromEntries(
-        Object.entries(data).filter(([_, v]) => v !== undefined),
+      const backendData = mapFrontendToBackend(data);
+
+      const response = await fetchWithAuth(
+        `${endpoints.wallet.vision}${id}/`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(backendData),
+        },
+        dispatch as AppDispatch,
+        getState as () => RootState,
       );
-      await updateDoc(doc(db, "vision", id), cleanData as any);
-      return entity;
+
+      if (!response.ok) {
+        throw new Error("Failed to update vision entity");
+      }
+
+      const responseData = await response.json();
+      return mapBackendToFrontend(responseData);
     } catch (error: any) {
       console.error("Error updating vision entity:", error);
       return rejectWithValue(error.message);

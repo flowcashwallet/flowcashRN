@@ -21,15 +21,15 @@ export const useBudgetData = () => {
   const colors = Colors[colorScheme ?? "light"];
 
   useEffect(() => {
-    if (user?.uid) {
-      dispatch(fetchBudgetConfig(user.uid));
-      dispatch(fetchTransactions(user.uid));
+    if (user?.id) {
+      dispatch(fetchBudgetConfig());
+      dispatch(fetchTransactions());
     }
   }, [dispatch, user]);
 
   useEffect(() => {
-    if (isSetup && user?.uid) {
-      dispatch(processMonthlyBudget(user.uid));
+    if (isSetup && user?.id) {
+      dispatch(processMonthlyBudget());
     }
   }, [isSetup, user, dispatch]);
 

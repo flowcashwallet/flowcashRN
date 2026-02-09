@@ -66,8 +66,8 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   const [entitySearchQuery, setEntitySearchQuery] = useState("");
 
   useEffect(() => {
-    if (visible && user?.uid && categories.length === 0) {
-      dispatch(fetchCategories(user.uid));
+    if (visible && user?.id && categories.length === 0) {
+      dispatch(fetchCategories(user.id.toString()));
     }
   }, [visible, user, dispatch, categories.length]);
 
