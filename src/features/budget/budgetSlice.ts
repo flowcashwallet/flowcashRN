@@ -117,7 +117,9 @@ export const fetchBudgetConfig = createAsyncThunk(
           category: e.category,
         })),
         isSetup: data.is_setup,
-        lastProcessedDate: data.last_processed_date,
+        lastProcessedDate: data.last_processed_date
+          ? data.last_processed_date.substring(0, 7)
+          : null,
       };
     } catch (error: any) {
       return rejectWithValue(error.message);
@@ -176,7 +178,7 @@ export const processMonthlyBudget = createAsyncThunk(
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            last_processed_date: currentMonthKey,
+            last_processed_date: `${currentMonthKey}-01`,
           }),
         },
         dispatch as AppDispatch,
