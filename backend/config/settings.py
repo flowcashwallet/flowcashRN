@@ -43,6 +43,13 @@ if not ALLOWED_HOSTS and DEBUG:
 CSRF_TRUSTED_ORIGINS = os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',')
 CSRF_TRUSTED_ORIGINS = [origin for origin in CSRF_TRUSTED_ORIGINS if origin]
 
+# Vercel & Proxy Configuration
+if 'VERCEL' in os.environ:
+    # Trust the proxy headers from Vercel
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    USE_X_FORWARDED_HOST = True
+    USE_X_FORWARDED_PORT = True
+
 
 # Application definition
 
@@ -161,7 +168,7 @@ USE_TZ = True
 STATIC_URL = 'static/'
 
 if not DEBUG:
-    STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+    STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles_build', 'static')
     # Use simpler storage for serverless to avoid manifest missing errors
     STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 
