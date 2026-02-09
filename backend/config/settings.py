@@ -118,7 +118,8 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     'default': dj_database_url.config(
         default='sqlite:///' + str(BASE_DIR / 'db.sqlite3'),
-        conn_max_age=600
+        conn_max_age=600,
+        ssl_require='VERCEL' in os.environ  # Force SSL on Vercel
     )
 }
 
