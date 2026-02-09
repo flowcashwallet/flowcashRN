@@ -13,14 +13,14 @@ import { AppDispatch, RootState } from "@/store/store";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-    ActivityIndicator,
-    KeyboardAvoidingView,
-    Linking,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Linking,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { setAuthData, setError, setLoading } from "../authSlice";
@@ -134,6 +134,7 @@ export default function RegisterScreen() {
         dispatch(
           setAuthData({
             token: data.access,
+            refreshToken: data.refresh,
             user: data.user,
           }),
         );

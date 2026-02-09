@@ -1,6 +1,7 @@
+import { fetchWithAuth } from "@/utils/apiClient";
 import { PayloadAction, createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import { endpoints, getAuthHeaders } from "../../services/api";
-import { RootState } from "../../store/store";
+import { endpoints } from "../../services/api";
+import { AppDispatch, RootState } from "../../store/store";
 import { addTransaction } from "../wallet/data/walletSlice";
 
 export interface FixedExpense {
@@ -37,26 +38,29 @@ export const saveBudgetConfig = createAsyncThunk(
       monthlyIncome,
       fixedExpenses,
     }: { monthlyIncome: number; fixedExpenses: FixedExpense[] },
-    { getState, rejectWithValue },
+    { getState, dispatch, rejectWithValue },
   ) => {
     try {
-      const state = getState() as RootState;
-      const token = state.auth.token;
-      if (!token) throw new Error("No authentication token found");
-
-      const response = await fetch(endpoints.wallet.budget, {
-        method: "POST",
-        headers: getAuthHeaders(token),
-        body: JSON.stringify({
-          monthly_income: monthlyIncome,
-          fixed_expenses: fixedExpenses.map((e) => ({
-            name: e.name,
-            amount: e.amount,
-            category: e.category,
-          })),
-          is_setup: true,
-        }),
-      });
+      const response = await fetchWithAuth(
+        endpoints.wallet.budget,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            monthly_income: monthlyIncome,
+            fixed_expenses: fixedExpenses.map((e) => ({
+              name: e.name,
+              amount: e.amount,
+              category: e.category,
+            })),
+            is_setup: true,
+          }),
+        },
+        dispatch as AppDispatch,
+        getState as () => RootState,
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -85,15 +89,14 @@ export const saveBudgetConfig = createAsyncThunk(
 
 export const fetchBudgetConfig = createAsyncThunk(
   "budget/fetchConfig",
-  async (_, { getState, rejectWithValue }) => {
+  async (_, { getState, dispatch, rejectWithValue }) => {
     try {
-      const state = getState() as RootState;
-      const token = state.auth.token;
-      if (!token) throw new Error("No authentication token found");
-
-      const response = await fetch(endpoints.wallet.budget, {
-        headers: getAuthHeaders(token),
-      });
+      const response = await fetchWithAuth(
+        endpoints.wallet.budget,
+        {},
+        dispatch as AppDispatch,
+        getState as () => RootState,
+      );
 
       if (response.status === 404) {
         return null;
@@ -165,13 +168,20 @@ export const processMonthlyBudget = createAsyncThunk(
       }
 
       // Update lastProcessedDate in Backend
-      const response = await fetch(endpoints.wallet.budget, {
-        method: "PATCH",
-        headers: getAuthHeaders(token),
-        body: JSON.stringify({
-          last_processed_date: currentMonthKey,
-        }),
-      });
+      const response = await fetchWithAuth(
+        endpoints.wallet.budget,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            last_processed_date: currentMonthKey,
+          }),
+        },
+        dispatch as AppDispatch,
+        getState as () => RootState,
+      );
 
       if (!response.ok) {
         throw new Error("Failed to update last processed date");
@@ -186,16 +196,16 @@ export const processMonthlyBudget = createAsyncThunk(
 
 export const resetBudgetConfig = createAsyncThunk(
   "budget/resetConfig",
-  async (_, { getState, rejectWithValue }) => {
+  async (_, { getState, dispatch, rejectWithValue }) => {
     try {
-      const state = getState() as RootState;
-      const token = state.auth.token;
-      if (!token) throw new Error("No authentication token found");
-
-      const response = await fetch(endpoints.wallet.budget, {
-        method: "DELETE",
-        headers: getAuthHeaders(token),
-      });
+      const response = await fetchWithAuth(
+        endpoints.wallet.budget,
+        {
+          method: "DELETE",
+        },
+        dispatch as AppDispatch,
+        getState as () => RootState,
+      );
 
       if (!response.ok) {
         throw new Error("Failed to reset budget");

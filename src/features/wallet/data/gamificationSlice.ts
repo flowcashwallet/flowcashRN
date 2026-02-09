@@ -1,5 +1,6 @@
-import { endpoints, getAuthHeaders } from "@/services/api";
-import { RootState } from "@/store/store";
+import { endpoints } from "@/services/api";
+import { AppDispatch, RootState } from "@/store/store";
+import { fetchWithAuth } from "@/utils/apiClient";
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 
 export interface GamificationState {
@@ -24,18 +25,14 @@ const mapBackendToFrontend = (data: any): Partial<GamificationState> => ({
 
 export const fetchGamificationData = createAsyncThunk(
   "gamification/fetchData",
-  async (_, { rejectWithValue, getState }) => {
+  async (_, { rejectWithValue, getState, dispatch }) => {
     try {
-      const state = getState() as RootState;
-      const token = state.auth.token;
-
-      if (!token) {
-        throw new Error("No auth token found");
-      }
-
-      const response = await fetch(endpoints.wallet.gamification, {
-        headers: getAuthHeaders(token),
-      });
+      const response = await fetchWithAuth(
+        endpoints.wallet.gamification,
+        {},
+        dispatch as AppDispatch,
+        getState as () => RootState,
+      );
 
       if (!response.ok) {
         throw new Error("Failed to fetch gamification data");
@@ -54,16 +51,11 @@ export const consumeStreakFreeze = createAsyncThunk(
   "gamification/useFreeze",
   async (
     { date }: { date: string },
-    { getState, rejectWithValue },
+    { getState, dispatch, rejectWithValue },
   ) => {
     try {
       const state = getState() as RootState;
-      const token = state.auth.token;
       const gamificationState = state.gamification;
-
-      if (!token) {
-        throw new Error("No auth token found");
-      }
 
       if (gamificationState.streakFreezes <= 0) {
         return rejectWithValue("No streak freezes remaining");
@@ -77,11 +69,18 @@ export const consumeStreakFreeze = createAsyncThunk(
         repaired_days: newRepairedDays,
       };
 
-      const response = await fetch(endpoints.wallet.gamification, {
-        method: "PATCH",
-        headers: getAuthHeaders(token),
-        body: JSON.stringify(backendData),
-      });
+      const response = await fetchWithAuth(
+        endpoints.wallet.gamification,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(backendData),
+        },
+        dispatch as AppDispatch,
+        getState as () => RootState,
+      );
 
       if (!response.ok) {
         throw new Error("Failed to use streak freeze");

@@ -1,7 +1,8 @@
+import { fetchWithAuth } from "@/utils/apiClient";
 import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import STRINGS from "../../../i18n/es.json";
-import { endpoints, getAuthHeaders } from "../../../services/api";
-import { RootState } from "../../../store/store";
+import { endpoints } from "../../../services/api";
+import { AppDispatch, RootState } from "../../../store/store";
 
 export interface Category {
   id: string;
@@ -29,14 +30,13 @@ export const fetchCategories = createAsyncThunk(
   "categories/fetchCategories",
   async (userId: string, { getState, rejectWithValue, dispatch }) => {
     try {
-      const state = getState() as RootState;
-      const token = state.auth.token;
-      if (!token) throw new Error("No authentication token found");
-
       console.log("Fetching categories from:", endpoints.wallet.categories);
-      const response = await fetch(endpoints.wallet.categories, {
-        headers: getAuthHeaders(token),
-      });
+      const response = await fetchWithAuth(
+        endpoints.wallet.categories,
+        {},
+        dispatch as AppDispatch,
+        getState as () => RootState,
+      );
 
       if (!response.ok) {
         console.error("Fetch categories failed with status:", response.status);
@@ -77,12 +77,8 @@ export const fetchCategories = createAsyncThunk(
 
 export const seedDefaultCategories = createAsyncThunk(
   "categories/seedDefaultCategories",
-  async (userId: string, { getState, rejectWithValue }) => {
+  async (userId: string, { getState, dispatch, rejectWithValue }) => {
     try {
-      const state = getState() as RootState;
-      const token = state.auth.token;
-      if (!token) throw new Error("No authentication token found");
-
       // Prepare data for batch create
       const categoriesToCreate = DEFAULT_CATEGORIES.map((name) => ({
         name: name,
@@ -92,13 +88,17 @@ export const seedDefaultCategories = createAsyncThunk(
         "Seeding categories to:",
         `${endpoints.wallet.categories}batch_create/`,
       );
-      const response = await fetch(
+      const response = await fetchWithAuth(
         `${endpoints.wallet.categories}batch_create/`,
         {
           method: "POST",
-          headers: getAuthHeaders(token),
+          headers: {
+            "Content-Type": "application/json",
+          },
           body: JSON.stringify(categoriesToCreate),
         },
+        dispatch as AppDispatch,
+        getState as () => RootState,
       );
 
       if (!response.ok) {
@@ -131,19 +131,22 @@ export const addCategory = createAsyncThunk(
   "categories/addCategory",
   async (
     { userId, name }: { userId: string; name: string },
-    { getState, rejectWithValue },
+    { getState, dispatch, rejectWithValue },
   ) => {
     try {
-      const state = getState() as RootState;
-      const token = state.auth.token;
-      if (!token) throw new Error("No authentication token found");
-
       console.log("Adding category to:", endpoints.wallet.categories);
-      const response = await fetch(endpoints.wallet.categories, {
-        method: "POST",
-        headers: getAuthHeaders(token),
-        body: JSON.stringify({ name }),
-      });
+      const response = await fetchWithAuth(
+        endpoints.wallet.categories,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ name }),
+        },
+        dispatch as AppDispatch,
+        getState as () => RootState,
+      );
 
       if (!response.ok) {
         console.error("Add category failed with status:", response.status);
@@ -173,18 +176,21 @@ export const updateCategory = createAsyncThunk(
   "categories/updateCategory",
   async (
     { id, name }: { id: string; name: string },
-    { getState, rejectWithValue },
+    { getState, dispatch, rejectWithValue },
   ) => {
     try {
-      const state = getState() as RootState;
-      const token = state.auth.token;
-      if (!token) throw new Error("No authentication token found");
-
-      const response = await fetch(`${endpoints.wallet.categories}${id}/`, {
-        method: "PATCH",
-        headers: getAuthHeaders(token),
-        body: JSON.stringify({ name }),
-      });
+      const response = await fetchWithAuth(
+        `${endpoints.wallet.categories}${id}/`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ name }),
+        },
+        dispatch as AppDispatch,
+        getState as () => RootState,
+      );
 
       if (!response.ok) throw new Error("Failed to update category");
 
@@ -198,16 +204,16 @@ export const updateCategory = createAsyncThunk(
 
 export const deleteCategory = createAsyncThunk(
   "categories/deleteCategory",
-  async (id: string, { getState, rejectWithValue }) => {
+  async (id: string, { getState, dispatch, rejectWithValue }) => {
     try {
-      const state = getState() as RootState;
-      const token = state.auth.token;
-      if (!token) throw new Error("No authentication token found");
-
-      const response = await fetch(`${endpoints.wallet.categories}${id}/`, {
-        method: "DELETE",
-        headers: getAuthHeaders(token),
-      });
+      const response = await fetchWithAuth(
+        `${endpoints.wallet.categories}${id}/`,
+        {
+          method: "DELETE",
+        },
+        dispatch as AppDispatch,
+        getState as () => RootState,
+      );
 
       if (!response.ok) throw new Error("Failed to delete category");
 

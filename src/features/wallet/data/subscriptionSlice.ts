@@ -1,6 +1,7 @@
+import { fetchWithAuth } from "@/utils/apiClient";
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import { endpoints, getAuthHeaders } from "../../../services/api";
-import { RootState } from "../../../store/store";
+import { endpoints } from "../../../services/api";
+import { AppDispatch, RootState } from "../../../store/store";
 import { updateVisionEntity } from "../../vision/data/visionSlice";
 import { addTransaction } from "./walletSlice";
 
@@ -32,15 +33,14 @@ const initialState: SubscriptionState = {
 
 export const fetchSubscriptions = createAsyncThunk(
   "subscriptions/fetch",
-  async (userId: string, { getState, rejectWithValue }) => {
+  async (userId: string, { getState, dispatch, rejectWithValue }) => {
     try {
-      const state = getState() as RootState;
-      const token = state.auth.token;
-      if (!token) throw new Error("No authentication token found");
-
-      const response = await fetch(endpoints.wallet.subscriptions, {
-        headers: getAuthHeaders(token),
-      });
+      const response = await fetchWithAuth(
+        endpoints.wallet.subscriptions,
+        {},
+        dispatch as AppDispatch,
+        getState as () => RootState,
+      );
 
       if (!response.ok) throw new Error("Failed to fetch subscriptions");
       const data = await response.json();
@@ -69,13 +69,9 @@ export const addSubscription = createAsyncThunk(
   "subscriptions/add",
   async (
     subscription: Omit<Subscription, "id">,
-    { getState, rejectWithValue },
+    { getState, dispatch, rejectWithValue },
   ) => {
     try {
-      const state = getState() as RootState;
-      const token = state.auth.token;
-      if (!token) throw new Error("No authentication token found");
-
       const backendSub = {
         name: subscription.name,
         amount: subscription.amount,
@@ -88,11 +84,18 @@ export const addSubscription = createAsyncThunk(
         icon: subscription.icon,
       };
 
-      const response = await fetch(endpoints.wallet.subscriptions, {
-        method: "POST",
-        headers: getAuthHeaders(token),
-        body: JSON.stringify(backendSub),
-      });
+      const response = await fetchWithAuth(
+        endpoints.wallet.subscriptions,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(backendSub),
+        },
+        dispatch as AppDispatch,
+        getState as () => RootState,
+      );
 
       if (!response.ok) throw new Error("Failed to add subscription");
       const data = await response.json();
@@ -110,12 +113,11 @@ export const addSubscription = createAsyncThunk(
 
 export const updateSubscription = createAsyncThunk(
   "subscriptions/update",
-  async (subscription: Subscription, { getState, rejectWithValue }) => {
+  async (
+    subscription: Subscription,
+    { getState, dispatch, rejectWithValue },
+  ) => {
     try {
-      const state = getState() as RootState;
-      const token = state.auth.token;
-      if (!token) throw new Error("No authentication token found");
-
       const backendSub = {
         name: subscription.name,
         amount: subscription.amount,
@@ -128,13 +130,17 @@ export const updateSubscription = createAsyncThunk(
         icon: subscription.icon,
       };
 
-      const response = await fetch(
+      const response = await fetchWithAuth(
         `${endpoints.wallet.subscriptions}${subscription.id}/`,
         {
           method: "PATCH",
-          headers: getAuthHeaders(token),
+          headers: {
+            "Content-Type": "application/json",
+          },
           body: JSON.stringify(backendSub),
         },
+        dispatch as AppDispatch,
+        getState as () => RootState,
       );
 
       if (!response.ok) throw new Error("Failed to update subscription");
@@ -148,16 +154,16 @@ export const updateSubscription = createAsyncThunk(
 
 export const deleteSubscription = createAsyncThunk(
   "subscriptions/delete",
-  async (id: string, { getState, rejectWithValue }) => {
+  async (id: string, { getState, dispatch, rejectWithValue }) => {
     try {
-      const state = getState() as RootState;
-      const token = state.auth.token;
-      if (!token) throw new Error("No authentication token found");
-
-      const response = await fetch(`${endpoints.wallet.subscriptions}${id}/`, {
-        method: "DELETE",
-        headers: getAuthHeaders(token),
-      });
+      const response = await fetchWithAuth(
+        `${endpoints.wallet.subscriptions}${id}/`,
+        {
+          method: "DELETE",
+        },
+        dispatch as AppDispatch,
+        getState as () => RootState,
+      );
 
       if (!response.ok) throw new Error("Failed to delete subscription");
 

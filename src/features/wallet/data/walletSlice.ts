@@ -1,6 +1,7 @@
+import { fetchWithAuth } from "@/utils/apiClient";
 import { PayloadAction, createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import { endpoints, getAuthHeaders } from "../../../services/api";
-import { RootState } from "../../../store/store";
+import { endpoints } from "../../../services/api";
+import { AppDispatch, RootState } from "../../../store/store";
 
 export interface Transaction {
   id: string;
@@ -36,16 +37,17 @@ const initialState: WalletState = {
 // Async thunks
 export const fetchTransactions = createAsyncThunk(
   "wallet/fetchTransactions",
-  async (_, { getState, rejectWithValue }) => {
+  async (_, { getState, dispatch, rejectWithValue }) => {
     try {
       const state = getState() as RootState;
-      const token = state.auth.token;
-      if (!token) throw new Error("No authentication token found");
 
       console.log("Fetching transactions from API...");
-      const response = await fetch(endpoints.wallet.transactions, {
-        headers: getAuthHeaders(token),
-      });
+      const response = await fetchWithAuth(
+        endpoints.wallet.transactions,
+        {},
+        dispatch as AppDispatch,
+        getState as () => RootState,
+      );
 
       if (!response.ok) {
         throw new Error("Failed to fetch transactions");
@@ -81,12 +83,10 @@ export const addTransaction = createAsyncThunk(
   "wallet/addTransaction",
   async (
     transaction: Omit<Transaction, "id" | "userId">,
-    { getState, rejectWithValue },
+    { getState, dispatch, rejectWithValue },
   ) => {
     try {
       const state = getState() as RootState;
-      const token = state.auth.token;
-      if (!token) throw new Error("No authentication token found");
 
       // Map frontend to backend
       const payload = {
@@ -100,11 +100,18 @@ export const addTransaction = createAsyncThunk(
         payment_type: transaction.paymentType,
       };
 
-      const response = await fetch(endpoints.wallet.transactions, {
-        method: "POST",
-        headers: getAuthHeaders(token),
-        body: JSON.stringify(payload),
-      });
+      const response = await fetchWithAuth(
+        endpoints.wallet.transactions,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        },
+        dispatch as AppDispatch,
+        getState as () => RootState,
+      );
 
       if (!response.ok) {
         const err = await response.json();
@@ -135,18 +142,15 @@ export const addTransaction = createAsyncThunk(
 
 export const deleteTransaction = createAsyncThunk(
   "wallet/deleteTransaction",
-  async (transactionId: string, { getState, rejectWithValue }) => {
+  async (transactionId: string, { getState, dispatch, rejectWithValue }) => {
     try {
-      const state = getState() as RootState;
-      const token = state.auth.token;
-      if (!token) throw new Error("No authentication token found");
-
-      const response = await fetch(
+      const response = await fetchWithAuth(
         `${endpoints.wallet.transactions}${transactionId}/`,
         {
           method: "DELETE",
-          headers: getAuthHeaders(token),
         },
+        dispatch as AppDispatch,
+        getState as () => RootState,
       );
 
       if (!response.ok) {
@@ -165,13 +169,9 @@ export const updateTransaction = createAsyncThunk(
   "wallet/updateTransaction",
   async (
     { id, updates }: { id: string; updates: Partial<Omit<Transaction, "id">> },
-    { getState, rejectWithValue },
+    { getState, dispatch, rejectWithValue },
   ) => {
     try {
-      const state = getState() as RootState;
-      const token = state.auth.token;
-      if (!token) throw new Error("No authentication token found");
-
       // Map updates to backend format
       const payload: any = {};
       if (updates.amount !== undefined) payload.amount = updates.amount;
@@ -183,11 +183,19 @@ export const updateTransaction = createAsyncThunk(
         payload.related_entity_id = updates.relatedEntityId;
       if (updates.transferRelatedEntityId !== undefined)
         payload.transfer_related_entity_id = updates.transferRelatedEntityId;
-      const response = await fetch(`${endpoints.wallet.transactions}${id}/`, {
-        method: "PATCH",
-        headers: getAuthHeaders(token),
-        body: JSON.stringify(payload),
-      });
+
+      const response = await fetchWithAuth(
+        `${endpoints.wallet.transactions}${id}/`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        },
+        dispatch as AppDispatch,
+        getState as () => RootState,
+      );
 
       if (!response.ok) {
         throw new Error("Failed to update transaction");
@@ -203,19 +211,19 @@ export const updateTransaction = createAsyncThunk(
 
 export const deleteMultipleTransactions = createAsyncThunk(
   "wallet/deleteMultipleTransactions",
-  async (transactionIds: string[], { getState, rejectWithValue }) => {
+  async (transactionIds: string[], { getState, dispatch, rejectWithValue }) => {
     try {
-      const state = getState() as RootState;
-      const token = state.auth.token;
-      if (!token) throw new Error("No authentication token found");
-
       // Execute deletes in parallel
       await Promise.all(
         transactionIds.map((id) =>
-          fetch(`${endpoints.wallet.transactions}${id}/`, {
-            method: "DELETE",
-            headers: getAuthHeaders(token),
-          }).then((res) => {
+          fetchWithAuth(
+            `${endpoints.wallet.transactions}${id}/`,
+            {
+              method: "DELETE",
+            },
+            dispatch as AppDispatch,
+            getState as () => RootState,
+          ).then((res) => {
             if (!res.ok) throw new Error(`Failed to delete transaction ${id}`);
             return res;
           }),

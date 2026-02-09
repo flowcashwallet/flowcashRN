@@ -1,5 +1,6 @@
-import { endpoints, getAuthHeaders } from "@/services/api";
-import { RootState } from "@/store/store";
+import { endpoints } from "@/services/api";
+import { AppDispatch, RootState } from "@/store/store";
+import { fetchWithAuth } from "@/utils/apiClient";
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 
 export interface VisionEntity {
@@ -72,18 +73,14 @@ const mapFrontendToBackend = (entity: Partial<VisionEntity>) => {
 
 export const fetchVisionEntities = createAsyncThunk(
   "vision/fetchEntities",
-  async (_, { rejectWithValue, getState }) => {
+  async (_, { rejectWithValue, getState, dispatch }) => {
     try {
-      const state = getState() as RootState;
-      const token = state.auth.token;
-
-      if (!token) {
-        throw new Error("No auth token found");
-      }
-
-      const response = await fetch(endpoints.wallet.vision, {
-        headers: getAuthHeaders(token),
-      });
+      const response = await fetchWithAuth(
+        endpoints.wallet.vision,
+        {},
+        dispatch as AppDispatch,
+        getState as () => RootState,
+      );
 
       if (!response.ok) {
         throw new Error("Failed to fetch vision entities");
@@ -100,22 +97,25 @@ export const fetchVisionEntities = createAsyncThunk(
 
 export const addVisionEntity = createAsyncThunk(
   "vision/addEntity",
-  async (entity: Omit<VisionEntity, "id">, { rejectWithValue, getState }) => {
+  async (
+    entity: Omit<VisionEntity, "id">,
+    { rejectWithValue, getState, dispatch },
+  ) => {
     try {
-      const state = getState() as RootState;
-      const token = state.auth.token;
-
-      if (!token) {
-        throw new Error("No auth token found");
-      }
-
       const backendData = mapFrontendToBackend(entity);
 
-      const response = await fetch(endpoints.wallet.vision, {
-        method: "POST",
-        headers: getAuthHeaders(token),
-        body: JSON.stringify(backendData),
-      });
+      const response = await fetchWithAuth(
+        endpoints.wallet.vision,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(backendData),
+        },
+        dispatch as AppDispatch,
+        getState as () => RootState,
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -133,19 +133,16 @@ export const addVisionEntity = createAsyncThunk(
 
 export const deleteVisionEntity = createAsyncThunk(
   "vision/deleteEntity",
-  async (entityId: string, { rejectWithValue, getState }) => {
+  async (entityId: string, { rejectWithValue, getState, dispatch }) => {
     try {
-      const state = getState() as RootState;
-      const token = state.auth.token;
-
-      if (!token) {
-        throw new Error("No auth token found");
-      }
-
-      const response = await fetch(`${endpoints.wallet.vision}${entityId}/`, {
-        method: "DELETE",
-        headers: getAuthHeaders(token),
-      });
+      const response = await fetchWithAuth(
+        `${endpoints.wallet.vision}${entityId}/`,
+        {
+          method: "DELETE",
+        },
+        dispatch as AppDispatch,
+        getState as () => RootState,
+      );
 
       if (!response.ok) {
         throw new Error("Failed to delete vision entity");
@@ -161,23 +158,23 @@ export const deleteVisionEntity = createAsyncThunk(
 
 export const updateVisionEntity = createAsyncThunk(
   "vision/updateEntity",
-  async (entity: VisionEntity, { rejectWithValue, getState }) => {
+  async (entity: VisionEntity, { rejectWithValue, getState, dispatch }) => {
     try {
-      const state = getState() as RootState;
-      const token = state.auth.token;
-
-      if (!token) {
-        throw new Error("No auth token found");
-      }
-
       const { id, ...data } = entity;
       const backendData = mapFrontendToBackend(data);
 
-      const response = await fetch(`${endpoints.wallet.vision}${id}/`, {
-        method: "PATCH",
-        headers: getAuthHeaders(token),
-        body: JSON.stringify(backendData),
-      });
+      const response = await fetchWithAuth(
+        `${endpoints.wallet.vision}${id}/`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(backendData),
+        },
+        dispatch as AppDispatch,
+        getState as () => RootState,
+      );
 
       if (!response.ok) {
         throw new Error("Failed to update vision entity");

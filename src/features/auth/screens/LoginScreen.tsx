@@ -102,6 +102,7 @@ export default function LoginScreen() {
       // data contains: access, refresh, and user object (from our custom serializer)
       dispatch(setAuthData({
         token: data.access,
+        refreshToken: data.refresh,
         user: data.user
       }));
 
