@@ -1,16 +1,6 @@
 import { PayloadAction, createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  getDocs,
-  query,
-  updateDoc,
-  where,
-  writeBatch,
-} from "firebase/firestore";
-import { db } from "../../../services/firebaseConfig";
+import { endpoints, getAuthHeaders } from "../../../services/api";
+import { RootState } from "../../../store/store";
 
 export interface Transaction {
   id: string;
@@ -46,32 +36,37 @@ const initialState: WalletState = {
 // Async thunks
 export const fetchTransactions = createAsyncThunk(
   "wallet/fetchTransactions",
-  async (userId: string, { rejectWithValue }) => {
+  async (_, { getState, rejectWithValue }) => {
     try {
-      console.log("Fetching transactions for user:", userId);
-      // Simple query first to avoid index issues, sort in memory
-      const q = query(
-        collection(db, "transactions"),
-        where("userId", "==", userId),
-      );
-      const querySnapshot = await getDocs(q);
-      const transactions: Transaction[] = [];
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        transactions.push({
-          id: doc.id,
-          userId: data.userId,
-          amount: data.amount,
-          type: data.type,
-          description: data.description,
-          category: data.category,
-          relatedEntityId: data.relatedEntityId,
-          transferRelatedEntityId: data.transferRelatedEntityId,
-          date: data.date,
-          paymentType: data.paymentType,
-        });
+      const state = getState() as RootState;
+      const token = state.auth.token;
+      if (!token) throw new Error("No authentication token found");
+
+      console.log("Fetching transactions from API...");
+      const response = await fetch(endpoints.wallet.transactions, {
+        headers: getAuthHeaders(token),
       });
-      // Sort desc by date
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch transactions");
+      }
+
+      const data = await response.json();
+
+      const transactions: Transaction[] = data.map((tx: any) => ({
+        id: tx.id.toString(),
+        userId: (state.auth.user as any)?.id || "0", // Fallback
+        amount: parseFloat(tx.amount),
+        type: tx.type,
+        description: tx.description,
+        category: tx.category,
+        relatedEntityId: tx.related_entity_id,
+        transferRelatedEntityId: tx.transfer_related_entity_id,
+        date: new Date(tx.date).getTime(),
+        paymentType: tx.payment_type,
+      }));
+
+      // Sort desc by date (already sorted by backend but good to ensure)
       transactions.sort((a, b) => b.date - a.date);
       console.log("Fetched transactions count:", transactions.length);
       return transactions;
@@ -84,10 +79,53 @@ export const fetchTransactions = createAsyncThunk(
 
 export const addTransaction = createAsyncThunk(
   "wallet/addTransaction",
-  async (transaction: Omit<Transaction, "id">, { rejectWithValue }) => {
+  async (
+    transaction: Omit<Transaction, "id" | "userId">,
+    { getState, rejectWithValue },
+  ) => {
     try {
-      const docRef = await addDoc(collection(db, "transactions"), transaction);
-      return { ...transaction, id: docRef.id };
+      const state = getState() as RootState;
+      const token = state.auth.token;
+      if (!token) throw new Error("No authentication token found");
+
+      // Map frontend to backend
+      const payload = {
+        amount: transaction.amount,
+        type: transaction.type,
+        description: transaction.description,
+        category: transaction.category,
+        related_entity_id: transaction.relatedEntityId,
+        transfer_related_entity_id: transaction.transferRelatedEntityId,
+        date: new Date(transaction.date).toISOString(),
+        payment_type: transaction.paymentType,
+      };
+
+      const response = await fetch(endpoints.wallet.transactions, {
+        method: "POST",
+        headers: getAuthHeaders(token),
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(JSON.stringify(err));
+      }
+
+      const tx = await response.json();
+
+      // Map back to frontend
+      return {
+        id: tx.id.toString(),
+        userId: (state.auth.user as any)?.id || "0",
+        amount: parseFloat(tx.amount),
+        type: tx.type,
+        description: tx.description,
+        category: tx.category,
+        relatedEntityId: tx.related_entity_id,
+        transferRelatedEntityId: tx.transfer_related_entity_id,
+        date: new Date(tx.date).getTime(),
+        paymentType: tx.payment_type,
+      };
     } catch (error: any) {
       console.error("Error adding transaction:", error);
       return rejectWithValue(error.message);
@@ -97,9 +135,24 @@ export const addTransaction = createAsyncThunk(
 
 export const deleteTransaction = createAsyncThunk(
   "wallet/deleteTransaction",
-  async (transactionId: string, { rejectWithValue }) => {
+  async (transactionId: string, { getState, rejectWithValue }) => {
     try {
-      await deleteDoc(doc(db, "transactions", transactionId));
+      const state = getState() as RootState;
+      const token = state.auth.token;
+      if (!token) throw new Error("No authentication token found");
+
+      const response = await fetch(
+        `${endpoints.wallet.transactions}${transactionId}/`,
+        {
+          method: "DELETE",
+          headers: getAuthHeaders(token),
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to delete transaction");
+      }
+
       return transactionId;
     } catch (error: any) {
       console.error("Error deleting transaction:", error);
@@ -112,10 +165,34 @@ export const updateTransaction = createAsyncThunk(
   "wallet/updateTransaction",
   async (
     { id, updates }: { id: string; updates: Partial<Omit<Transaction, "id">> },
-    { rejectWithValue },
+    { getState, rejectWithValue },
   ) => {
     try {
-      await updateDoc(doc(db, "transactions", id), updates);
+      const state = getState() as RootState;
+      const token = state.auth.token;
+      if (!token) throw new Error("No authentication token found");
+
+      // Map updates to backend format
+      const payload: any = {};
+      if (updates.amount !== undefined) payload.amount = updates.amount;
+      if (updates.type !== undefined) payload.type = updates.type;
+      if (updates.description !== undefined)
+        payload.description = updates.description;
+      if (updates.category !== undefined) payload.category = updates.category;
+      if (updates.relatedEntityId !== undefined)
+        payload.related_entity_id = updates.relatedEntityId;
+      if (updates.transferRelatedEntityId !== undefined)
+        payload.transfer_related_entity_id = updates.transferRelatedEntityId;
+      const response = await fetch(`${endpoints.wallet.transactions}${id}/`, {
+        method: "PATCH",
+        headers: getAuthHeaders(token),
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update transaction");
+      }
+
       return { id, updates };
     } catch (error: any) {
       console.error("Error updating transaction:", error);
@@ -126,14 +203,25 @@ export const updateTransaction = createAsyncThunk(
 
 export const deleteMultipleTransactions = createAsyncThunk(
   "wallet/deleteMultipleTransactions",
-  async (transactionIds: string[], { rejectWithValue }) => {
+  async (transactionIds: string[], { getState, rejectWithValue }) => {
     try {
-      const batch = writeBatch(db);
-      transactionIds.forEach((id) => {
-        const docRef = doc(db, "transactions", id);
-        batch.delete(docRef);
-      });
-      await batch.commit();
+      const state = getState() as RootState;
+      const token = state.auth.token;
+      if (!token) throw new Error("No authentication token found");
+
+      // Execute deletes in parallel
+      await Promise.all(
+        transactionIds.map((id) =>
+          fetch(`${endpoints.wallet.transactions}${id}/`, {
+            method: "DELETE",
+            headers: getAuthHeaders(token),
+          }).then((res) => {
+            if (!res.ok) throw new Error(`Failed to delete transaction ${id}`);
+            return res;
+          }),
+        ),
+      );
+
       return transactionIds;
     } catch (error: any) {
       console.error("Error deleting multiple transactions:", error);
@@ -148,7 +236,6 @@ const walletSlice = createSlice({
   reducers: {},
   extraReducers: (builder) => {
     builder
-      // Fetch
       .addCase(fetchTransactions.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -164,14 +251,14 @@ const walletSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
-      // Add
       .addCase(
         addTransaction.fulfilled,
         (state, action: PayloadAction<Transaction>) => {
           state.transactions.unshift(action.payload);
+          // Keep sorted
+          state.transactions.sort((a, b) => b.date - a.date);
         },
       )
-      // Delete
       .addCase(
         deleteTransaction.fulfilled,
         (state, action: PayloadAction<string>) => {
@@ -180,19 +267,15 @@ const walletSlice = createSlice({
           );
         },
       )
-      // Delete Multiple
-      .addCase(
-        deleteMultipleTransactions.fulfilled,
-        (state, action: PayloadAction<string[]>) => {
-          state.transactions = state.transactions.filter(
-            (t) => !action.payload.includes(t.id),
-          );
-        },
-      )
-      // Update
       .addCase(
         updateTransaction.fulfilled,
-        (state, action: PayloadAction<{ id: string; updates: any }>) => {
+        (
+          state,
+          action: PayloadAction<{
+            id: string;
+            updates: Partial<Omit<Transaction, "id">>;
+          }>,
+        ) => {
           const index = state.transactions.findIndex(
             (t) => t.id === action.payload.id,
           );
@@ -201,7 +284,19 @@ const walletSlice = createSlice({
               ...state.transactions[index],
               ...action.payload.updates,
             };
+            // Keep sorted if date changed
+            if (action.payload.updates.date) {
+              state.transactions.sort((a, b) => b.date - a.date);
+            }
           }
+        },
+      )
+      .addCase(
+        deleteMultipleTransactions.fulfilled,
+        (state, action: PayloadAction<string[]>) => {
+          state.transactions = state.transactions.filter(
+            (t) => !action.payload.includes(t.id),
+          );
         },
       );
   },

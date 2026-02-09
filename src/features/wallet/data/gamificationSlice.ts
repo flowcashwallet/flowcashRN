@@ -1,6 +1,6 @@
+import { endpoints, getAuthHeaders } from "@/services/api";
+import { RootState } from "@/store/store";
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
-import { db } from "../../../services/firebaseConfig";
 
 export interface GamificationState {
   streakFreezes: number;
@@ -16,18 +16,36 @@ const initialState: GamificationState = {
   error: null,
 };
 
+// Helper to map backend data to frontend model
+const mapBackendToFrontend = (data: any): Partial<GamificationState> => ({
+  streakFreezes: data.streak_freezes,
+  repairedDays: data.repaired_days || [],
+});
+
 export const fetchGamificationData = createAsyncThunk(
   "gamification/fetchData",
-  async (userId: string) => {
-    const docRef = doc(db, "users", userId, "gamification", "stats");
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      return docSnap.data() as Partial<GamificationState>;
-    } else {
-      // Initialize if not exists
-      const initialData = { streakFreezes: 3, repairedDays: [] };
-      await setDoc(docRef, initialData);
-      return initialData;
+  async (_, { rejectWithValue, getState }) => {
+    try {
+      const state = getState() as RootState;
+      const token = state.auth.token;
+
+      if (!token) {
+        throw new Error("No auth token found");
+      }
+
+      const response = await fetch(endpoints.wallet.gamification, {
+        headers: getAuthHeaders(token),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch gamification data");
+      }
+
+      const data = await response.json();
+      return mapBackendToFrontend(data);
+    } catch (error: any) {
+      console.error("Error fetching gamification data:", error);
+      return rejectWithValue(error.message);
     }
   },
 );
@@ -35,29 +53,44 @@ export const fetchGamificationData = createAsyncThunk(
 export const consumeStreakFreeze = createAsyncThunk(
   "gamification/useFreeze",
   async (
-    { userId, date }: { userId: string; date: string },
+    { date }: { date: string },
     { getState, rejectWithValue },
   ) => {
-    // Optimistic update could be done here, but let's just do standard async
     try {
-      const docRef = doc(db, "users", userId, "gamification", "stats");
-      const state = (getState() as any).gamification as GamificationState;
+      const state = getState() as RootState;
+      const token = state.auth.token;
+      const gamificationState = state.gamification;
 
-      if (state.streakFreezes <= 0) {
+      if (!token) {
+        throw new Error("No auth token found");
+      }
+
+      if (gamificationState.streakFreezes <= 0) {
         return rejectWithValue("No streak freezes remaining");
       }
 
-      const newFreezes = state.streakFreezes - 1;
-      const newRepairedDays = [...state.repairedDays, date];
+      const newFreezes = gamificationState.streakFreezes - 1;
+      const newRepairedDays = [...gamificationState.repairedDays, date];
 
-      await updateDoc(docRef, {
-        streakFreezes: newFreezes,
-        repairedDays: newRepairedDays,
+      const backendData = {
+        streak_freezes: newFreezes,
+        repaired_days: newRepairedDays,
+      };
+
+      const response = await fetch(endpoints.wallet.gamification, {
+        method: "PATCH",
+        headers: getAuthHeaders(token),
+        body: JSON.stringify(backendData),
       });
 
-      return { streakFreezes: newFreezes, repairedDays: newRepairedDays };
-    } catch (error) {
-      return rejectWithValue("Failed to use streak freeze");
+      if (!response.ok) {
+        throw new Error("Failed to use streak freeze");
+      }
+
+      const data = await response.json();
+      return mapBackendToFrontend(data);
+    } catch (error: any) {
+      return rejectWithValue(error.message || "Failed to use streak freeze");
     }
   },
 );
@@ -88,8 +121,12 @@ const gamificationSlice = createSlice({
           action.error.message || "Failed to fetch gamification data";
       })
       .addCase(consumeStreakFreeze.fulfilled, (state, action) => {
-        state.streakFreezes = action.payload.streakFreezes;
-        state.repairedDays = action.payload.repairedDays;
+        if (action.payload.streakFreezes !== undefined) {
+          state.streakFreezes = action.payload.streakFreezes;
+        }
+        if (action.payload.repairedDays !== undefined) {
+          state.repairedDays = action.payload.repairedDays;
+        }
       });
   },
 });

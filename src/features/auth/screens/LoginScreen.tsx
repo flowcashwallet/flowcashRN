@@ -1,12 +1,6 @@
-import { auth } from "@/services/firebaseConfig";
 import { AppDispatch, RootState } from "@/store/store";
 import * as Google from "expo-auth-session/providers/google";
 import * as WebBrowser from "expo-web-browser";
-import {
-  GoogleAuthProvider,
-  signInWithCredential,
-  signInWithEmailAndPassword,
-} from "firebase/auth";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -18,7 +12,7 @@ import {
   View,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
-import { setError, setLoading } from "../authSlice";
+import { setError, setLoading, setAuthData } from "../authSlice";
 // Atomic Components
 import { Button } from "@/components/atoms/Button";
 import { Card } from "@/components/atoms/Card";
@@ -31,6 +25,7 @@ import { Colors, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import STRINGS from "@/i18n/es.json";
 import { useRouter } from "expo-router";
+import { endpoints } from "@/services/api";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -68,21 +63,10 @@ export default function LoginScreen() {
         dispatch(setError("No se pudo obtener el token de Google."));
         return;
       }
-
-      const credential = GoogleAuthProvider.credential(id_token);
-      dispatch(setLoading(true));
-      signInWithCredential(auth, credential)
-        .then((userCredential) => {
-          console.log("User logged in:", userCredential.user.uid);
-          // El _layout.tsx escuchará el cambio de estado y actualizará Redux
-        })
-        .catch((error) => {
-          console.error("Firebase Auth Error:", error);
-          dispatch(setError(error.message));
-        })
-        .finally(() => {
-          dispatch(setLoading(false));
-        });
+      
+      // TODO: Implement Google Login with Django Backend
+      dispatch(setError("Google Login not yet implemented with new backend"));
+      
     }
   }, [response, dispatch]);
 
@@ -96,24 +80,37 @@ export default function LoginScreen() {
     dispatch(setError(null));
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      // _layout.tsx handles auth state change
-    } catch (err: any) {
-      console.error("Auth Error:", err);
-      let msg = err.message;
-      if (err.code === "auth/invalid-email") msg = STRINGS.auth.invalidEmail;
-      if (err.code === "auth/weak-password") msg = STRINGS.auth.weakPassword;
-      if (
-        err.code === "auth/user-not-found" ||
-        err.code === "auth/wrong-password" ||
-        err.code === "auth/invalid-credential"
-      ) {
-        msg = "Credenciales incorrectas";
-      }
-      if (err.code === "auth/email-already-in-use")
-        msg = "El correo ya está registrado";
+      const response = await fetch(endpoints.auth.login, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: email,
+          password: password,
+        }),
+      });
 
-      dispatch(setError(msg));
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || "Credenciales inválidas");
+      }
+
+      console.log("Login successful:", data);
+
+      // data contains: access, refresh, and user object (from our custom serializer)
+      dispatch(setAuthData({
+        token: data.access,
+        user: data.user
+      }));
+
+      // Navigation is handled by auth state listener or manual replace
+      router.replace("/(drawer)/(tabs)");
+      
+    } catch (err: any) {
+      console.error("Login Error:", err);
+      dispatch(setError(err.message || "Error al iniciar sesión"));
     } finally {
       dispatch(setLoading(false));
     }

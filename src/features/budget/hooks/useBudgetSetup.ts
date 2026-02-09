@@ -1,14 +1,14 @@
 import { FixedExpense, saveBudgetConfig } from "@/features/budget/budgetSlice";
-import { AppDispatch } from "@/store/store";
 import {
   formatAmountInput,
   getRawAmount,
 } from "@/features/budget/components/BudgetHelpers";
+import { AppDispatch } from "@/store/store";
 import { useState } from "react";
 import { Alert, Keyboard } from "react-native";
 import { useDispatch } from "react-redux";
 
-export const useBudgetSetup = (userId?: string) => {
+export const useBudgetSetup = () => {
   const dispatch = useDispatch<AppDispatch>();
   const [step, setStep] = useState(1);
   const [income, setIncome] = useState("");
@@ -42,14 +42,12 @@ export const useBudgetSetup = (userId?: string) => {
   };
 
   const handleFinish = async () => {
-    if (!userId) return;
     try {
       await dispatch(
         saveBudgetConfig({
-          userId,
           monthlyIncome: getRawAmount(income),
           fixedExpenses: expenses,
-        })
+        }),
       ).unwrap();
 
       // The useEffect hook will handle the initial processing when isSetup becomes true

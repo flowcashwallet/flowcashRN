@@ -81,8 +81,8 @@ export const useTransactionForm = ({
 
   // Load categories if needed
   useEffect(() => {
-    if (user?.uid && categories.length === 0) {
-      dispatch(fetchCategories(user.uid));
+    if (user?.id && categories.length === 0) {
+      dispatch(fetchCategories(user.id.toString()));
     }
   }, [user, dispatch, categories.length]);
 
@@ -164,7 +164,7 @@ export const useTransactionForm = ({
   };
 
   const handleSave = async (shouldClose = true) => {
-    if (!amount || !description || !user?.uid) {
+    if (!amount || !description || !user?.id) {
       Alert.alert("Error", "Por favor completa los campos requeridos");
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       return false;

@@ -9,7 +9,7 @@ import React from "react";
 import { Alert } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 
-export const useBudgetDashboard = (userId?: string) => {
+export const useBudgetDashboard = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { monthlyIncome, fixedExpenses } = useSelector(
     (state: RootState) => state.budget,
@@ -28,9 +28,7 @@ export const useBudgetDashboard = (userId?: string) => {
           text: "Reiniciar",
           style: "destructive",
           onPress: () => {
-            if (userId) {
-              dispatch(resetBudgetConfig(userId));
-            }
+            dispatch(resetBudgetConfig());
           },
         },
       ],

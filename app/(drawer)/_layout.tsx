@@ -1,23 +1,21 @@
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Colors } from "@/constants/theme";
-import { setUser } from "@/features/auth/authSlice";
+import { logout } from "@/features/auth/authSlice";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { auth } from "@/services/firebaseConfig";
-import { RootState } from "@/store/store";
+import { AppDispatch, RootState } from "@/store/store";
 import {
   DrawerContentScrollView,
   DrawerItem,
   DrawerItemList,
 } from "@react-navigation/drawer";
 import { Drawer } from "expo-router/drawer";
-import { signOut } from "firebase/auth";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useDispatch, useSelector } from "react-redux";
 
 function CustomDrawerContent(props: any) {
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
   const { user } = useSelector((state: RootState) => state.auth);
   const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
@@ -25,8 +23,7 @@ function CustomDrawerContent(props: any) {
 
   const handleLogout = async () => {
     try {
-      await signOut(auth);
-      dispatch(setUser(null));
+      await dispatch(logout());
     } catch (error) {
       console.error("Error signing out: ", error);
     }
@@ -55,10 +52,10 @@ function CustomDrawerContent(props: any) {
             />
           </View>
           <Text style={[styles.userName, { color: colors.text }]}>
-            {user?.email || "Usuario"}
+            {user?.username || user?.email || "Usuario"}
           </Text>
           <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
-            Bienvenido de nuevo
+            {user?.email || "Bienvenido de nuevo"}
           </Text>
         </View>
 
