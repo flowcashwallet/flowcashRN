@@ -30,6 +30,7 @@ Vercel ejecutará Django como funciones serverless.
 - Cuenta en Vercel.
 - Repositorio de GitHub conectado.
 - Archivo `vercel.json` (ya incluido en el proyecto).
+- Archivo `build_files.sh` (script de construcción robusto incluido).
 
 ### Pasos de Despliegue
 
@@ -42,73 +43,76 @@ Vercel ejecutará Django como funciones serverless.
     - **Framework Preset:** Selecciona "Other".
 
 3.  **Variables de Entorno:**
-    Agrega las siguientes variables:
+    Agrega las siguientes variables en Vercel:
     - `SECRET_KEY`: "tu_secret_key_segura"
-    - `DEBUG`: "False"
-    - `DATABASE_URL`: Pegar la URL del **Transaction Pooler** de Supabase (puerto 6543). Asegúrate de añadir `?sslmode=require` al final si no lo tiene.
-
-- `ALLOWED_HOSTS`: ".vercel.app"
-- `CSRF_TRUSTED_ORIGINS`: "https://tu-proyecto.vercel.app"
-  - **Nota:** Si aún no sabes la URL exacta, puedes dejar esto pendiente, hacer el deploy, copiar la URL que te asigne Vercel, agregarla aquí y **Redesplegar**.
-- `FIREBASE_CREDENTIALS`: '...' (Tu JSON de Firebase en una sola línea).
+    - `DEBUG`: "False" (o simplemente no la pongas, el código ya la desactiva en Vercel).
+    - `DATABASE_URL`: Pegar la URL del **Transaction Pooler** de Supabase (puerto 6543). Asegúrate de reemplazar `[YOUR-PASSWORD]` por tu contraseña real y añadir `?sslmode=require` al final.
+    - `ALLOWED_HOSTS`: `.vercel.app` (El código también acepta `*` automáticamente si detecta Vercel).
+    - `CSRF_TRUSTED_ORIGINS`: `https://tu-proyecto.vercel.app` (Reemplaza con tu URL real después del primer deploy).
+    - `FIREBASE_CREDENTIALS`: '...' (Tu JSON de Firebase en una sola línea).
 
 4.  **Deploy:**
     - Haz click en "Deploy".
-    - Vercel instalará las dependencias y construirá la función.
+    - Vercel usará automáticamente `build_files.sh` para instalar dependencias y recolectar archivos estáticos.
 
 ---
 
-## 3. Migración de Datos (Render -> Supabase)
+## 3. Gestión de Base de Datos y Migraciones
 
-Vamos a mover tus datos desde Render hacia tu nueva base de datos en Supabase.
+En un entorno Serverless (Vercel), **NO** se pueden correr migraciones (`python manage.py migrate`) durante el despliegue porque el proceso de build es de solo lectura y tiene timeouts estrictos.
 
-### Opción A: Migración Directa (Recomendada)
+Debes correr las migraciones desde tu computadora local apuntando a la base de datos de producción.
 
-Esta opción envía los datos directamente de un servidor a otro sin crear archivos locales grandes.
+### Script Automatizado (Recomendado)
 
-Necesitas:
+Hemos creado un script para facilitar este proceso:
 
-- URL de conexión de Render (Origen).
-- URL de conexión de Supabase (Destino - usa la conexión directa puerto `5432`, NO el pooler para la migración).
+1.  Abre tu terminal en la carpeta `backend/`.
+2.  Ejecuta:
+    ```bash
+    python run_remote_migrations.py
+    ```
+3.  Pega tu `DATABASE_URL` de Supabase (con contraseña y puerto 6543) cuando te lo pida.
+4.  El script aplicará las migraciones y te ofrecerá crear un superusuario para el Admin.
+
+---
+
+## 4. Solución de Problemas Comunes (Troubleshooting)
+
+### Error 500 en el Admin / Login (CSRF)
+
+Si ves un error 500 o "CSRF Verification Failed" al intentar loguearte:
+
+- **Causa:** Vercel está detrás de un proxy y Django no confía en que la conexión sea HTTPS.
+- **Solución (Ya aplicada en código):** Se configuró `SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')` en `settings.py` para confiar en los headers de Vercel. Asegúrate de tener `CSRF_TRUSTED_ORIGINS` configurado correctamente.
+
+### Archivos CSS/Estáticos Rotos
+
+Si el panel de administración se ve sin estilos:
+
+- **Causa:** Vercel no encontraba la carpeta estática generada.
+- **Solución (Ya aplicada):**
+  - `vercel.json` ahora redirige explícitamente `/static/` a la carpeta generada.
+  - `build_files.sh` corre `collectstatic` antes del deploy.
+  - `settings.py` usa `CompressedStaticFilesStorage` en Vercel para evitar errores de manifiesto faltante.
+
+### Error "Relation does not exist"
+
+- **Causa:** La base de datos está vacía.
+- **Solución:** Ejecuta el script `run_remote_migrations.py` explicado arriba.
+
+---
+
+## 5. Migración de Datos (Render -> Supabase)
+
+Si necesitas mover datos existentes:
+
+1.  Ejecuta `run_remote_migrations.py` primero para crear la estructura de tablas vacías.
+2.  Usa `pg_dump` y `psql` para copiar los datos:
 
 ```bash
 # Comando (ejecutar en tu terminal local):
-pg_dump "URL_RENDER" --no-owner --no-acl --data-only --exclude-table=django_migrations | psql "URL_SUPABASE_PUERTO_5432"
+pg_dump "URL_RENDER" --no-owner --no-acl --data-only --exclude-table=django_migrations --exclude-table=auth_permission --exclude-table=django_content_type | psql "URL_SUPABASE_PUERTO_5432"
 ```
 
-_Nota: Usamos `--data-only` y `--exclude-table=django_migrations` porque es mejor correr primero las migraciones de Django (estructura) y luego importar solo los datos._
-
-### Pasos Detallados de Migración:
-
-1.  **Aplicar Estructura (Schema) en Supabase:**
-    Como Vercel es serverless, correr migraciones ahí es difícil (timeout). Hazlo desde tu máquina local conectándote a Supabase:
-
-    ```bash
-    # En tu terminal local, carpeta backend/
-    # Configura temporalmente la URL de Supabase como variable de entorno local
-    export DATABASE_URL="URL_SUPABASE_PUERTO_5432"
-
-    # Ejecuta las migraciones para crear las tablas vacías
-    python manage.py migrate
-
-    # Crea el superusuario
-    python manage.py create_admin
-    ```
-
-2.  **Copiar los Datos:**
-    Ahora que las tablas existen, importa los datos desde Render.
-
-    ```bash
-    pg_dump "URL_RENDER" --no-owner --no-acl --data-only --exclude-table=django_migrations --exclude-table=auth_permission --exclude-table=django_content_type | psql "URL_SUPABASE_PUERTO_5432"
-    ```
-
-    _Excluimos `auth_permission` y `django_content_type` porque `migrate` ya los generó y suelen causar conflictos de duplicados._
-
----
-
-## Limitaciones y Consideraciones de Vercel (Serverless)
-
-- **Cold Starts:** La primera petición después de un tiempo de inactividad puede tardar unos segundos mientras la función "despierta".
-- **Timeouts:** Las peticiones no pueden durar más de 10 segundos (Plan Hobby). Tareas largas (como reportes pesados) pueden fallar.
-- **Base de Datos:** Siempre usa el **Connection Pooler** (puerto 6543) en la variable `DATABASE_URL` de Vercel, o tendrás errores de "too many clients".
-- **Archivos Estáticos:** Vercel sirve archivos estáticos automáticamente si están en la carpeta correcta, pero Django con Whitenoise funciona bien.
+_Excluimos tablas de permisos y contenido porque Django ya las crea automáticamente al migrar._
