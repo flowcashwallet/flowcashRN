@@ -37,6 +37,9 @@ ALLOWED_HOSTS = [host for host in ALLOWED_HOSTS if host]
 if not ALLOWED_HOSTS and DEBUG:
     ALLOWED_HOSTS = ['*']
 
+CSRF_TRUSTED_ORIGINS = os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',')
+CSRF_TRUSTED_ORIGINS = [origin for origin in CSRF_TRUSTED_ORIGINS if origin]
+
 
 # Application definition
 
