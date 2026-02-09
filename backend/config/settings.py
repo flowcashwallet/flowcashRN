@@ -25,12 +25,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-i!br3!)i_#b(n)0$p_ky&mnost$(ch$atmjtr)@jkage@sk$tf')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = 'RENDER' not in os.environ and 'DYNO' not in os.environ
+DEBUG = 'RENDER' not in os.environ and 'DYNO' not in os.environ and 'VERCEL' not in os.environ
 
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',')
 RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
 if RENDER_EXTERNAL_HOSTNAME:
     ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+
+if 'VERCEL' in os.environ:
+    ALLOWED_HOSTS = ['*']
 
 # Remove empty strings
 ALLOWED_HOSTS = [host for host in ALLOWED_HOSTS if host]
@@ -158,7 +161,8 @@ STATIC_URL = 'static/'
 
 if not DEBUG:
     STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+    # Use simpler storage for serverless to avoid manifest missing errors
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
