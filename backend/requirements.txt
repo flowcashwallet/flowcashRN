@@ -8,3 +8,4 @@ dj-database-url
 whitenoise
 python-dotenv
 firebase-admin
+django-admin-autocomplete-filter
