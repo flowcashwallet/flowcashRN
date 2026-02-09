@@ -1,15 +1,16 @@
 {% extends "admin/base.html" %} {% block branding %}
 <h1 id="site-name">
-  <a href="{% url 'admin:index' %}">Wallet Admin (Fixed v3)</a>
+  <a href="{% url 'admin:index' %}">Wallet Admin (Fixed v4)</a>
 </h1>
 {% endblock %} {% block extrahead %} {{ block.super }}
 <style>
   /* 
-       🛠️ FIX NUCLEAR: Forzar Flexbox en el Admin
-       Sobrescribe cualquier regla de responsive.css o admin-auto-filters
+       🛠️ FIX NUCLEAR V4: Target User-Specified Class
+       User identified that `.changelist-form-container` is the flex parent.
     */
 
-  /* 1. Forzar contenedor principal a ser FLEX ROW */
+  /* 1. Aplicar Flex al contenedor identificado por el usuario */
+  .changelist-form-container,
   div#changelist {
     display: flex !important;
     flex-direction: row !important;
@@ -17,42 +18,42 @@
     justify-content: space-between !important;
   }
 
-  /* 2. El contenido (tabla) toma el espacio restante */
-  #changelist #changelist-form {
+  /* 2. Asegurar que el formulario (contenido) crezca */
+  #changelist-form,
+  .changelist-form-container > form {
     flex-grow: 1 !important;
     flex-shrink: 1 !important;
-    min-width: 0 !important; /* Permite que la tabla se encoja si es necesario */
-    margin-right: 20px !important; /* Separación con el filtro */
+    min-width: 0 !important;
+    margin-right: 20px !important;
   }
 
-  /* 3. El filtro (sidebar) se fuerza a la derecha con ancho fijo */
-  #changelist #changelist-filter {
+  /* 3. Forzar al filtro a la derecha */
+  #changelist-filter,
+  .changelist-form-container > #changelist-filter {
     display: block !important;
-    position: relative !important; /* Evitar absolute que lo saque del flujo */
+    position: relative !important;
     width: 260px !important;
     min-width: 260px !important;
-    flex: 0 0 260px !important; /* No crecer, no encoger, base 260px */
-    order: 99 !important; /* Mover al final visualmente */
+    flex: 0 0 260px !important;
+    order: 99 !important;
     background: #fff !important;
     margin: 0 !important;
   }
 
-  /* Corrección para modo oscuro si el usuario lo tiene */
+  /* Dark Mode */
   @media (prefers-color-scheme: dark) {
-    #changelist #changelist-filter {
+    #changelist-filter {
       background: #121212 !important;
     }
   }
 
-  /* 
-       Solo permitir que baje a bloque en móviles REALMENTE pequeños (<600px)
-       Vercel/Render a veces reportan anchos raros, así que somos permisivos.
-    */
+  /* Mobile Reset (<600px) */
   @media (max-width: 600px) {
+    .changelist-form-container,
     div#changelist {
       display: block !important;
     }
-    #changelist #changelist-filter {
+    #changelist-filter {
       width: 100% !important;
       margin-top: 20px !important;
     }
