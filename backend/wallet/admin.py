@@ -4,7 +4,7 @@ from .models import Transaction, Budget, FixedExpense, Category, Subscription, V
 @admin.register(Transaction)
 class TransactionAdmin(admin.ModelAdmin):
     list_display = ('description', 'amount', 'type', 'category', 'date', 'user')
-    list_filter = ('type', 'category', 'date', 'payment_type')
+    list_filter = ('type', 'category', 'date', 'payment_type', 'user')
     search_fields = ('description', 'category', 'user__username')
     date_hierarchy = 'date'
 
@@ -12,12 +12,12 @@ class TransactionAdmin(admin.ModelAdmin):
 class CategoryAdmin(admin.ModelAdmin):
     list_display = ('name', 'user', 'created_at')
     search_fields = ('name', 'user__username')
-    list_filter = ('created_at',)
+    list_filter = ('created_at', 'user')
 
 @admin.register(Subscription)
 class SubscriptionAdmin(admin.ModelAdmin):
     list_display = ('name', 'amount', 'frequency', 'next_payment_date', 'user')
-    list_filter = ('frequency', 'next_payment_date')
+    list_filter = ('frequency', 'next_payment_date', 'user')
     search_fields = ('name', 'user__username')
 
 class FixedExpenseInline(admin.TabularInline):
@@ -27,16 +27,18 @@ class FixedExpenseInline(admin.TabularInline):
 @admin.register(Budget)
 class BudgetAdmin(admin.ModelAdmin):
     list_display = ('user', 'monthly_income', 'is_setup', 'last_processed_date')
+    list_filter = ('user', 'is_setup')
     inlines = [FixedExpenseInline]
     search_fields = ('user__username',)
 
 @admin.register(VisionEntity)
 class VisionEntityAdmin(admin.ModelAdmin):
     list_display = ('name', 'type', 'amount', 'category', 'user')
-    list_filter = ('type', 'is_crypto', 'is_credit_card')
+    list_filter = ('type', 'is_crypto', 'is_credit_card', 'user')
     search_fields = ('name', 'user__username')
 
 @admin.register(GamificationStats)
 class GamificationStatsAdmin(admin.ModelAdmin):
     list_display = ('user', 'streak_freezes', 'updated_at')
+    list_filter = ('user',)
     search_fields = ('user__username',)
