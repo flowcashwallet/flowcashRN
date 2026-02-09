@@ -183,6 +183,10 @@ export const updateTransaction = createAsyncThunk(
         payload.related_entity_id = updates.relatedEntityId;
       if (updates.transferRelatedEntityId !== undefined)
         payload.transfer_related_entity_id = updates.transferRelatedEntityId;
+      if (updates.date !== undefined)
+        payload.date = new Date(updates.date).toISOString();
+      if (updates.paymentType !== undefined)
+        payload.payment_type = updates.paymentType;
 
       const response = await fetchWithAuth(
         `${endpoints.wallet.transactions}${id}/`,
