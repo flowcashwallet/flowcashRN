@@ -12,7 +12,7 @@ import {
   View,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
-import { setError, setLoading, setAuthData } from "../authSlice";
+import { setAuthData, setError, setLoading } from "../authSlice";
 // Atomic Components
 import { Button } from "@/components/atoms/Button";
 import { Card } from "@/components/atoms/Card";
@@ -24,8 +24,8 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Colors, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import STRINGS from "@/i18n/es.json";
-import { useRouter } from "expo-router";
 import { endpoints } from "@/services/api";
+import { useRouter } from "expo-router";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -63,10 +63,9 @@ export default function LoginScreen() {
         dispatch(setError("No se pudo obtener el token de Google."));
         return;
       }
-      
+
       // TODO: Implement Google Login with Django Backend
       dispatch(setError("Google Login not yet implemented with new backend"));
-      
     }
   }, [response, dispatch]);
 
@@ -81,9 +80,9 @@ export default function LoginScreen() {
 
     try {
       const response = await fetch(endpoints.auth.login, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           username: email,
@@ -100,15 +99,16 @@ export default function LoginScreen() {
       console.log("Login successful:", data);
 
       // data contains: access, refresh, and user object (from our custom serializer)
-      dispatch(setAuthData({
-        token: data.access,
-        refreshToken: data.refresh,
-        user: data.user
-      }));
+      dispatch(
+        setAuthData({
+          token: data.access,
+          refreshToken: data.refresh,
+          user: data.user,
+        }),
+      );
 
       // Navigation is handled by auth state listener or manual replace
       router.replace("/(drawer)/(tabs)");
-      
     } catch (err: any) {
       console.error("Login Error:", err);
       dispatch(setError(err.message || "Error al iniciar sesión"));
@@ -209,25 +209,6 @@ export default function LoginScreen() {
                   style={[styles.line, { backgroundColor: colors.border }]}
                 />
               </View>
-
-              {!loading && (
-                <Button
-                  title={STRINGS.auth.continueGoogle}
-                  disabled={!request}
-                  onPress={() => {
-                    promptAsync({ showInRecents: true });
-                  }}
-                  icon={
-                    <IconSymbol
-                      name="g.circle.fill"
-                      size={20}
-                      color={colors.primary}
-                    />
-                  }
-                  variant="outline"
-                  style={{ marginTop: Spacing.s }}
-                />
-              )}
 
               <TouchableOpacity
                 onPress={() => {
