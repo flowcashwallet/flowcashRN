@@ -79,35 +79,91 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.ERROR(f"Could not find user {user.email} in Firebase: {e}"))
                 continue
 
+    def get_user_docs(self, db, collection_names, firebase_uid):
+        """
+        Try to find documents for a user in multiple possible collection names
+        and using multiple possible user ID field names.
+        """
+        if isinstance(collection_names, str):
+            collection_names = [collection_names]
+
+        for col_name in collection_names:
+            col_ref = db.collection(col_name)
+            
+            # Try 'uid' field
+            docs = list(col_ref.where('uid', '==', firebase_uid).stream())
+            if docs:
+                self.stdout.write(f"Found {len(docs)} docs in '{col_name}' using field 'uid'")
+                return docs, col_name
+            
+            # Try 'userId' field
+            docs = list(col_ref.where('userId', '==', firebase_uid).stream())
+            if docs:
+                self.stdout.write(f"Found {len(docs)} docs in '{col_name}' using field 'userId'")
+                return docs, col_name
+                
+            # Try 'user_id' field
+            docs = list(col_ref.where('user_id', '==', firebase_uid).stream())
+            if docs:
+                self.stdout.write(f"Found {len(docs)} docs in '{col_name}' using field 'user_id'")
+                return docs, col_name
+
+        self.stdout.write(self.style.WARNING(f"No documents found for user {firebase_uid} in collections {collection_names}"))
+        return [], None
+
     def migrate_user_data(self, django_user, firebase_uid, db):
         # 1. Categories
         self.stdout.write("Migrating Categories...")
-        categories_ref = db.collection('categories').where('uid', '==', firebase_uid).stream()
-        cat_map = {} # Map Firebase ID -> Django ID
+        cat_docs, _ = self.get_user_docs(db, ['categories', 'Categories'], firebase_uid)
         
-        for doc in categories_ref:
+        for doc in cat_docs:
             data = doc.to_dict()
             cat_name = data.get('name')
             if not cat_name: continue
 
             # Check if exists
-            category, created = Category.objects.get_or_create(
+            Category.objects.get_or_create(
                 user=django_user,
                 name=cat_name,
                 defaults={
-                    'created_at': timezone.now() # We might want to use real creation date if available
+                    'created_at': timezone.now()
                 }
             )
-            cat_map[doc.id] = category
-            if created:
-                self.stdout.write(f"  Created category: {cat_name}")
-
-        # 2. Transactions
-        self.stdout.write("Migrating Transactions...")
-        # Note: Depending on data volume, might need batching.
-        tx_ref = db.collection('transactions').where('uid', '==', firebase_uid).stream()
+            
+        # 2. Vision Entities (Assets/Liabilities) - MIGRATE BEFORE TRANSACTIONS
+        self.stdout.write("Migrating Vision Entities...")
+        vision_docs, _ = self.get_user_docs(db, ['vision_entities', 'visionEntities', 'assets', 'liabilities'], firebase_uid)
+        vision_map = {} # Map Firebase ID -> Django ID (string)
         
-        for doc in tx_ref:
+        for doc in vision_docs:
+            data = doc.to_dict()
+            name = data.get('name', 'Unnamed')
+            amount = float(data.get('amount', 0))
+            type_ = data.get('type', 'asset')
+            
+            # Check if exists
+            vision_entity, created = VisionEntity.objects.get_or_create(
+                user=django_user,
+                name=name,
+                type=type_,
+                defaults={
+                    'amount': amount,
+                    'category': data.get('category', 'General'),
+                    'is_crypto': data.get('isCrypto', False),
+                    'is_credit_card': data.get('isCreditCard', False)
+                }
+            )
+            
+            # Store mapping
+            vision_map[doc.id] = str(vision_entity.id)
+            if created:
+                self.stdout.write(f"  Created entity: {name}")
+
+        # 3. Transactions
+        self.stdout.write("Migrating Transactions...")
+        tx_docs, _ = self.get_user_docs(db, ['transactions', 'Transactions'], firebase_uid)
+        
+        for doc in tx_docs:
             data = doc.to_dict()
             
             # Map fields
@@ -115,7 +171,7 @@ class Command(BaseCommand):
             amount = float(data.get('amount', 0))
             type_ = data.get('type', 'expense')
             
-            # Date handling: Firestore Timestamp or String?
+            # Date handling
             date_val = data.get('date')
             tx_date = timezone.now()
             if date_val:
@@ -135,6 +191,12 @@ class Command(BaseCommand):
             if cat_name:
                 category_obj, _ = Category.objects.get_or_create(user=django_user, name=cat_name)
 
+            # Related Entity Mapping
+            related_id = data.get('relatedEntityId') or data.get('related_entity_id')
+            new_related_id = None
+            if related_id and related_id in vision_map:
+                new_related_id = vision_map[related_id]
+
             # Check for duplicate
             if not Transaction.objects.filter(
                 user=django_user,
@@ -151,50 +213,33 @@ class Command(BaseCommand):
                     category=category_obj.name if category_obj else 'General',
                     date=tx_date,
                     payment_type=data.get('paymentType', 'cash'),
-                    related_entity_id=None # Complex to map if IDs changed
+                    related_entity_id=new_related_id
                 )
             else:
                 self.stdout.write(f"  Skipping duplicate transaction: {description}")
         
         self.stdout.write("Transactions migrated.")
 
-        # 3. Vision Entities (Assets/Liabilities)
-        self.stdout.write("Migrating Vision Entities...")
-        vision_ref = db.collection('vision_entities').where('uid', '==', firebase_uid).stream()
-        for doc in vision_ref:
-            data = doc.to_dict()
-            name = data.get('name', 'Unnamed')
-            amount = float(data.get('amount', 0))
-            type_ = data.get('type', 'asset')
-            
-            if not VisionEntity.objects.filter(
-                user=django_user,
-                name=name,
-                type=type_
-            ).exists():
-                VisionEntity.objects.create(
-                    user=django_user,
-                    name=name,
-                    amount=amount,
-                    type=type_,
-                    category=data.get('category', 'General'),
-                    is_crypto=data.get('isCrypto', False),
-                    is_credit_card=data.get('isCreditCard', False)
-                )
-
         # 4. Subscriptions
         self.stdout.write("Migrating Subscriptions...")
-        sub_ref = db.collection('subscriptions').where('uid', '==', firebase_uid).stream()
-        for doc in sub_ref:
+        sub_docs, _ = self.get_user_docs(db, ['subscriptions', 'Subscriptions'], firebase_uid)
+        
+        for doc in sub_docs:
             data = doc.to_dict()
             name = data.get('name', 'Subscription')
             
-            # Date handling for nextPaymentDate
+            # Date handling
             npd_val = data.get('nextPaymentDate')
             npd = timezone.now()
             if isinstance(npd_val, int):
                  npd = datetime.fromtimestamp(npd_val / 1000.0, tz=timezone.utc)
             
+            # Related Entity Mapping
+            related_id = data.get('relatedEntityId') or data.get('related_entity_id')
+            new_related_id = None
+            if related_id and related_id in vision_map:
+                new_related_id = vision_map[related_id]
+
             if not Subscription.objects.filter(user=django_user, name=name).exists():
                 Subscription.objects.create(
                     user=django_user,
@@ -204,13 +249,20 @@ class Command(BaseCommand):
                     frequency=data.get('frequency', 'monthly'),
                     next_payment_date=npd,
                     reminder_enabled=data.get('reminderEnabled', False),
-                    description=data.get('description', '')
+                    description=data.get('description', ''),
+                    related_entity_id=new_related_id
                 )
-            
+
         # 5. Budget
         self.stdout.write("Migrating Budget...")
-        # Assuming budget is a document per user or collection
+        # Try 'budgets' collection with doc ID = uid
         budget_ref = db.collection('budgets').document(firebase_uid).get()
+        if not budget_ref.exists:
+             # Try query
+             budget_docs, _ = self.get_user_docs(db, ['budgets'], firebase_uid)
+             if budget_docs:
+                 budget_ref = budget_docs[0] # Take first
+
         if budget_ref.exists:
             data = budget_ref.to_dict()
             budget, _ = Budget.objects.get_or_create(user=django_user)
