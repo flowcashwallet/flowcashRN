@@ -132,7 +132,7 @@ class Command(BaseCommand):
             
         # 2. Vision Entities (Assets/Liabilities) - MIGRATE BEFORE TRANSACTIONS
         self.stdout.write("Migrating Vision Entities...")
-        vision_docs, _ = self.get_user_docs(db, ['vision_entities', 'visionEntities', 'assets', 'liabilities'], firebase_uid)
+        vision_docs, _ = self.get_user_docs(db, ['vision', 'vision_entities', 'visionEntities', 'assets', 'liabilities'], firebase_uid)
         vision_map = {} # Map Firebase ID -> Django ID (string)
         
         for doc in vision_docs:
@@ -149,8 +149,12 @@ class Command(BaseCommand):
                 defaults={
                     'amount': amount,
                     'category': data.get('category', 'General'),
+                    'description': data.get('description', ''),
                     'is_crypto': data.get('isCrypto', False),
-                    'is_credit_card': data.get('isCreditCard', False)
+                    'is_credit_card': data.get('isCreditCard', False),
+                    'cutoff_date': data.get('cutoffDate'),
+                    'payment_date': data.get('paymentDate'),
+                    'issuer_bank': data.get('issuerBank')
                 }
             )
             
