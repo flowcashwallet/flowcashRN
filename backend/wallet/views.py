@@ -3,6 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from .models import Transaction, Budget, Category, Subscription, VisionEntity, GamificationStats
 from .serializers import TransactionSerializer, BudgetSerializer, CategorySerializer, SubscriptionSerializer, VisionEntitySerializer, GamificationStatsSerializer
+from .ml import predict_category_for_user
 
 class CategoryViewSet(viewsets.ModelViewSet):
     serializer_class = CategorySerializer
@@ -10,6 +11,23 @@ class CategoryViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return Category.objects.filter(user=self.request.user).order_by('name')
+    
+    @action(detail=False, methods=['post'], url_path='predict')
+    def predict(self, request):
+        """
+        Endpoint to predict category based on description.
+        Body: { "description": "Starbucks" }
+        """
+        description = request.data.get('description', '')
+        if not description:
+            return Response({"error": "Description is required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        predicted_category = predict_category_for_user(request.user, description)
+        
+        return Response({
+            "description": description,
+            "predicted_category": predicted_category
+        })
     
     @action(detail=False, methods=['post'])
     def batch_create(self, request):
