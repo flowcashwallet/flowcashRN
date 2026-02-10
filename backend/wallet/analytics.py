@@ -110,40 +110,42 @@ def calculate_burn_rate(user, days=180):
 def predict_runway(user):
     """
     Predicts when the user will run out of budget for the current month.
+    Uses 'Wallet Logic' (Cash on Hand) for the starting balance:
+    Remaining = Sum(Income Transactions) - Sum(Expense Transactions)
     """
     today = timezone.now()
     current_month = today.month
     current_year = today.year
     
-    # 1. Get Total Disposable Budget for the Month
-    try:
-        budget = Budget.objects.get(user=user)
-        monthly_income = float(budget.monthly_income)
-        
-        fixed_expenses = FixedExpense.objects.filter(budget=budget).aggregate(Sum('amount'))['amount__sum'] or 0
-        fixed_expenses = float(fixed_expenses)
-        
-        disposable_budget = monthly_income - fixed_expenses
-    except Budget.DoesNotExist:
-        return {
-            "error": "Budget not set up",
-            "has_budget": False
-        }
-
-    # 2. Get Current Month Expenses (Variable)
-    # Use TOTAL expenses (absolute truth) for budget depletion calculation.
-    # Do NOT use IQR here, otherwise legitimate large purchases (e.g. 18k laptop) are hidden.
+    # 1. Calculate Actual Balance (Wallet Logic)
+    # Filter by current month
     start_of_month = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     
-    current_month_expenses = get_total_expenses_sum(user, start_of_month, today)
+    # We need both Income and Expense totals
+    # Note: get_total_expenses_sum already handles expenses
     
-    remaining_budget = disposable_budget - current_month_expenses
+    month_txs = Transaction.objects.filter(
+        user=user,
+        date__year=current_year,
+        date__month=current_month
+    )
     
-    # 3. Calculate Burn Rate (Spending Speed)
+    total_income = month_txs.filter(type='income').aggregate(Sum('amount'))['amount__sum'] or 0
+    total_income = float(total_income)
+    
+    # Use TOTAL expenses (absolute truth)
+    # We can reuse get_total_expenses_sum logic or just sum directly here.
+    # get_total_expenses_sum filters by DATE RANGE, which is safer if we want exact times.
+    total_expenses = get_total_expenses_sum(user, start_of_month, today)
+    
+    # This is the "Balance Total" from the Wallet Screen
+    remaining_budget = total_income - total_expenses
+    
+    # 2. Calculate Burn Rate (Spending Speed)
     # Use "Smart" logic (IQR) to exclude one-off outliers so the daily rate represents "Typical Day"
     daily_burn_rate = calculate_burn_rate(user, days=60)
     
-    # 4. Forecast
+    # 3. Forecast
     current_day = today.day
     days_in_month = monthrange(current_year, current_month)[1]
     days_left_in_month = days_in_month - current_day
@@ -173,8 +175,8 @@ def predict_runway(user):
 
     return {
         "has_budget": True,
-        "disposable_budget": disposable_budget,
-        "current_expenses": current_month_expenses,
+        "disposable_budget": total_income, # Replacing disposable_budget with Actual Income
+        "current_expenses": total_expenses,
         "remaining_budget": remaining_budget,
         "daily_burn_rate": daily_burn_rate,
         "status": status, # safe, warning, danger
