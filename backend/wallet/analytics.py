@@ -54,13 +54,80 @@ def calculate_burn_rate(user, days=180):
         Q(description__icontains='spei')
     )
 
-    total_expenses = Transaction.objects.filter(
+    # SMART ANALYSIS: Fetch all transactions to perform outlier detection
+    # Instead of a simple Sum, we fetch the values to analyze the distribution
+    transactions = Transaction.objects.filter(
         user=user,
         type='expense',
         date__range=[start_date, end_date]
-    ).exclude(exclusion_filter).aggregate(Sum('amount'))['amount__sum'] or 0
+    ).exclude(exclusion_filter).values('amount', 'date')
     
-    daily_burn_rate = float(total_expenses) / effective_days
+    if not transactions:
+        return 0
+        
+    # Group by day to find daily spend
+    daily_totals = {}
+    for tx in transactions:
+        # Normalize to date (ignore time)
+        date_key = tx['date'].date()
+        amount = float(tx['amount'])
+        daily_totals[date_key] = daily_totals.get(date_key, 0) + amount
+        
+    # Extract daily values
+    daily_values = list(daily_totals.values())
+    
+    # If we have enough data points (e.g. > 5 days), apply Outlier Detection (IQR)
+    # This removes massive spikes (like a 20k transfer labeled as expense) that skew the average
+    if len(daily_values) >= 5:
+        sorted_values = sorted(daily_values)
+        n = len(sorted_values)
+        
+        # Calculate Q1 and Q3
+        q1_index = int(n * 0.25)
+        q3_index = int(n * 0.75)
+        q1 = sorted_values[q1_index]
+        q3 = sorted_values[q3_index]
+        
+        iqr = q3 - q1
+        
+        # Upper Fence for Outliers (Extreme Spikes)
+        # We use 3.0 * IQR for "Extreme" outliers to be conservative (don't remove high-but-normal days)
+        # Or 1.5 * IQR for standard outliers. Given budget context, spikes are usually transfers.
+        upper_fence = q3 + (1.5 * iqr)
+        
+        # Filter out extreme days
+        cleaned_values = [v for v in daily_values if v <= upper_fence]
+        
+        # Recalculate Total from cleaned data
+        total_expenses = sum(cleaned_values)
+        
+        # Adjust effective days? 
+        # If we removed days, should we reduce the denominator?
+        # No, because we want the "Average Daily Spend" over the PERIOD.
+        # If I spent 20k on Day 1 (Outlier) and $100 on Day 2...Day 30.
+        # The Outlier means "This doesn't happen usually".
+        # So my "Typical Burn Rate" is based on the $100 days.
+        # So we keep the denominator as the full period (effective_days) 
+        # OR we treat the outlier as $0 spend for that day?
+        # Better: We use the Average of the Cleaned Values as the Burn Rate.
+        if cleaned_values:
+            daily_burn_rate = sum(cleaned_values) / len(cleaned_values)
+            # But wait, this assumes we have data for EVERY day.
+            # If we only have data for 10 days out of 60.
+            # Average of Cleaned Values = Avg Spend ON DAYS I SPEND.
+            # But Burn Rate is "Spend per Calendar Day".
+            
+            # Correct approach:
+            # 1. Total Cleaned Expenses / effective_days
+            daily_burn_rate = float(total_expenses) / effective_days
+        else:
+            daily_burn_rate = 0
+            
+    else:
+        # Not enough data for smart analysis, use simple average
+        total_expenses = sum(daily_values)
+        daily_burn_rate = float(total_expenses) / effective_days
+        
     return daily_burn_rate
 
 def predict_runway(user):
