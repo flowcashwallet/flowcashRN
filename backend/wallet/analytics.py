@@ -117,19 +117,25 @@ def predict_runway(user):
     current_month = today.month
     current_year = today.year
     
-    # 1. Calculate Actual Balance (Wallet Logic)
-    # Use All-Time transactions to get the true "Cash on Hand" (Account Balance).
-    # This ensures we account for carryover, debt, or savings from previous months.
+    # 1. Calculate Actual Balance (Wallet Logic) - MONTHLY SCOPE
+    # The user explicitly requested to consider ONLY the current month for the balance calculation.
+    # "Balance Total" in Wallet for a specific month = Monthly Income - Monthly Expenses.
     
-    # We need both Income and Expense totals
-    all_txs = Transaction.objects.filter(user=user)
+    start_of_month = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     
-    total_income = all_txs.filter(type='income').aggregate(Sum('amount'))['amount__sum'] or 0
+    # We need both Income and Expense totals for the CURRENT MONTH
+    month_txs = Transaction.objects.filter(
+        user=user,
+        date__year=current_year,
+        date__month=current_month
+    )
+    
+    total_income = month_txs.filter(type='income').aggregate(Sum('amount'))['amount__sum'] or 0
     total_income = float(total_income)
     
-    # Use RAW TOTAL expenses (including transfers, cc payments, etc.)
-    # This represents the actual Cash Outflow from the account.
-    total_outflow = all_txs.filter(type='expense').aggregate(Sum('amount'))['amount__sum'] or 0
+    # Use RAW TOTAL expenses for the month
+    # This matches the "Gastos" figure in the Wallet screen for the month.
+    total_outflow = month_txs.filter(type='expense').aggregate(Sum('amount'))['amount__sum'] or 0
     total_outflow = float(total_outflow)
     
     # This is the "Balance Total" from the Wallet Screen (Income - All Outflows)
