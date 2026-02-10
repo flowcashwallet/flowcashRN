@@ -116,42 +116,58 @@ def predict_runway(user):
     Predicts when the user will run out of budget for the current month.
     Uses 'Wallet Logic' (Cash on Hand) for the starting balance:
     Remaining = Sum(Income Transactions) - Sum(Expense Transactions)
+    
+    CRITICAL: Respects User Timezone (Default: Mexico City) to match Frontend.
     """
-    today = timezone.now()
-    current_month = today.month
-    current_year = today.year
+    # 1. Define Timezone and Dates (Local vs UTC)
+    # Default to Mexico City as per user context (CST/CDT)
+    user_tz = zoneinfo.ZoneInfo("America/Mexico_City")
+    now_utc = timezone.now()
+    now_local = now_utc.astimezone(user_tz)
     
-    # 1. Calculate Actual Balance (Wallet Logic) - MONTHLY SCOPE
-    # The user explicitly requested to consider ONLY the current month for the balance calculation.
-    # "Balance Total" in Wallet for a specific month = Monthly Income - Monthly Expenses.
+    current_year = now_local.year
+    current_month = now_local.month
     
-    start_of_month = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    # Calculate start of month in LOCAL time
+    start_of_month_local = now_local.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     
-    # We need both Income and Expense totals for the CURRENT MONTH
+    # Calculate start of NEXT month in LOCAL time
+    if current_month == 12:
+        next_month_year = current_year + 1
+        next_month_month = 1
+    else:
+        next_month_year = current_year
+        next_month_month = current_month + 1
+        
+    start_of_next_month_local = start_of_month_local.replace(year=next_month_year, month=next_month_month)
+    
+    # Convert range to UTC for database query
+    start_utc = start_of_month_local.astimezone(datetime.timezone.utc)
+    end_utc = start_of_next_month_local.astimezone(datetime.timezone.utc)
+    
+    # 2. Fetch Transactions for Local Month
     month_txs = Transaction.objects.filter(
         user=user,
-        date__year=current_year,
-        date__month=current_month
+        date__gte=start_utc,
+        date__lt=end_utc
     )
     
     total_income = month_txs.filter(type='income').aggregate(Sum('amount'))['amount__sum'] or 0
     total_income = float(total_income)
     
     # Use RAW TOTAL expenses for the month
-    # This matches the "Gastos" figure in the Wallet screen for the month.
     total_outflow = month_txs.filter(type='expense').aggregate(Sum('amount'))['amount__sum'] or 0
     total_outflow = float(total_outflow)
     
     # This is the "Balance Total" from the Wallet Screen (Income - All Outflows)
     remaining_budget = total_income - total_outflow
     
-    # 2. Calculate Burn Rate (Spending Speed)
+    # 3. Calculate Burn Rate (Spending Speed)
     # Use "Smart" logic (IQR) to exclude one-off outliers so the daily rate represents "Typical Day"
-    # Note: Burn Rate represents "Consumption Speed", so we KEEP using the filtered/adjusted expenses here.
     daily_burn_rate = calculate_burn_rate(user, days=60)
     
-    # 3. Forecast
-    current_day = today.day
+    # 4. Forecast
+    current_day = now_local.day  # Use local day
     days_in_month = monthrange(current_year, current_month)[1]
     days_left_in_month = days_in_month - current_day
     
@@ -171,7 +187,7 @@ def predict_runway(user):
         if days_until_zero < days_left_in_month:
             status = "warning"
             # Calculate exact date
-            runout_date = today + datetime.timedelta(days=int(days_until_zero))
+            runout_date = now_local + datetime.timedelta(days=int(days_until_zero))
             forecast_date = runout_date.strftime("%Y-%m-%d")
             message = f"Basado en tus gastos recientes, predecimos que tu presupuesto se acabará el {runout_date.day} de este mes."
         else:
@@ -180,11 +196,11 @@ def predict_runway(user):
 
     return {
         "has_budget": True,
-        "disposable_budget": total_income, # Replacing disposable_budget with Actual Income
+        "disposable_budget": total_income,
         "current_expenses": total_outflow,
         "remaining_budget": remaining_budget,
         "daily_burn_rate": daily_burn_rate,
-        "status": status, # safe, warning, danger
+        "status": status,
         "forecast_date": forecast_date,
         "message": message
     }
