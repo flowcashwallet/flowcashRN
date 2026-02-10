@@ -11,18 +11,27 @@ def calculate_burn_rate(user, days=180):
     """
     end_date = timezone.now()
     
-    # Check first transaction date to adjust 'days' if history is short
-    first_transaction = Transaction.objects.filter(user=user, type='expense').order_by('date').first()
+    # Check first transaction date (ANY type) to adjust 'days' if history is short
+    # This establishes the true "Account Age"
+    first_transaction = Transaction.objects.filter(user=user).order_by('date').first()
     
     if not first_transaction:
         return 0
         
-    days_since_start = (end_date - first_transaction.date).days
+    days_since_start = (end_date.date() - first_transaction.date.date()).days
     if days_since_start < 1:
         days_since_start = 1
         
     # Use the smaller of requested days or actual history
     effective_days = min(days, days_since_start)
+    
+    # SMOOTHING: If history is short (likely new user), assume expenses are spread over 
+    # the current month's elapsed days to avoid "Day 1 Panic" (e.g. spending 30k on Day 1 != 30k/day forever)
+    # Only apply if we are predicting within a monthly context (which we are)
+    current_day_of_month = end_date.day
+    if effective_days < current_day_of_month:
+        effective_days = current_day_of_month
+        
     if effective_days < 1:
         effective_days = 1
         
