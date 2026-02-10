@@ -7,13 +7,15 @@ import { MonthYearPickerModal } from "@/features/wallet/components/MonthYearPick
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import React, { useState } from "react";
 import {
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { useAnalyticsData } from "../hooks/useAnalyticsData";
+import { useForecasting } from "../hooks/useForecasting";
 
 import { BudgetRunwayCard } from "../components/BudgetRunwayCard";
 
@@ -34,7 +36,17 @@ export default function AnalyticsScreen() {
     setSelectedDate,
     currentMonthName,
     currentYear,
+    onRefresh: onRefreshAnalytics,
+    refreshing: refreshingAnalytics,
   } = useAnalyticsData();
+
+  const {
+    forecast,
+    loading: loadingForecast,
+    refresh: refreshForecast,
+  } = useForecasting();
+
+  const [refreshing, setRefreshing] = useState(false);
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
   const [datePickerVisible, setDatePickerVisible] = useState(false);
@@ -44,11 +56,29 @@ export default function AnalyticsScreen() {
     setExpandedCategory((prev) => (prev === category ? null : category));
   };
 
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([onRefreshAnalytics(), refreshForecast()]);
+    } catch (error) {
+      console.error("Error refreshing analytics screen:", error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   return (
     <ThemedView style={styles.container}>
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+          />
+        }
       >
         {/* Month Selector Header */}
         <View
@@ -75,7 +105,7 @@ export default function AnalyticsScreen() {
         </View>
 
         {/* Predicción de Flujo (Forecasting) */}
-        <BudgetRunwayCard />
+        <BudgetRunwayCard forecast={forecast} loading={loadingForecast} />
 
         {/* Consejos */}
         <View style={styles.section}>
@@ -101,59 +131,32 @@ export default function AnalyticsScreen() {
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
             Gastos Recurrentes
           </Text>
-          <Card variant="elevated">
-            {recurringExpenses.length === 0 ? (
-              <Text
-                style={{
-                  color: colors.textSecondary,
-                  textAlign: "center",
-                  padding: Spacing.s,
-                }}
-              >
-                No se encontraron gastos recurrentes aún.
-              </Text>
-            ) : (
-              recurringExpenses.map((expense, index) => (
-                <View
-                  key={index}
+          {recurringExpenses.length === 0 ? (
+            <Text style={{ color: colors.textSecondary }}>
+              No hay gastos recurrentes detectados.
+            </Text>
+          ) : (
+            recurringExpenses.map((expense, index) => (
+              <Card key={index} variant="outlined" style={styles.expenseCard}>
+                <View style={styles.expenseHeader}>
+                  <Text style={[styles.expenseName, { color: colors.text }]}>
+                    {expense.description}
+                  </Text>
+                  <Text style={[styles.expenseAmount, { color: colors.text }]}>
+                    ${expense.averageAmount.toFixed(2)}
+                  </Text>
+                </View>
+                <Text
                   style={[
-                    styles.rowItem,
-                    { borderBottomColor: colors.border },
-                    index === recurringExpenses.length - 1 && {
-                      borderBottomWidth: 0,
-                    },
+                    styles.expenseFrequency,
+                    { color: colors.textSecondary },
                   ]}
                 >
-                  <View style={styles.rowContent}>
-                    <Text style={[styles.itemTitle, { color: colors.text }]}>
-                      {expense.description}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.itemSubtitle,
-                        { color: colors.textSecondary },
-                      ]}
-                    >
-                      {expense.count} transacciones
-                    </Text>
-                  </View>
-                  <View style={{ alignItems: "flex-end" }}>
-                    <Text style={[styles.amount, { color: colors.text }]}>
-                      ${expense.averageAmount.toFixed(2)}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.itemSubtitle,
-                        { color: colors.textSecondary, fontSize: 10 },
-                      ]}
-                    >
-                      promedio
-                    </Text>
-                  </View>
-                </View>
-              ))
-            )}
-          </Card>
+                  Promedio mensual
+                </Text>
+              </Card>
+            ))
+          )}
         </View>
 
         {/* Top Categorías */}
@@ -161,145 +164,119 @@ export default function AnalyticsScreen() {
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
             Top Categorías
           </Text>
-          <Card variant="elevated">
-            {topCategories.length === 0 ? (
-              <Text
-                style={{
-                  color: colors.textSecondary,
-                  textAlign: "center",
-                  padding: Spacing.s,
-                }}
-              >
-                No hay datos suficientes.
-              </Text>
-            ) : (
-              topCategories.map((cat, index) => (
+          {topCategories.length === 0 ? (
+            <Text style={{ color: colors.textSecondary }}>
+              No hay gastos registrados este mes.
+            </Text>
+          ) : (
+            topCategories.map((category, index) => (
+              <Card key={index} variant="outlined" style={styles.categoryCard}>
                 <TouchableOpacity
-                  key={index}
-                  onPress={() => handleCategoryPress(cat.category)}
-                  activeOpacity={0.7}
-                  style={[
-                    styles.categoryItem,
-                    index === topCategories.length - 1 && { marginBottom: 0 },
-                  ]}
+                  style={styles.categoryHeader}
+                  onPress={() => handleCategoryPress(category.category)}
                 >
-                  <View style={styles.categoryHeader}>
-                    <View
-                      style={{ flexDirection: "row", alignItems: "center" }}
+                  <View style={styles.categoryInfo}>
+                    <Text style={[styles.categoryName, { color: colors.text }]}>
+                      {category.category}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.categoryPercentage,
+                        { color: colors.textSecondary },
+                      ]}
                     >
-                      <IconSymbol
-                        name={
-                          expandedCategory === cat.category
-                            ? "chevron.down"
-                            : "chevron.right"
-                        }
-                        size={16}
-                        color={colors.textSecondary}
-                        style={{ marginRight: 8 }}
-                      />
-                      <Text
-                        style={[styles.categoryName, { color: colors.text }]}
-                      >
-                        {cat.category}
-                      </Text>
-                    </View>
+                      {category.percentage.toFixed(1)}%
+                    </Text>
+                  </View>
+                  <View style={styles.categoryAmountContainer}>
                     <Text
                       style={[styles.categoryAmount, { color: colors.text }]}
                     >
-                      ${cat.totalAmount.toFixed(2)}
+                      ${category.totalAmount.toFixed(2)}
                     </Text>
-                  </View>
-                  <View
-                    style={[
-                      styles.progressBarBackground,
-                      { backgroundColor: colors.background },
-                    ]}
-                  >
-                    <View
-                      style={[
-                        styles.progressBarFill,
-                        {
-                          backgroundColor: colors.primary,
-                          width: `${cat.percentage}%`,
-                        },
-                      ]}
+                    <IconSymbol
+                      name={
+                        expandedCategory === category.category
+                          ? "chevron.up"
+                          : "chevron.down"
+                      }
+                      size={16}
+                      color={colors.textSecondary}
                     />
                   </View>
-                  <Text
-                    style={[styles.percentage, { color: colors.textSecondary }]}
-                  >
-                    {cat.percentage.toFixed(1)}% del total
-                  </Text>
+                </TouchableOpacity>
 
-                  {/* Transactions Dropdown */}
-                  {expandedCategory === cat.category && (
-                    <View
-                      style={{
-                        marginTop: Spacing.m,
-                        paddingLeft: Spacing.m,
-                        borderLeftWidth: 2,
-                        borderLeftColor: colors.border,
-                      }}
-                    >
-                      {cat.transactions.map((t) => (
+                {/* Expanded Details - Transactions List */}
+                {expandedCategory === category.category && (
+                  <View
+                    style={{
+                      marginTop: 12,
+                      paddingTop: 12,
+                      borderTopWidth: 1,
+                      borderTopColor: colors.border,
+                    }}
+                  >
+                    {category.transactions &&
+                    category.transactions.length > 0 ? (
+                      category.transactions.map((tx, txIndex) => (
                         <View
-                          key={t.id}
+                          key={tx.id}
                           style={{
-                            marginBottom: Spacing.s,
-                            paddingBottom: Spacing.s,
-                            borderBottomWidth: 1,
-                            borderBottomColor: colors.border,
+                            flexDirection: "row",
+                            justifyContent: "space-between",
+                            marginBottom: 8,
                           }}
                         >
-                          <View
-                            style={{
-                              flexDirection: "row",
-                              justifyContent: "space-between",
-                            }}
-                          >
+                          <View style={{ flex: 1 }}>
                             <Text
-                              style={{
-                                color: colors.text,
-                                fontSize: FontSize.s,
-                                flex: 1,
-                              }}
+                              style={{ fontSize: 14, color: colors.text }}
                               numberOfLines={1}
                             >
-                              {t.description}
+                              {tx.description}
                             </Text>
                             <Text
                               style={{
-                                color: colors.text,
-                                fontWeight: "bold",
-                                fontSize: FontSize.s,
+                                fontSize: 12,
+                                color: colors.textSecondary,
                               }}
                             >
-                              ${t.amount.toFixed(2)}
+                              {new Date(tx.date).toLocaleDateString()}
                             </Text>
                           </View>
                           <Text
                             style={{
-                              color: colors.textSecondary,
-                              fontSize: FontSize.xs,
-                              marginTop: 2,
+                              fontSize: 14,
+                              fontWeight: "600",
+                              color: colors.text,
                             }}
                           >
-                            {new Date(t.date).toLocaleDateString()}
+                            ${tx.amount.toFixed(2)}
                           </Text>
                         </View>
-                      ))}
-                    </View>
-                  )}
-                </TouchableOpacity>
-              ))
-            )}
-          </Card>
+                      ))
+                    ) : (
+                      <Text
+                        style={{
+                          fontSize: 12,
+                          color: colors.textSecondary,
+                          fontStyle: "italic",
+                        }}
+                      >
+                        No hay transacciones disponibles
+                      </Text>
+                    )}
+                  </View>
+                )}
+              </Card>
+            ))
+          )}
         </View>
       </ScrollView>
+
       <MonthYearPickerModal
         visible={datePickerVisible}
-        onClose={() => setDatePickerVisible(false)}
         selectedDate={selectedDate}
+        onClose={() => setDatePickerVisible(false)}
         onSelect={setSelectedDate}
       />
     </ThemedView>
@@ -312,7 +289,6 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: Spacing.m,
-    paddingBottom: 100,
   },
   section: {
     marginBottom: Spacing.l,
@@ -320,69 +296,67 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: FontSize.l,
     fontWeight: "bold",
-    marginBottom: Spacing.m,
+    marginBottom: Spacing.s,
   },
   tipCard: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: Spacing.s,
     gap: Spacing.m,
+    marginBottom: Spacing.s,
+    padding: Spacing.m,
   },
   tipText: {
     flex: 1,
-    fontSize: FontSize.m,
-    lineHeight: 22,
+    fontSize: FontSize.s,
   },
-  rowItem: {
+  expenseCard: {
+    marginBottom: Spacing.s,
+    padding: Spacing.m,
+  },
+  expenseHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: Spacing.m,
-    borderBottomWidth: 1,
+    marginBottom: 4,
   },
-  rowContent: {
-    flex: 1,
-  },
-  itemTitle: {
+  expenseName: {
     fontSize: FontSize.m,
     fontWeight: "600",
   },
-  itemSubtitle: {
-    fontSize: FontSize.s,
-    marginTop: 4,
-  },
-  amount: {
+  expenseAmount: {
     fontSize: FontSize.m,
-    fontWeight: "700",
+    fontWeight: "bold",
   },
-  categoryItem: {
-    marginBottom: Spacing.l,
+  expenseFrequency: {
+    fontSize: FontSize.xs,
+  },
+  categoryCard: {
+    marginBottom: Spacing.s,
+    padding: Spacing.m,
   },
   categoryHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 8,
+    alignItems: "center",
+  },
+  categoryInfo: {
+    flex: 1,
   },
   categoryName: {
     fontSize: FontSize.m,
-    fontWeight: "500",
+    fontWeight: "600",
+    marginBottom: 2,
+  },
+  categoryPercentage: {
+    fontSize: FontSize.xs,
+  },
+  categoryAmountContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   categoryAmount: {
     fontSize: FontSize.m,
-    fontWeight: "600",
-  },
-  progressBarBackground: {
-    height: 10,
-    borderRadius: 5,
-    overflow: "hidden",
-  },
-  progressBarFill: {
-    height: "100%",
-    borderRadius: 5,
-  },
-  percentage: {
-    fontSize: FontSize.xs,
-    marginTop: 4,
-    textAlign: "right",
+    fontWeight: "bold",
   },
 });

@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
-import { useSelector } from 'react-redux';
-import { endpoints, getAuthHeaders } from '@/services/api';
-import { RootState } from '@/store/store';
+import { endpoints, getAuthHeaders } from "@/services/api";
+import { RootState } from "@/store/store";
+import { useCallback, useEffect, useState } from "react";
+import { useSelector } from "react-redux";
 
 export interface ForecastData {
   has_budget: boolean;
@@ -9,7 +9,7 @@ export interface ForecastData {
   current_expenses: number;
   remaining_budget: number;
   daily_burn_rate: number;
-  status: 'safe' | 'warning' | 'danger';
+  status: "safe" | "warning" | "danger";
   forecast_date: string | null;
   message: string;
 }
@@ -19,21 +19,23 @@ export function useForecasting() {
   const [forecast, setForecast] = useState<ForecastData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const fetchForecast = useCallback(() => {
     if (!token) {
-        setLoading(false);
-        return;
+      setLoading(false);
+      return Promise.resolve();
     }
 
     setLoading(true);
-    fetch(endpoints.wallet.forecast, {
+    return fetch(endpoints.wallet.forecast, {
       headers: getAuthHeaders(token),
     })
       .then((res) => {
-        if (!res.ok) throw new Error('Failed to fetch forecast');
+        console.log("Raw forecast response:", res.formData);
+        if (!res.ok) throw new Error("Failed to fetch forecast");
         return res.json();
       })
       .then((data) => {
+        console.log("Processed forecast data:", data);
         setForecast(data);
       })
       .catch((err) => {
@@ -43,5 +45,9 @@ export function useForecasting() {
       .finally(() => setLoading(false));
   }, [token]);
 
-  return { forecast, loading };
+  useEffect(() => {
+    fetchForecast();
+  }, [fetchForecast]);
+
+  return { forecast, loading, refresh: fetchForecast };
 }

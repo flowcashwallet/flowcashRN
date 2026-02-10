@@ -1,7 +1,8 @@
 import STRINGS from "@/i18n/es.json";
-import { RootState } from "@/store/store";
+import { AppDispatch, RootState } from "@/store/store";
 import { useMemo, useState } from "react";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchTransactions } from "@/features/wallet/data/walletSlice";
 import {
   calculateRecurringExpenses,
   calculateTopCategories,
@@ -9,8 +10,10 @@ import {
 } from "../utils/analyticsUtils";
 
 export const useAnalyticsData = () => {
+  const dispatch = useDispatch<AppDispatch>();
   const { transactions } = useSelector((state: RootState) => state.wallet);
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [refreshing, setRefreshing] = useState(false);
 
   const currentMonth = selectedDate.getMonth();
   const currentYear = selectedDate.getFullYear();
@@ -38,6 +41,17 @@ export const useAnalyticsData = () => {
     [filteredTransactions],
   );
 
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+        await dispatch(fetchTransactions()).unwrap();
+    } catch (error) {
+        console.error("Failed to refresh transactions in analytics:", error);
+    } finally {
+        setRefreshing(false);
+    }
+  };
+
   return {
     recurringExpenses,
     topCategories,
@@ -47,5 +61,7 @@ export const useAnalyticsData = () => {
     setSelectedDate,
     currentMonthName,
     currentYear,
+    onRefresh,
+    refreshing,
   };
 };
