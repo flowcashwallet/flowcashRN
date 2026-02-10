@@ -257,7 +257,11 @@ export default function RegisterScreen() {
               />
 
               <View style={styles.termsContainer}>
-                <Checkbox checked={termsAccepted} onChange={setTermsAccepted} />
+                <Checkbox
+                  checked={termsAccepted}
+                  onChange={setTermsAccepted}
+                  testID="terms-checkbox"
+                />
                 <View style={{ flex: 1, marginLeft: Spacing.s }}>
                   <Typography variant="body" style={{ color: colors.text }}>
                     Acepto los{" "}

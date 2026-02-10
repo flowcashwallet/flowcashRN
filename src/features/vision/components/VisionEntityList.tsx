@@ -349,6 +349,10 @@ export const VisionEntityList: React.FC<VisionEntityListProps> = ({
       {/* Tabs Selector */}
       <View style={[styles.tabContainer, { backgroundColor: colors.surface }]}>
         <TouchableOpacity
+          testID="tab-asset"
+          accessibilityRole="tab"
+          accessibilityState={{ selected: activeTab === "asset" }}
+          accessibilityLabel={STRINGS.vision.assets}
           style={[
             styles.tab,
             {
@@ -370,6 +374,10 @@ export const VisionEntityList: React.FC<VisionEntityListProps> = ({
         </TouchableOpacity>
 
         <TouchableOpacity
+          testID="tab-liability"
+          accessibilityRole="tab"
+          accessibilityState={{ selected: activeTab === "liability" }}
+          accessibilityLabel={STRINGS.vision.liabilities}
           style={[
             styles.tab,
             {

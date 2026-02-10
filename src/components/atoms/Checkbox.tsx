@@ -9,15 +9,23 @@ interface CheckboxProps {
   checked: boolean;
   onChange: (checked: boolean) => void;
   error?: string;
+  testID?: string;
 }
 
-export function Checkbox({ label, checked, onChange, error }: CheckboxProps) {
+export function Checkbox({
+  label,
+  checked,
+  onChange,
+  error,
+  testID,
+}: CheckboxProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
 
   return (
     <View style={styles.container}>
       <TouchableOpacity
+        testID={testID}
         activeOpacity={0.8}
         onPress={() => onChange(!checked)}
         style={{ flexDirection: "row", alignItems: "center" }}
