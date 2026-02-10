@@ -99,6 +99,8 @@ export function RevolutPager() {
   const progress = useSharedValue(0);
   const buttonScale = useSharedValue(1);
   const buttonOpacity = useSharedValue(1);
+  const textOpacity = useSharedValue(1);
+  const textTranslateY = useSharedValue(0);
 
   // Background Interpolation
   const bgColors = TABS.map((t) =>
@@ -120,12 +122,25 @@ export function RevolutPager() {
     buttonOpacity.value = 0.5;
     buttonScale.value = withSpring(1, { damping: 12 });
     buttonOpacity.value = withTiming(1, { duration: 300 });
+
+    // Text Transition
+    textOpacity.value = 0;
+    textTranslateY.value = 10;
+    textOpacity.value = withTiming(1, { duration: 300 });
+    textTranslateY.value = withSpring(0, { damping: 12 });
   }, [activeIndex]);
 
   const buttonAnimatedStyle = useAnimatedStyle(() => {
     return {
       transform: [{ scale: buttonScale.value }],
       opacity: buttonOpacity.value,
+    };
+  });
+
+  const textAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      opacity: textOpacity.value,
+      transform: [{ translateY: textTranslateY.value }],
     };
   });
 
@@ -188,9 +203,13 @@ export function RevolutPager() {
               size={18}
               color={colors.textSecondary}
             />
-            <Text style={[styles.searchText, { color: colors.textSecondary }]}>
-              Search {TABS[activeIndex].title}
-            </Text>
+            <Animated.View style={textAnimatedStyle}>
+              <Text
+                style={[styles.searchText, { color: colors.textSecondary }]}
+              >
+                Search {TABS[activeIndex].title}
+              </Text>
+            </Animated.View>
           </View>
 
           <View style={styles.headerActions}>
@@ -206,7 +225,7 @@ export function RevolutPager() {
             <Animated.View style={[buttonAnimatedStyle, { marginLeft: 8 }]}>
               <TouchableOpacity style={styles.actionButton}>
                 <IconSymbol
-                  name="chart.xyaxis.line"
+                  name="arrow.triangle.2.circlepath"
                   size={28}
                   color={colors.text}
                 />
@@ -220,11 +239,10 @@ export function RevolutPager() {
       <Carousel
         ref={carouselRef}
         loop={false}
-        enabled={false} // Disable swipe gestures as per user request
+        enabled={true}
         width={width}
         height={height}
         data={TABS}
-        scrollAnimationDuration={0} // Instant jump for page content
         onProgressChange={(_, absoluteProgress) => {
           progress.value = absoluteProgress;
         }}
@@ -248,7 +266,7 @@ export function RevolutPager() {
         navigation={{ emit: () => ({ defaultPrevented: false }) } as any} // Mock navigation
         onTabPress={handleTabPress}
         insets={insets}
-        // scrollProgress removed to decouple indicator from page slide
+        scrollProgress={progress}
       />
     </Animated.View>
   );

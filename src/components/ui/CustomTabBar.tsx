@@ -44,16 +44,12 @@ const TabItem = ({
 
   useEffect(() => {
     if (isFocused) {
-      // Exaggerated bounce (Pop effect)
-      // Scale up to 1.4, then settle at 1.2
-      scale.value = withSequence(
-        withTiming(1.4, { duration: 150 }),
-        withSpring(1.2, {
-          mass: 0.5,
-          damping: 6, // Low damping = more bounce
-          stiffness: 300,
-        }),
-      );
+      // Subtle scale up for icon
+      scale.value = withSpring(1.2, {
+        mass: 0.5,
+        damping: 12,
+        stiffness: 250,
+      });
     } else {
       scale.value = withSpring(1, { mass: 0.5 });
     }
@@ -109,6 +105,7 @@ export function CustomTabBar({
   const [layout, setLayout] = useState({ width: 0, height: 0 });
 
   const translateX = useSharedValue(0);
+  const indicatorScale = useSharedValue(1);
 
   // Calculate tab width based on container width
   const tabWidth = layout.width / state.routes.length;
@@ -122,6 +119,12 @@ export function CustomTabBar({
           stiffness: 200,
         });
       }
+
+      // Indicator Bounce Effect: Scale up then settle
+      indicatorScale.value = withSequence(
+        withTiming(1.2, { duration: 150 }), // Stretch/Grow
+        withSpring(1, { damping: 12, stiffness: 200 }), // Bounce back
+      );
     }
   }, [state.index, tabWidth, scrollProgress]);
 
@@ -129,12 +132,18 @@ export function CustomTabBar({
   const animatedStyle = useAnimatedStyle(() => {
     if (tabWidth > 0 && scrollProgress) {
       return {
-        transform: [{ translateX: scrollProgress.value * tabWidth }],
+        transform: [
+          { translateX: scrollProgress.value * tabWidth },
+          { scaleX: indicatorScale.value }, // Apply bounce scale
+        ],
         width: tabWidth,
       };
     }
     return {
-      transform: [{ translateX: translateX.value }],
+      transform: [
+        { translateX: translateX.value },
+        { scaleX: indicatorScale.value }, // Apply bounce scale
+      ],
       width: tabWidth,
     };
   });
