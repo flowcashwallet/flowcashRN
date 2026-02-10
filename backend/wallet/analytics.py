@@ -1,6 +1,6 @@
 import datetime
 from django.utils import timezone
-from django.db.models import Sum
+from django.db.models import Sum, Q
 from calendar import monthrange
 from .models import Transaction, Budget, FixedExpense
 
@@ -29,10 +29,15 @@ def calculate_burn_rate(user, days=180):
     start_date = end_date - datetime.timedelta(days=effective_days)
     
     # Filter expenses in the effective period
+    # EXCLUDE transfers disguised as expenses (e.g., category='Transferencia')
     total_expenses = Transaction.objects.filter(
         user=user,
         type='expense',
         date__range=[start_date, end_date]
+    ).exclude(
+        Q(category__icontains='transferencia') | 
+        Q(category__icontains='transfer') |
+        Q(description__icontains='transferencia')
     ).aggregate(Sum('amount'))['amount__sum'] or 0
     
     daily_burn_rate = float(total_expenses) / effective_days
@@ -62,19 +67,24 @@ def predict_runway(user):
         }
 
     # 2. Get Current Month Expenses (Variable)
+    # EXCLUDE transfers disguised as expenses
     current_month_expenses = Transaction.objects.filter(
         user=user,
         type='expense',
         date__year=current_year,
         date__month=current_month
+    ).exclude(
+        Q(category__icontains='transferencia') | 
+        Q(category__icontains='transfer') |
+        Q(description__icontains='transferencia')
     ).aggregate(Sum('amount'))['amount__sum'] or 0
     current_month_expenses = float(current_month_expenses)
     
     remaining_budget = disposable_budget - current_month_expenses
     
     # 3. Calculate Burn Rate (Spending Speed)
-    # Use last 3 months (90 days) for a good recent trend, but adjust if history is short
-    daily_burn_rate = calculate_burn_rate(user, days=90)
+    # Use last 2 months (60 days) for a more precise recent trend
+    daily_burn_rate = calculate_burn_rate(user, days=60)
     
     # 4. Forecast
     current_day = today.day
