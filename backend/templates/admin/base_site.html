@@ -1,16 +1,16 @@
 {% extends "admin/base.html" %} {% block branding %}
 <h1 id="site-name">
-  <a href="{% url 'admin:index' %}">Wallet Admin (Fixed v4)</a>
+  <a href="{% url 'admin:index' %}">Wallet Admin (LTS Stable)</a>
 </h1>
 {% endblock %} {% block extrahead %} {{ block.super }}
 <style>
   /* 
-       🛠️ FIX NUCLEAR V4: Target User-Specified Class
-       User identified that `.changelist-form-container` is the flex parent.
+       🛠️ FIX: Layout para Django 4.2 LTS
+       Al volver a Django 4.2, recuperamos la estructura de 2 columnas:
+       #changelist (Padre) -> [ .changelist-form-container, #changelist-filter ]
     */
 
-  /* 1. Aplicar Flex al contenedor identificado por el usuario */
-  .changelist-form-container,
+  /* 1. El contenedor principal debe ser Flex Row */
   div#changelist {
     display: flex !important;
     flex-direction: row !important;
@@ -18,20 +18,21 @@
     justify-content: space-between !important;
   }
 
-  /* 2. Asegurar que el formulario (contenido) crezca */
-  #changelist-form,
-  .changelist-form-container > form {
+  /* 2. El contenido principal (tabla) debe crecer */
+  #changelist .changelist-form-container {
     flex-grow: 1 !important;
     flex-shrink: 1 !important;
     min-width: 0 !important;
     margin-right: 20px !important;
   }
 
-  /* 3. Forzar al filtro a la derecha */
-  #changelist-filter,
-  .changelist-form-container > #changelist-filter {
+  /* ¡IMPORTANTE! NO aplicar flex dentro del form-container, 
+       porque ahí queremos que el buscador quede ARRIBA de la tabla. */
+
+  /* 3. El filtro (sidebar) a la derecha con ancho fijo */
+  #changelist #changelist-filter {
     display: block !important;
-    position: relative !important;
+    position: static !important;
     width: 260px !important;
     min-width: 260px !important;
     flex: 0 0 260px !important;
@@ -40,20 +41,19 @@
     margin: 0 !important;
   }
 
-  /* Dark Mode */
+  /* Dark Mode Support */
   @media (prefers-color-scheme: dark) {
-    #changelist-filter {
+    #changelist #changelist-filter {
       background: #121212 !important;
     }
   }
 
-  /* Mobile Reset (<600px) */
-  @media (max-width: 600px) {
-    .changelist-form-container,
+  /* Mobile Reset (<768px) */
+  @media (max-width: 768px) {
     div#changelist {
       display: block !important;
     }
-    #changelist-filter {
+    #changelist #changelist-filter {
       width: 100% !important;
       margin-top: 20px !important;
     }
