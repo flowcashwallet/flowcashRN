@@ -6,13 +6,13 @@ import STRINGS from "@/i18n/es.json";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-    Platform,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Platform,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { MonthYearPickerModal } from "../components/MonthYearPickerModal";
 import { QuickActions } from "../components/QuickActions";
@@ -36,12 +36,10 @@ export default function WalletScreen() {
     colors,
     visionEntities,
     streak,
-    streakFreezes,
     repairedDays,
     categories,
     selectedDate,
     setSelectedDate,
-    forecast,
   } = useWalletData();
 
   const { deleteTransaction, deleteMonthlyTransactions } =
