@@ -118,31 +118,26 @@ def predict_runway(user):
     current_year = today.year
     
     # 1. Calculate Actual Balance (Wallet Logic)
-    # Filter by current month
-    start_of_month = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    # Use All-Time transactions to get the true "Cash on Hand" (Account Balance).
+    # This ensures we account for carryover, debt, or savings from previous months.
     
     # We need both Income and Expense totals
-    # Note: get_total_expenses_sum already handles expenses
+    all_txs = Transaction.objects.filter(user=user)
     
-    month_txs = Transaction.objects.filter(
-        user=user,
-        date__year=current_year,
-        date__month=current_month
-    )
-    
-    total_income = month_txs.filter(type='income').aggregate(Sum('amount'))['amount__sum'] or 0
+    total_income = all_txs.filter(type='income').aggregate(Sum('amount'))['amount__sum'] or 0
     total_income = float(total_income)
     
-    # Use TOTAL expenses (absolute truth)
-    # We can reuse get_total_expenses_sum logic or just sum directly here.
-    # get_total_expenses_sum filters by DATE RANGE, which is safer if we want exact times.
-    total_expenses = get_total_expenses_sum(user, start_of_month, today)
+    # Use RAW TOTAL expenses (including transfers, cc payments, etc.)
+    # This represents the actual Cash Outflow from the account.
+    total_outflow = all_txs.filter(type='expense').aggregate(Sum('amount'))['amount__sum'] or 0
+    total_outflow = float(total_outflow)
     
-    # This is the "Balance Total" from the Wallet Screen
-    remaining_budget = total_income - total_expenses
+    # This is the "Balance Total" from the Wallet Screen (Income - All Outflows)
+    remaining_budget = total_income - total_outflow
     
     # 2. Calculate Burn Rate (Spending Speed)
     # Use "Smart" logic (IQR) to exclude one-off outliers so the daily rate represents "Typical Day"
+    # Note: Burn Rate represents "Consumption Speed", so we KEEP using the filtered/adjusted expenses here.
     daily_burn_rate = calculate_burn_rate(user, days=60)
     
     # 3. Forecast
@@ -176,7 +171,7 @@ def predict_runway(user):
     return {
         "has_budget": True,
         "disposable_budget": total_income, # Replacing disposable_budget with Actual Income
-        "current_expenses": total_expenses,
+        "current_expenses": total_outflow,
         "remaining_budget": remaining_budget,
         "daily_burn_rate": daily_burn_rate,
         "status": status, # safe, warning, danger
