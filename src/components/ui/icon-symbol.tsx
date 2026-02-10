@@ -24,7 +24,9 @@ const MAPPING = {
   "chevron.left": "chevron-left",
   "chevron.down": "keyboard-arrow-down",
   "creditcard.fill": "account-balance-wallet",
+  creditcard: "credit-card",
   "chart.pie.fill": "pie-chart",
+  "chart.pie": "pie-chart-outline", // Corrected to standard suffix
   "eye.fill": "visibility",
   "eye.slash.fill": "visibility-off",
   "trash.fill": "delete",
@@ -39,9 +41,11 @@ const MAPPING = {
   "g.circle.fill": "public",
   pencil: "edit",
   "building.columns.fill": "account-balance",
+  "building.columns": "account-balance", // No outlined version easily available in standard material
   magnifyingglass: "search",
   "xmark.circle.fill": "cancel",
   "chart.bar.fill": "bar-chart",
+  "chart.bar": "bar-chart", // No outlined version easily available
   "lightbulb.fill": "lightbulb",
   "arrow.right.arrow.left": "swap-horiz",
   "questionmark.circle.fill": "help",

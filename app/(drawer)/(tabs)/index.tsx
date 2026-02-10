@@ -1,5 +1,5 @@
-import WalletScreen from '@/features/wallet/screens/WalletScreen';
+import { RevolutPager } from '@/components/navigation/RevolutPager';
 
 export default function HomeScreen() {
-  return <WalletScreen />;
+  return <RevolutPager />;
 }

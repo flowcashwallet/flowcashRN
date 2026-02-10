@@ -1,4 +1,5 @@
 import { Typography } from "@/components/atoms/Typography";
+import { SlidingTabSelector } from "@/components/ui/SlidingTabSelector";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { BorderRadius, Colors, Spacing } from "@/constants/theme";
 import { VisionEntity } from "@/features/vision/data/visionSlice";
@@ -7,11 +8,11 @@ import STRINGS from "@/i18n/es.json";
 import { formatCurrency } from "@/utils/format";
 import React, { useState } from "react";
 import {
-    LayoutAnimation,
-    Platform,
-    StyleSheet,
-    TouchableOpacity,
-    View,
+  LayoutAnimation,
+  Platform,
+  StyleSheet,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import Swipeable from "react-native-gesture-handler/Swipeable";
 
@@ -347,60 +348,14 @@ export const VisionEntityList: React.FC<VisionEntityListProps> = ({
   return (
     <View>
       {/* Tabs Selector */}
-      <View style={[styles.tabContainer, { backgroundColor: colors.surface }]}>
-        <TouchableOpacity
-          testID="tab-asset"
-          accessibilityRole="tab"
-          accessibilityState={{ selected: activeTab === "asset" }}
-          accessibilityLabel={STRINGS.vision.assets}
-          style={[
-            styles.tab,
-            {
-              backgroundColor:
-                activeTab === "asset" ? colors.surfaceActive : "transparent",
-            },
-          ]}
-          onPress={() => setActiveTab("asset")}
-        >
-          <Typography
-            variant="body"
-            weight="bold"
-            style={{
-              color: activeTab === "asset" ? colors.text : colors.textSecondary,
-            }}
-          >
-            {STRINGS.vision.assets}
-          </Typography>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          testID="tab-liability"
-          accessibilityRole="tab"
-          accessibilityState={{ selected: activeTab === "liability" }}
-          accessibilityLabel={STRINGS.vision.liabilities}
-          style={[
-            styles.tab,
-            {
-              backgroundColor:
-                activeTab === "liability"
-                  ? colors.surfaceActive
-                  : "transparent",
-            },
-          ]}
-          onPress={() => setActiveTab("liability")}
-        >
-          <Typography
-            variant="body"
-            weight="bold"
-            style={{
-              color:
-                activeTab === "liability" ? colors.text : colors.textSecondary,
-            }}
-          >
-            {STRINGS.vision.liabilities}
-          </Typography>
-        </TouchableOpacity>
-      </View>
+      <SlidingTabSelector
+        tabs={[
+          { key: "asset", label: STRINGS.vision.assets },
+          { key: "liability", label: STRINGS.vision.liabilities },
+        ]}
+        activeTab={activeTab}
+        onTabChange={(key) => setActiveTab(key as "asset" | "liability")}
+      />
 
       {/* Content */}
       {activeTab === "asset"
@@ -449,18 +404,5 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginRight: Spacing.m,
-  },
-  tabContainer: {
-    flexDirection: "row",
-    marginBottom: Spacing.m,
-    marginHorizontal: Spacing.m,
-    borderRadius: BorderRadius.l,
-    padding: 4,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: Spacing.s,
-    alignItems: "center",
-    borderRadius: BorderRadius.m,
   },
 });
