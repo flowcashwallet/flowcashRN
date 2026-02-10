@@ -7,6 +7,7 @@ import { formatCurrency } from "@/utils/format";
 import React, { useState } from "react";
 import { Platform, StyleSheet, TouchableOpacity, View } from "react-native";
 import { StreakInfo } from "../hooks/useStreak";
+import { ExportTransactions } from "./ExportTransactions";
 import { StreakBadge } from "./StreakBadge";
 
 interface WalletHeaderProps {
@@ -93,8 +94,7 @@ export const WalletHeader: React.FC<WalletHeaderProps> = ({
             />
           )}
         </TouchableOpacity>
-        {/* Placeholder View for alignment, replacing the trash icon */}
-        <View style={{ width: 40 }} />
+        <ExportTransactions />
       </View>
 
       <Typography variant="caption" style={{ color: colors.textSecondary }}>

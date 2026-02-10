@@ -9,6 +9,8 @@ export const endpoints = {
   },
   wallet: {
     transactions: `${API_BASE_URL}/wallet/transactions/`,
+    exportExcel: `${API_BASE_URL}/wallet/transactions/export/excel/`,
+    exportPdf: `${API_BASE_URL}/wallet/transactions/export/pdf/`,
     budget: `${API_BASE_URL}/wallet/budget/current/`,
     categories: `${API_BASE_URL}/wallet/categories/`,
     predictCategory: `${API_BASE_URL}/wallet/categories/predict/`,
