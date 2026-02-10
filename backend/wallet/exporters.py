@@ -1,5 +1,5 @@
 import openpyxl
-from openpyxl.styles import Font, Alignment, PatternFill
+from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 from openpyxl.utils import get_column_letter
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter, landscape
@@ -11,156 +11,275 @@ from io import BytesIO
 
 def export_transactions_to_excel(transactions):
     """
-    Generates an Excel file from a queryset of transactions.
+    Generates an Excel file from a queryset of transactions with a split view (Income vs Expenses).
     """
     workbook = openpyxl.Workbook()
     worksheet = workbook.active
     worksheet.title = "Transactions"
 
-    # Define headers
-    headers = ["Date", "Description", "Category", "Type", "Payment Type", "Amount"]
+    # Separate data
+    incomes = [t for t in transactions if t.type == 'income']
+    expenses = [t for t in transactions if t.type == 'expense']
+
+    # Styles
+    header_font = Font(bold=True, size=12, color="FFFFFF")
+    sub_header_font = Font(bold=True, color="FFFFFF")
     
-    # Style for headers
-    header_font = Font(bold=True, color="FFFFFF")
-    header_fill = PatternFill(start_color="4F46E5", end_color="4F46E5", fill_type="solid") # Indigo color
-    center_alignment = Alignment(horizontal="center")
+    green_fill = PatternFill(start_color="2E7D32", end_color="2E7D32", fill_type="solid") # Dark Green
+    red_fill = PatternFill(start_color="C62828", end_color="C62828", fill_type="solid") # Dark Red
+    
+    # Main Headers
+    worksheet.merge_cells('A1:B1')
+    cell_a1 = worksheet['A1']
+    cell_a1.value = "INGRESOS (INCOME)"
+    cell_a1.font = header_font
+    cell_a1.fill = green_fill
+    cell_a1.alignment = Alignment(horizontal='center')
 
-    # Write headers
-    for col_num, header in enumerate(headers, 1):
-        cell = worksheet.cell(row=1, column=col_num)
-        cell.value = header
-        cell.font = header_font
-        cell.fill = header_fill
-        cell.alignment = center_alignment
+    worksheet.merge_cells('D1:E1')
+    cell_d1 = worksheet['D1']
+    cell_d1.value = "GASTOS (EXPENSES)"
+    cell_d1.font = header_font
+    cell_d1.fill = red_fill
+    cell_d1.alignment = Alignment(horizontal='center')
 
-    # Write data
-    for row_num, transaction in enumerate(transactions, 2):
-        # Format date
-        date_str = transaction.date.strftime("%Y-%m-%d %H:%M") if transaction.date else ""
+    # Sub Headers
+    columns = [
+        ('A', "Descripción", green_fill), ('B', "Monto", green_fill),
+        ('D', "Descripción", red_fill), ('E', "Monto", red_fill)
+    ]
+    
+    for col, title, fill in columns:
+        cell = worksheet[f'{col}2']
+        cell.value = title
+        cell.font = sub_header_font
+        cell.fill = fill
+        cell.alignment = Alignment(horizontal='center')
+
+    # Data
+    max_rows = max(len(incomes), len(expenses))
+    
+    total_income = 0
+    total_expense = 0
+    
+    border_bottom = Border(bottom=Side(style='thin', color="CCCCCC"))
+
+    for i in range(max_rows):
+        row_num = i + 3
         
-        # Payment type display
-        payment_type_display = transaction.get_payment_type_display() if transaction.payment_type else ""
+        # Income
+        if i < len(incomes):
+            inc = incomes[i]
+            total_income += inc.amount
+            
+            # Description (combining Category + Description for context)
+            desc = f"{inc.category or 'General'}: {inc.description}"
+            cell_desc = worksheet[f'A{row_num}']
+            cell_desc.value = desc
+            cell_desc.border = border_bottom
+            
+            cell_amt = worksheet[f'B{row_num}']
+            cell_amt.value = inc.amount
+            cell_amt.number_format = '#,##0.00'
+            cell_amt.font = Font(color="2E7D32") # Green text
+            cell_amt.border = border_bottom
         
-        # Type display
-        type_display = transaction.get_type_display()
+        # Expense
+        if i < len(expenses):
+            exp = expenses[i]
+            total_expense += exp.amount
+            
+            desc = f"{exp.category or 'General'}: {exp.description}"
+            cell_desc = worksheet[f'D{row_num}']
+            cell_desc.value = desc
+            cell_desc.border = border_bottom
+            
+            cell_amt = worksheet[f'E{row_num}']
+            cell_amt.value = exp.amount
+            cell_amt.number_format = '#,##0.00'
+            cell_amt.font = Font(color="C62828") # Red text
+            cell_amt.border = border_bottom
 
-        row = [
-            date_str,
-            transaction.description,
-            transaction.category or "Uncategorized",
-            type_display,
-            payment_type_display,
-            transaction.amount
-        ]
+    # Totals
+    total_row = max_rows + 4
+    
+    thick_top = Border(top=Side(style='medium'))
 
-        for col_num, cell_value in enumerate(row, 1):
-            cell = worksheet.cell(row=row_num, column=col_num)
-            cell.value = cell_value
-            if col_num == 6: # Amount column
-                 cell.number_format = '#,##0.00'
+    # Income Total
+    worksheet[f'A{total_row}'] = "TOTAL INGRESOS"
+    worksheet[f'A{total_row}'].font = Font(bold=True)
+    worksheet[f'A{total_row}'].border = thick_top
+    
+    cell = worksheet[f'B{total_row}']
+    cell.value = total_income
+    cell.number_format = '$#,##0.00'
+    cell.font = Font(bold=True, color="2E7D32")
+    cell.border = thick_top
 
-    # Auto-adjust column widths
-    for col_num, _ in enumerate(headers, 1):
-        column_letter = get_column_letter(col_num)
-        max_length = 0
-        for cell in worksheet[column_letter]:
-            try:
-                if len(str(cell.value)) > max_length:
-                    max_length = len(str(cell.value))
-            except:
-                pass
-        adjusted_width = (max_length + 2)
-        worksheet.column_dimensions[column_letter].width = adjusted_width
+    # Expense Total
+    worksheet[f'D{total_row}'] = "TOTAL GASTOS"
+    worksheet[f'D{total_row}'].font = Font(bold=True)
+    worksheet[f'D{total_row}'].border = thick_top
+    
+    cell = worksheet[f'E{total_row}']
+    cell.value = total_expense
+    cell.number_format = '$#,##0.00'
+    cell.font = Font(bold=True, color="C62828")
+    cell.border = thick_top
+
+    # Net Balance
+    net_row = total_row + 2
+    net_val = total_income - total_expense
+    worksheet.merge_cells(f'A{net_row}:E{net_row}')
+    cell = worksheet[f'A{net_row}']
+    cell.value = f"BALANCE NETO: ${net_val:,.2f}"
+    cell.font = Font(bold=True, size=14, color="000000" if net_val >= 0 else "C62828")
+    cell.alignment = Alignment(horizontal='center')
+
+    # Column Widths
+    worksheet.column_dimensions['A'].width = 40
+    worksheet.column_dimensions['B'].width = 15
+    worksheet.column_dimensions['C'].width = 3 # Spacer
+    worksheet.column_dimensions['D'].width = 40
+    worksheet.column_dimensions['E'].width = 15
 
     # Generate response
     response = HttpResponse(
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     )
-    response['Content-Disposition'] = f'attachment; filename=transactions_{datetime.now().strftime("%Y%m%d")}.xlsx'
+    response['Content-Disposition'] = f'attachment; filename=transactions_split_{datetime.now().strftime("%Y%m%d")}.xlsx'
     
     workbook.save(response)
     return response
 
 def export_vision_to_excel(entities):
     """
-    Generates an Excel file from a queryset of VisionEntities (Assets/Liabilities).
+    Generates an Excel file from a queryset of VisionEntities (Assets/Liabilities) in split view.
     """
     workbook = openpyxl.Workbook()
     worksheet = workbook.active
     worksheet.title = "Balance Sheet"
 
-    # Define headers
-    headers = ["Name", "Type", "Category", "Amount", "Description"]
+    # Separate data
+    assets = [e for e in entities if e.type == 'asset']
+    liabilities = [e for e in entities if e.type == 'liability']
     
-    # Style for headers
-    header_font = Font(bold=True, color="FFFFFF")
-    header_fill = PatternFill(start_color="4F46E5", end_color="4F46E5", fill_type="solid") # Indigo color
-    center_alignment = Alignment(horizontal="center")
+    # Styles
+    header_font = Font(bold=True, size=12, color="FFFFFF")
+    sub_header_font = Font(bold=True, color="FFFFFF")
+    
+    green_fill = PatternFill(start_color="2E7D32", end_color="2E7D32", fill_type="solid") # Dark Green
+    red_fill = PatternFill(start_color="C62828", end_color="C62828", fill_type="solid") # Dark Red
+    
+    # Main Headers
+    worksheet.merge_cells('A1:B1')
+    cell_a1 = worksheet['A1']
+    cell_a1.value = "ACTIVOS (ASSETS)"
+    cell_a1.font = header_font
+    cell_a1.fill = green_fill
+    cell_a1.alignment = Alignment(horizontal='center')
 
-    # Write headers
-    for col_num, header in enumerate(headers, 1):
-        cell = worksheet.cell(row=1, column=col_num)
-        cell.value = header
-        cell.font = header_font
-        cell.fill = header_fill
-        cell.alignment = center_alignment
+    worksheet.merge_cells('D1:E1')
+    cell_d1 = worksheet['D1']
+    cell_d1.value = "PASIVOS (LIABILITIES)"
+    cell_d1.font = header_font
+    cell_d1.fill = red_fill
+    cell_d1.alignment = Alignment(horizontal='center')
 
-    # Write data
+    # Sub Headers
+    columns = [
+        ('A', "Nombre", green_fill), ('B', "Monto", green_fill),
+        ('D', "Nombre", red_fill), ('E', "Monto", red_fill)
+    ]
+    
+    for col, title, fill in columns:
+        cell = worksheet[f'{col}2']
+        cell.value = title
+        cell.font = sub_header_font
+        cell.fill = fill
+        cell.alignment = Alignment(horizontal='center')
+
+    # Data
+    max_rows = max(len(assets), len(liabilities))
+    
     total_assets = 0
     total_liabilities = 0
-
-    for row_num, entity in enumerate(entities, 2):
-        type_display = entity.get_type_display()
-        
-        if entity.type == 'asset':
-            total_assets += entity.amount
-        elif entity.type == 'liability':
-            total_liabilities += entity.amount
-
-        row = [
-            entity.name,
-            type_display,
-            entity.category or "",
-            entity.amount,
-            entity.description or ""
-        ]
-
-        for col_num, cell_value in enumerate(row, 1):
-            cell = worksheet.cell(row=row_num, column=col_num)
-            cell.value = cell_value
-            if col_num == 4: # Amount column
-                 cell.number_format = '#,##0.00'
-
-    # Add Summary at the bottom
-    last_row = len(entities) + 4
     
-    summary_data = [
-        ("Total Assets", total_assets),
-        ("Total Liabilities", total_liabilities),
-        ("Net Worth", total_assets - total_liabilities)
-    ]
+    border_bottom = Border(bottom=Side(style='thin', color="CCCCCC"))
 
-    for i, (label, value) in enumerate(summary_data):
-        row = last_row + i
-        worksheet.cell(row=row, column=3).value = label
-        worksheet.cell(row=row, column=3).font = Font(bold=True)
-        cell = worksheet.cell(row=row, column=4)
-        cell.value = value
-        cell.number_format = '#,##0.00'
-        cell.font = Font(bold=True)
+    for i in range(max_rows):
+        row_num = i + 3
+        
+        # Asset
+        if i < len(assets):
+            asset = assets[i]
+            total_assets += asset.amount
+            
+            cell_name = worksheet[f'A{row_num}']
+            cell_name.value = asset.name
+            cell_name.border = border_bottom
+            
+            cell_amt = worksheet[f'B{row_num}']
+            cell_amt.value = asset.amount
+            cell_amt.number_format = '#,##0.00'
+            cell_amt.font = Font(color="2E7D32") # Green text
+            cell_amt.border = border_bottom
+        
+        # Liability
+        if i < len(liabilities):
+            liab = liabilities[i]
+            total_liabilities += liab.amount
+            
+            cell_name = worksheet[f'D{row_num}']
+            cell_name.value = liab.name
+            cell_name.border = border_bottom
+            
+            cell_amt = worksheet[f'E{row_num}']
+            cell_amt.value = liab.amount
+            cell_amt.number_format = '#,##0.00'
+            cell_amt.font = Font(color="C62828") # Red text
+            cell_amt.border = border_bottom
 
-    # Auto-adjust column widths
-    for col_num, _ in enumerate(headers, 1):
-        column_letter = get_column_letter(col_num)
-        max_length = 0
-        for cell in worksheet[column_letter]:
-            try:
-                if len(str(cell.value)) > max_length:
-                    max_length = len(str(cell.value))
-            except:
-                pass
-        adjusted_width = (max_length + 2)
-        worksheet.column_dimensions[column_letter].width = adjusted_width
+    # Totals
+    total_row = max_rows + 4
+    thick_top = Border(top=Side(style='medium'))
+    
+    # Asset Total
+    worksheet[f'A{total_row}'] = "TOTAL ACTIVOS"
+    worksheet[f'A{total_row}'].font = Font(bold=True)
+    worksheet[f'A{total_row}'].border = thick_top
+    
+    cell = worksheet[f'B{total_row}']
+    cell.value = total_assets
+    cell.number_format = '$#,##0.00'
+    cell.font = Font(bold=True, color="2E7D32")
+    cell.border = thick_top
+
+    # Liability Total
+    worksheet[f'D{total_row}'] = "TOTAL PASIVOS"
+    worksheet[f'D{total_row}'].font = Font(bold=True)
+    worksheet[f'D{total_row}'].border = thick_top
+    
+    cell = worksheet[f'E{total_row}']
+    cell.value = total_liabilities
+    cell.number_format = '$#,##0.00'
+    cell.font = Font(bold=True, color="C62828")
+    cell.border = thick_top
+
+    # Net Worth
+    net_row = total_row + 2
+    worksheet.merge_cells(f'A{net_row}:E{net_row}')
+    cell = worksheet[f'A{net_row}']
+    cell.value = f"PATRIMONIO NETO: ${total_assets - total_liabilities:,.2f}"
+    cell.font = Font(bold=True, size=14)
+    cell.alignment = Alignment(horizontal='center')
+
+    # Column Widths
+    worksheet.column_dimensions['A'].width = 30
+    worksheet.column_dimensions['B'].width = 15
+    worksheet.column_dimensions['C'].width = 3 # Spacer
+    worksheet.column_dimensions['D'].width = 30
+    worksheet.column_dimensions['E'].width = 15
 
     # Generate response
     response = HttpResponse(
