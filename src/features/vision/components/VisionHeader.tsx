@@ -1,5 +1,6 @@
 import { Typography } from "@/components/atoms/Typography";
 import { BorderRadius, Colors, Spacing } from "@/constants/theme";
+import { ExportTransactions } from "@/features/wallet/components/ExportTransactions";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import STRINGS from "@/i18n/es.json";
 import { formatCurrency } from "@/utils/format";
@@ -46,12 +47,19 @@ export const VisionHeader: React.FC<VisionHeaderProps> = ({
         },
       ]}
     >
-      <Typography
-        variant="h3"
-        style={{ color: colors.textSecondary, marginBottom: Spacing.xs }}
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: Spacing.xs,
+        }}
       >
-        {STRINGS.vision.netWorth}
-      </Typography>
+        <Typography variant="h3" style={{ color: colors.textSecondary }}>
+          {STRINGS.vision.netWorth}
+        </Typography>
+        <ExportTransactions type="vision" />
+      </View>
       <Typography
         variant="h1"
         weight="bold"
@@ -87,10 +95,16 @@ export const VisionHeader: React.FC<VisionHeaderProps> = ({
       <View style={styles.legendContainer}>
         <View style={styles.legendItem}>
           <View
-            style={[styles.legendIndicator, { backgroundColor: colors.success }]}
+            style={[
+              styles.legendIndicator,
+              { backgroundColor: colors.success },
+            ]}
           />
           <View>
-            <Typography variant="caption" style={{ color: colors.textSecondary }}>
+            <Typography
+              variant="caption"
+              style={{ color: colors.textSecondary }}
+            >
               {STRINGS.vision.assets}
             </Typography>
             <Typography
@@ -108,7 +122,10 @@ export const VisionHeader: React.FC<VisionHeaderProps> = ({
             style={[styles.legendIndicator, { backgroundColor: colors.error }]}
           />
           <View>
-            <Typography variant="caption" style={{ color: colors.textSecondary }}>
+            <Typography
+              variant="caption"
+              style={{ color: colors.textSecondary }}
+            >
               {STRINGS.vision.liabilities}
             </Typography>
             <Typography

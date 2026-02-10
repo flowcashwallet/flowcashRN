@@ -63,6 +63,24 @@ class VisionEntityViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return VisionEntity.objects.filter(user=self.request.user).order_by('-amount')
 
+    @action(detail=False, methods=['get'], url_path='export/excel')
+    def export_excel(self, request):
+        """
+        Exports filtered Vision entities to Excel.
+        """
+        queryset = self.filter_queryset(self.get_queryset())
+        from .exporters import export_vision_to_excel
+        return export_vision_to_excel(queryset)
+
+    @action(detail=False, methods=['get'], url_path='export/pdf')
+    def export_pdf(self, request):
+        """
+        Exports filtered Vision entities to PDF.
+        """
+        queryset = self.filter_queryset(self.get_queryset())
+        from .exporters import export_vision_to_pdf
+        return export_vision_to_pdf(queryset)
+
 class GamificationStatsViewSet(viewsets.ModelViewSet):
     serializer_class = GamificationStatsSerializer
     permission_classes = [permissions.IsAuthenticated]

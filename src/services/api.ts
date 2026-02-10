@@ -16,6 +16,8 @@ export const endpoints = {
     predictCategory: `${API_BASE_URL}/wallet/categories/predict/`,
     subscriptions: `${API_BASE_URL}/wallet/subscriptions/`,
     vision: `${API_BASE_URL}/wallet/vision/`,
+    exportVisionExcel: `${API_BASE_URL}/wallet/vision/export/excel/`,
+    exportVisionPdf: `${API_BASE_URL}/wallet/vision/export/pdf/`,
     gamification: `${API_BASE_URL}/wallet/gamification/current/`,
   },
 };

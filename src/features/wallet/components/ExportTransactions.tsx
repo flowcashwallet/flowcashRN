@@ -14,7 +14,11 @@ import {
 } from "react-native";
 import { useSelector } from "react-redux";
 
-export const ExportTransactions = () => {
+export const ExportTransactions = ({
+  type = "transactions",
+}: {
+  type?: "transactions" | "vision";
+}) => {
   const [isExporting, setIsExporting] = useState(false);
   const { token } = useSelector((state: RootState) => state.auth);
 
@@ -23,13 +27,26 @@ export const ExportTransactions = () => {
 
     try {
       setIsExporting(true);
-      const url =
-        format === "excel"
-          ? endpoints.wallet.exportExcel
-          : endpoints.wallet.exportPdf;
+
+      let url;
+      let filenamePrefix;
+
+      if (type === "vision") {
+        url =
+          format === "excel"
+            ? endpoints.wallet.exportVisionExcel
+            : endpoints.wallet.exportVisionPdf;
+        filenamePrefix = "balance_sheet";
+      } else {
+        url =
+          format === "excel"
+            ? endpoints.wallet.exportExcel
+            : endpoints.wallet.exportPdf;
+        filenamePrefix = "transactions";
+      }
 
       const extension = format === "excel" ? "xlsx" : "pdf";
-      const filename = `transactions_${new Date().toISOString().split("T")[0]}.${extension}`;
+      const filename = `${filenamePrefix}_${new Date().toISOString().split("T")[0]}.${extension}`;
       const fileUri = FileSystem.documentDirectory + filename;
 
       console.log(`Downloading ${format} to ${fileUri}...`);
@@ -83,7 +100,7 @@ export const ExportTransactions = () => {
       );
     } else {
       Alert.alert(
-        "Export Transactions",
+        type === "vision" ? "Export Balance Sheet" : "Export Transactions",
         "Choose a format",
         [
           { text: "Cancel", style: "cancel" },
