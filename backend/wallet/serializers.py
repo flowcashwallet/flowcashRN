@@ -22,6 +22,8 @@ class SubscriptionSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
 class VisionEntitySerializer(serializers.ModelSerializer):
+    amount = serializers.DecimalField(max_digits=15, decimal_places=2, required=False, default=0)
+
     class Meta:
         model = VisionEntity
         fields = '__all__'

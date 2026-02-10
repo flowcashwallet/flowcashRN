@@ -55,7 +55,7 @@ export const useVisionOperations = (userId?: string) => {
       userId,
       name: data.name,
       description: data.description,
-      amount: parseAmount(data.amount),
+      amount: data.amount ? parseAmount(data.amount) || 0 : 0,
       type: data.type,
       category: data.category,
       isCrypto: data.type === "asset" && data.isCrypto,
@@ -135,7 +135,6 @@ export const useVisionOperations = (userId?: string) => {
     try {
       await dispatch(
         addTransaction({
-          userId,
           amount: parseAmount(data.amount),
           description: data.description,
           type: data.type,
