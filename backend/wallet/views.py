@@ -91,6 +91,26 @@ class TransactionViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return Transaction.objects.filter(user=self.request.user).order_by('-date')
 
+    @action(detail=False, methods=['get'], url_path='export/excel')
+    def export_excel(self, request):
+        """
+        Exports filtered transactions to Excel.
+        Supports standard list filters (date, category, etc.)
+        """
+        queryset = self.filter_queryset(self.get_queryset())
+        from .exporters import export_transactions_to_excel
+        return export_transactions_to_excel(queryset)
+
+    @action(detail=False, methods=['get'], url_path='export/pdf')
+    def export_pdf(self, request):
+        """
+        Exports filtered transactions to PDF.
+        Supports standard list filters.
+        """
+        queryset = self.filter_queryset(self.get_queryset())
+        from .exporters import export_transactions_to_pdf
+        return export_transactions_to_pdf(queryset)
+
 class BudgetViewSet(viewsets.ModelViewSet):
     serializer_class = BudgetSerializer
     permission_classes = [permissions.IsAuthenticated]
