@@ -4,6 +4,18 @@ from rest_framework.response import Response
 from .models import Transaction, Budget, Category, Subscription, VisionEntity, GamificationStats
 from .serializers import TransactionSerializer, BudgetSerializer, CategorySerializer, SubscriptionSerializer, VisionEntitySerializer, GamificationStatsSerializer
 from .ml import predict_category_for_user
+from .analytics import predict_runway
+
+class AnalyticsViewSet(viewsets.ViewSet):
+    permission_classes = [permissions.IsAuthenticated]
+
+    @action(detail=False, methods=['get'])
+    def forecast(self, request):
+        """
+        Returns a cash flow forecast (runway prediction) based on historical spending.
+        """
+        result = predict_runway(request.user)
+        return Response(result)
 
 class CategoryViewSet(viewsets.ModelViewSet):
     serializer_class = CategorySerializer

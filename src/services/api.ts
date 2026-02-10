@@ -19,6 +19,7 @@ export const endpoints = {
     exportVisionExcel: `${API_BASE_URL}/wallet/vision/export/excel/`,
     exportVisionPdf: `${API_BASE_URL}/wallet/vision/export/pdf/`,
     gamification: `${API_BASE_URL}/wallet/gamification/current/`,
+    forecast: `${API_BASE_URL}/wallet/analytics/forecast/`,
   },
 };
 

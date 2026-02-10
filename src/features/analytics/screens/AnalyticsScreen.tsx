@@ -15,6 +15,8 @@ import {
 } from "react-native";
 import { useAnalyticsData } from "../hooks/useAnalyticsData";
 
+import { BudgetRunwayCard } from "../components/BudgetRunwayCard";
+
 const FontSize = {
   xs: 12,
   s: 14,
@@ -71,6 +73,9 @@ export default function AnalyticsScreen() {
             <IconSymbol name="chevron.down" size={24} color={colors.text} />
           </TouchableOpacity>
         </View>
+
+        {/* Predicción de Flujo (Forecasting) */}
+        <BudgetRunwayCard />
 
         {/* Consejos */}
         <View style={styles.section}>
