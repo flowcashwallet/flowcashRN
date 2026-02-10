@@ -4,6 +4,62 @@ from django.db.models import Sum, Q
 from calendar import monthrange
 from .models import Transaction, Budget, FixedExpense
 
+def get_exclusion_filter():
+    return (
+        Q(type='transfer') | 
+        Q(category__icontains='transfer') | 
+        Q(category__icontains='traspaso') |
+        Q(category__icontains='spei') |
+        Q(category__icontains='tarjeta de credito') |
+        Q(category__icontains='credit card') |
+        Q(category__icontains='abono') |
+        Q(description__icontains='transfer') |
+        Q(description__icontains='traspaso') |
+        Q(description__icontains='spei')
+    )
+
+def get_adjusted_expenses_sum(user, start_date, end_date):
+    """
+    Returns the total sum of expenses for a period, excluding:
+    1. Explicit transfers/keywords
+    2. Statistical outliers (IQR method) like massive mislabeled transfers
+    """
+    exclusion_filter = get_exclusion_filter()
+    
+    transactions = Transaction.objects.filter(
+        user=user,
+        type='expense',
+        date__range=[start_date, end_date]
+    ).exclude(exclusion_filter).values('amount', 'date')
+    
+    if not transactions:
+        return 0.0
+        
+    # Group by day
+    daily_totals = {}
+    for tx in transactions:
+        date_key = tx['date'].date()
+        amount = float(tx['amount'])
+        daily_totals[date_key] = daily_totals.get(date_key, 0) + amount
+        
+    daily_values = list(daily_totals.values())
+    
+    # Apply IQR Outlier Detection
+    if len(daily_values) >= 5:
+        sorted_values = sorted(daily_values)
+        n = len(sorted_values)
+        q1_index = int(n * 0.25)
+        q3_index = int(n * 0.75)
+        q1 = sorted_values[q1_index]
+        q3 = sorted_values[q3_index]
+        iqr = q3 - q1
+        upper_fence = q3 + (1.5 * iqr)
+        
+        cleaned_values = [v for v in daily_values if v <= upper_fence]
+        return sum(cleaned_values)
+    else:
+        return sum(daily_values)
+
 def calculate_burn_rate(user, days=180):
     """
     Calculates the average daily variable expense (burn rate) over the last N days.
@@ -12,7 +68,6 @@ def calculate_burn_rate(user, days=180):
     end_date = timezone.now()
     
     # Check first transaction date (ANY type) to adjust 'days' if history is short
-    # This establishes the true "Account Age"
     first_transaction = Transaction.objects.filter(user=user).order_by('date').first()
     
     if not first_transaction:
@@ -26,8 +81,7 @@ def calculate_burn_rate(user, days=180):
     effective_days = min(days, days_since_start)
     
     # SMOOTHING: If history is short (likely new user), assume expenses are spread over 
-    # the current month's elapsed days to avoid "Day 1 Panic" (e.g. spending 30k on Day 1 != 30k/day forever)
-    # Only apply if we are predicting within a monthly context (which we are)
+    # the current month's elapsed days to avoid "Day 1 Panic"
     current_day_of_month = end_date.day
     if effective_days < current_day_of_month:
         effective_days = current_day_of_month
@@ -37,96 +91,10 @@ def calculate_burn_rate(user, days=180):
         
     start_date = end_date - datetime.timedelta(days=effective_days)
     
-    # Filter expenses in the effective period
-    # EXCLUDE transfers disguised as expenses (e.g., category='Transferencia')
-    # Also exclude explicit 'transfer' type if it somehow got included (though type='expense' should filter it)
-    # And exclude common payment keywords that are not real spending (credit card payments, etc)
-    exclusion_filter = (
-        Q(type='transfer') | 
-        Q(category__icontains='transfer') | 
-        Q(category__icontains='traspaso') |
-        Q(category__icontains='spei') |
-        Q(category__icontains='tarjeta de credito') |
-        Q(category__icontains='credit card') |
-        Q(category__icontains='abono') |
-        Q(description__icontains='transfer') |
-        Q(description__icontains='traspaso') |
-        Q(description__icontains='spei')
-    )
-
-    # SMART ANALYSIS: Fetch all transactions to perform outlier detection
-    # Instead of a simple Sum, we fetch the values to analyze the distribution
-    transactions = Transaction.objects.filter(
-        user=user,
-        type='expense',
-        date__range=[start_date, end_date]
-    ).exclude(exclusion_filter).values('amount', 'date')
+    # Use smart adjusted expenses (excludes transfers/outliers)
+    total_expenses = get_adjusted_expenses_sum(user, start_date, end_date)
     
-    if not transactions:
-        return 0
-        
-    # Group by day to find daily spend
-    daily_totals = {}
-    for tx in transactions:
-        # Normalize to date (ignore time)
-        date_key = tx['date'].date()
-        amount = float(tx['amount'])
-        daily_totals[date_key] = daily_totals.get(date_key, 0) + amount
-        
-    # Extract daily values
-    daily_values = list(daily_totals.values())
-    
-    # If we have enough data points (e.g. > 5 days), apply Outlier Detection (IQR)
-    # This removes massive spikes (like a 20k transfer labeled as expense) that skew the average
-    if len(daily_values) >= 5:
-        sorted_values = sorted(daily_values)
-        n = len(sorted_values)
-        
-        # Calculate Q1 and Q3
-        q1_index = int(n * 0.25)
-        q3_index = int(n * 0.75)
-        q1 = sorted_values[q1_index]
-        q3 = sorted_values[q3_index]
-        
-        iqr = q3 - q1
-        
-        # Upper Fence for Outliers (Extreme Spikes)
-        # We use 3.0 * IQR for "Extreme" outliers to be conservative (don't remove high-but-normal days)
-        # Or 1.5 * IQR for standard outliers. Given budget context, spikes are usually transfers.
-        upper_fence = q3 + (1.5 * iqr)
-        
-        # Filter out extreme days
-        cleaned_values = [v for v in daily_values if v <= upper_fence]
-        
-        # Recalculate Total from cleaned data
-        total_expenses = sum(cleaned_values)
-        
-        # Adjust effective days? 
-        # If we removed days, should we reduce the denominator?
-        # No, because we want the "Average Daily Spend" over the PERIOD.
-        # If I spent 20k on Day 1 (Outlier) and $100 on Day 2...Day 30.
-        # The Outlier means "This doesn't happen usually".
-        # So my "Typical Burn Rate" is based on the $100 days.
-        # So we keep the denominator as the full period (effective_days) 
-        # OR we treat the outlier as $0 spend for that day?
-        # Better: We use the Average of the Cleaned Values as the Burn Rate.
-        if cleaned_values:
-            daily_burn_rate = sum(cleaned_values) / len(cleaned_values)
-            # But wait, this assumes we have data for EVERY day.
-            # If we only have data for 10 days out of 60.
-            # Average of Cleaned Values = Avg Spend ON DAYS I SPEND.
-            # But Burn Rate is "Spend per Calendar Day".
-            
-            # Correct approach:
-            # 1. Total Cleaned Expenses / effective_days
-            daily_burn_rate = float(total_expenses) / effective_days
-        else:
-            daily_burn_rate = 0
-            
-    else:
-        # Not enough data for smart analysis, use simple average
-        total_expenses = sum(daily_values)
-        daily_burn_rate = float(total_expenses) / effective_days
+    daily_burn_rate = float(total_expenses) / effective_days
         
     return daily_burn_rate
 
@@ -154,27 +122,13 @@ def predict_runway(user):
         }
 
     # 2. Get Current Month Expenses (Variable)
-    # EXCLUDE transfers disguised as expenses
-    exclusion_filter = (
-        Q(type='transfer') | 
-        Q(category__icontains='transfer') | 
-        Q(category__icontains='traspaso') |
-        Q(category__icontains='spei') |
-        Q(category__icontains='tarjeta de credito') |
-        Q(category__icontains='credit card') |
-        Q(category__icontains='abono') |
-        Q(description__icontains='transfer') |
-        Q(description__icontains='traspaso') |
-        Q(description__icontains='spei')
-    )
-
-    current_month_expenses = Transaction.objects.filter(
-        user=user,
-        type='expense',
-        date__year=current_year,
-        date__month=current_month
-    ).exclude(exclusion_filter).aggregate(Sum('amount'))['amount__sum'] or 0
-    current_month_expenses = float(current_month_expenses)
+    # Use "Smart" adjusted expenses to exclude outliers (misclassified transfers/income)
+    start_of_month = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    # End of month isn't needed for the filter if we just filter by month/year, 
+    # but our helper takes a date range.
+    # Let's construct a range covering the whole month so far.
+    
+    current_month_expenses = get_adjusted_expenses_sum(user, start_of_month, today)
     
     remaining_budget = disposable_budget - current_month_expenses
     
