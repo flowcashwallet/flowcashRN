@@ -9,6 +9,3 @@ whitenoise
 python-dotenv
 firebase-admin
 django-admin-autocomplete-filter
-scikit-learn
-pandas
-numpy
