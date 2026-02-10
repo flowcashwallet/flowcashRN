@@ -174,13 +174,22 @@ def predict_runway(user):
     status = "safe"
     forecast_date = None
     message = ""
+    tip = ""
+    projected_balance = 0.0
     
+    # Calculate Projected Balance at End of Month
+    # Projected Spend = Daily Rate * Days Left
+    projected_spending_rest_of_month = daily_burn_rate * days_left_in_month
+    projected_balance = remaining_budget - projected_spending_rest_of_month
+
     if remaining_budget <= 0:
         status = "danger"
         message = "Ya has excedido tu presupuesto este mes."
+        tip = "Tip: Intenta limitar tus gastos a lo esencial hasta el próximo mes."
     elif daily_burn_rate <= 0:
         status = "safe"
         message = "No se detectaron gastos recientes para predecir."
+        projected_balance = remaining_budget # No spending expected
     else:
         days_until_zero = remaining_budget / daily_burn_rate
         
@@ -190,9 +199,20 @@ def predict_runway(user):
             runout_date = now_local + datetime.timedelta(days=int(days_until_zero))
             forecast_date = runout_date.strftime("%Y-%m-%d")
             message = f"Basado en tus gastos recientes, predecimos que tu presupuesto se acabará el {runout_date.day} de este mes."
+            
+            # Tip: Calculate reduction needed to survive
+            if days_left_in_month > 0:
+                max_daily_spend = remaining_budget / days_left_in_month
+                reduction_needed = daily_burn_rate - max_daily_spend
+                tip = f"Tip: Para llegar a fin de mes, intenta reducir tu gasto diario en ${reduction_needed:,.2f} (Límite: ${max_daily_spend:,.2f}/día)."
         else:
             status = "safe"
             message = "Vas por buen camino. Tu presupuesto debería durar todo el mes."
+            
+            # Tip: Savings opportunity
+            potential_savings_10_percent = projected_spending_rest_of_month * 0.10
+            final_with_reduction = projected_balance + potential_savings_10_percent
+            tip = f"Tip: Si reduces tu gasto diario un 10%, podrías terminar el mes con un extra de ${final_with_reduction:,.2f}."
 
     return {
         "has_budget": True,
@@ -202,5 +222,7 @@ def predict_runway(user):
         "daily_burn_rate": daily_burn_rate,
         "status": status,
         "forecast_date": forecast_date,
-        "message": message
+        "message": message,
+        "projected_balance": projected_balance,
+        "tip": tip
     }
