@@ -41,6 +41,7 @@ export default function WalletScreen() {
     categories,
     selectedDate,
     setSelectedDate,
+    forecast,
   } = useWalletData();
 
   const { deleteTransaction, deleteMonthlyTransactions } =

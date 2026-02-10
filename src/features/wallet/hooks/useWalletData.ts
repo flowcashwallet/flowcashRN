@@ -11,12 +11,14 @@ import {
   fetchSubscriptions,
   processDueSubscriptions,
 } from "../data/subscriptionSlice";
-import { fetchTransactions } from "../data/walletSlice";
+import { fetchForecast, fetchTransactions } from "../data/walletSlice";
 import { useStreak } from "./useStreak";
 
 export const useWalletData = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const { transactions } = useSelector((state: RootState) => state.wallet);
+  const { transactions, forecast } = useSelector(
+    (state: RootState) => state.wallet,
+  );
   const { entities: visionEntities } = useSelector(
     (state: RootState) => state.vision,
   );
@@ -36,6 +38,7 @@ export const useWalletData = () => {
   useEffect(() => {
     if (user?.id) {
       dispatch(fetchTransactions());
+      dispatch(fetchForecast());
       dispatch(fetchVisionEntities());
       dispatch(fetchGamificationData());
       dispatch(fetchCategories(user.id.toString()));
@@ -50,6 +53,7 @@ export const useWalletData = () => {
       setRefreshing(true);
       Promise.all([
         dispatch(fetchTransactions()).unwrap(),
+        dispatch(fetchForecast()).unwrap(),
         dispatch(fetchGamificationData()).unwrap(),
         dispatch(fetchCategories(user.id.toString())).unwrap(),
       ])
@@ -101,5 +105,6 @@ export const useWalletData = () => {
     categories,
     selectedDate,
     setSelectedDate,
+    forecast,
   };
 };

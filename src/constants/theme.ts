@@ -4,8 +4,6 @@
  * Dark Mode: "Midnight Teal" (Dark Slate + Teal)
  */
 
-import { Platform } from "react-native";
-
 // --- LIGHT THEME (Glacial Breeze) ---
 const lightPalette = {
   // Backgrounds
@@ -85,6 +83,7 @@ export const Colors = {
     secondary: lightPalette.secondary,
     accent: lightPalette.accent,
     error: lightPalette.error,
+    warning: lightPalette.warning,
     success: lightPalette.success,
     gradients: lightPalette.gradients,
   },
@@ -104,6 +103,7 @@ export const Colors = {
     secondary: darkPalette.secondary,
     accent: darkPalette.accent,
     error: darkPalette.error,
+    warning: darkPalette.warning,
     success: darkPalette.success,
     gradients: darkPalette.gradients,
   },

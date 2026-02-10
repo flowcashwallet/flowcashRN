@@ -22,14 +22,29 @@ export interface Transaction {
     | null;
 }
 
+export interface Forecast {
+  has_budget: boolean;
+  disposable_budget: number;
+  current_expenses: number;
+  remaining_budget: number;
+  daily_burn_rate: number;
+  status: "safe" | "warning" | "danger";
+  forecast_date: string | null;
+  message: string;
+  projected_balance: number;
+  tip: string;
+}
+
 interface WalletState {
   transactions: Transaction[];
+  forecast: Forecast | null;
   loading: boolean;
   error: string | null;
 }
 
 const initialState: WalletState = {
   transactions: [],
+  forecast: null,
   loading: false,
   error: null,
 };
@@ -74,6 +89,30 @@ export const fetchTransactions = createAsyncThunk(
       return transactions;
     } catch (error: any) {
       console.error("Error fetching transactions:", error);
+      return rejectWithValue(error.message);
+    }
+  },
+);
+
+export const fetchForecast = createAsyncThunk(
+  "wallet/fetchForecast",
+  async (_, { getState, dispatch, rejectWithValue }) => {
+    try {
+      const response = await fetchWithAuth(
+        endpoints.wallet.forecast,
+        {},
+        dispatch as AppDispatch,
+        getState as () => RootState,
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch forecast");
+      }
+
+      const data = await response.json();
+      return data as Forecast;
+    } catch (error: any) {
+      console.error("Error fetching forecast:", error);
       return rejectWithValue(error.message);
     }
   },
@@ -262,6 +301,9 @@ const walletSlice = createSlice({
       .addCase(fetchTransactions.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
+      })
+      .addCase(fetchForecast.fulfilled, (state, action) => {
+        state.forecast = action.payload;
       })
       .addCase(
         addTransaction.fulfilled,

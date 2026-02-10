@@ -5,7 +5,7 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Colors, Spacing } from "@/constants/theme";
 import { MonthYearPickerModal } from "@/features/wallet/components/MonthYearPickerModal";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   RefreshControl,
   ScrollView,
@@ -14,10 +14,12 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useDispatch, useSelector } from "react-redux";
 import { useAnalyticsData } from "../hooks/useAnalyticsData";
-import { useForecasting } from "../hooks/useForecasting";
 
-import { BudgetRunwayCard } from "../components/BudgetRunwayCard";
+import { ForecastCard } from "@/features/wallet/components/ForecastCard";
+import { fetchForecast } from "@/features/wallet/data/walletSlice";
+import { AppDispatch, RootState } from "@/store/store";
 
 const FontSize = {
   xs: 12,
@@ -28,6 +30,9 @@ const FontSize = {
 };
 
 export default function AnalyticsScreen() {
+  const dispatch = useDispatch<AppDispatch>();
+  const { forecast } = useSelector((state: RootState) => state.wallet);
+
   const {
     recurringExpenses,
     topCategories,
@@ -40,17 +45,15 @@ export default function AnalyticsScreen() {
     refreshing: refreshingAnalytics,
   } = useAnalyticsData();
 
-  const {
-    forecast,
-    loading: loadingForecast,
-    refresh: refreshForecast,
-  } = useForecasting();
-
   const [refreshing, setRefreshing] = useState(false);
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
   const [datePickerVisible, setDatePickerVisible] = useState(false);
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
+
+  useEffect(() => {
+    dispatch(fetchForecast());
+  }, [dispatch]);
 
   const handleCategoryPress = (category: string) => {
     setExpandedCategory((prev) => (prev === category ? null : category));
@@ -59,7 +62,10 @@ export default function AnalyticsScreen() {
   const onRefresh = async () => {
     setRefreshing(true);
     try {
-      await Promise.all([onRefreshAnalytics(), refreshForecast()]);
+      await Promise.all([
+        onRefreshAnalytics(),
+        dispatch(fetchForecast()).unwrap(),
+      ]);
     } catch (error) {
       console.error("Error refreshing analytics screen:", error);
     } finally {
@@ -105,7 +111,7 @@ export default function AnalyticsScreen() {
         </View>
 
         {/* Predicción de Flujo (Forecasting) */}
-        <BudgetRunwayCard forecast={forecast} loading={loadingForecast} />
+        <ForecastCard forecast={forecast} />
 
         {/* Consejos */}
         <View style={styles.section}>
