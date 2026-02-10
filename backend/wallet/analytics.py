@@ -6,23 +6,32 @@ from .models import Transaction, Budget, FixedExpense
 
 def get_exclusion_filter():
     return (
-        Q(type='transfer') | 
-        Q(category__icontains='transfer') | 
-        Q(category__icontains='traspaso') |
-        Q(category__icontains='spei') |
-        Q(category__icontains='tarjeta de credito') |
-        Q(category__icontains='credit card') |
-        Q(category__icontains='abono') |
-        Q(description__icontains='transfer') |
-        Q(description__icontains='traspaso') |
-        Q(description__icontains='spei')
+        Q(type='transfer') 
     )
+
+def get_total_expenses_sum(user, start_date, end_date):
+    """
+    Returns the raw total sum of expenses for a period, excluding ONLY
+    explicit transfers/keywords. Does NOT apply IQR outlier detection.
+    Used for 'How much have I spent?' (Absolute Truth).
+    """
+    exclusion_filter = get_exclusion_filter()
+    
+    total = Transaction.objects.filter(
+        user=user,
+        type='expense',
+        date__range=[start_date, end_date]
+    ).exclude(exclusion_filter).aggregate(Sum('amount'))['amount__sum'] or 0
+    
+    return float(total)
 
 def get_adjusted_expenses_sum(user, start_date, end_date):
     """
     Returns the total sum of expenses for a period, excluding:
     1. Explicit transfers/keywords
     2. Statistical outliers (IQR method) like massive mislabeled transfers
+    
+    Used for 'What is my typical spending speed?' (Trend Analysis).
     """
     exclusion_filter = get_exclusion_filter()
     
@@ -122,18 +131,16 @@ def predict_runway(user):
         }
 
     # 2. Get Current Month Expenses (Variable)
-    # Use "Smart" adjusted expenses to exclude outliers (misclassified transfers/income)
+    # Use TOTAL expenses (absolute truth) for budget depletion calculation.
+    # Do NOT use IQR here, otherwise legitimate large purchases (e.g. 18k laptop) are hidden.
     start_of_month = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    # End of month isn't needed for the filter if we just filter by month/year, 
-    # but our helper takes a date range.
-    # Let's construct a range covering the whole month so far.
     
-    current_month_expenses = get_adjusted_expenses_sum(user, start_of_month, today)
+    current_month_expenses = get_total_expenses_sum(user, start_of_month, today)
     
     remaining_budget = disposable_budget - current_month_expenses
     
     # 3. Calculate Burn Rate (Spending Speed)
-    # Use last 2 months (60 days) for a more precise recent trend
+    # Use "Smart" logic (IQR) to exclude one-off outliers so the daily rate represents "Typical Day"
     daily_burn_rate = calculate_burn_rate(user, days=60)
     
     # 4. Forecast
