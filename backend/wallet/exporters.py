@@ -29,24 +29,24 @@ def export_transactions_to_excel(transactions):
     red_fill = PatternFill(start_color="C62828", end_color="C62828", fill_type="solid") # Dark Red
     
     # Main Headers
-    worksheet.merge_cells('A1:B1')
+    worksheet.merge_cells('A1:C1')
     cell_a1 = worksheet['A1']
     cell_a1.value = "INGRESOS (INCOME)"
     cell_a1.font = header_font
     cell_a1.fill = green_fill
     cell_a1.alignment = Alignment(horizontal='center')
 
-    worksheet.merge_cells('D1:E1')
-    cell_d1 = worksheet['D1']
-    cell_d1.value = "GASTOS (EXPENSES)"
-    cell_d1.font = header_font
-    cell_d1.fill = red_fill
-    cell_d1.alignment = Alignment(horizontal='center')
+    worksheet.merge_cells('E1:G1')
+    cell_e1 = worksheet['E1']
+    cell_e1.value = "GASTOS (EXPENSES)"
+    cell_e1.font = header_font
+    cell_e1.fill = red_fill
+    cell_e1.alignment = Alignment(horizontal='center')
 
     # Sub Headers
     columns = [
-        ('A', "Descripción", green_fill), ('B', "Monto", green_fill),
-        ('D', "Descripción", red_fill), ('E', "Monto", red_fill)
+        ('A', "Fecha", green_fill), ('B', "Descripción", green_fill), ('C', "Monto", green_fill),
+        ('E', "Fecha", red_fill), ('F', "Descripción", red_fill), ('G', "Monto", red_fill)
     ]
     
     for col, title, fill in columns:
@@ -72,13 +72,20 @@ def export_transactions_to_excel(transactions):
             inc = incomes[i]
             total_income += inc.amount
             
+            # Date
+            cell_date = worksheet[f'A{row_num}']
+            cell_date.value = inc.date.strftime('%Y-%m-%d') if inc.date else ""
+            cell_date.border = border_bottom
+            cell_date.alignment = Alignment(horizontal='center')
+
             # Description (combining Category + Description for context)
             desc = f"{inc.category or 'General'}: {inc.description}"
-            cell_desc = worksheet[f'A{row_num}']
+            cell_desc = worksheet[f'B{row_num}']
             cell_desc.value = desc
             cell_desc.border = border_bottom
             
-            cell_amt = worksheet[f'B{row_num}']
+            # Amount
+            cell_amt = worksheet[f'C{row_num}']
             cell_amt.value = inc.amount
             cell_amt.number_format = '#,##0.00'
             cell_amt.font = Font(color="2E7D32") # Green text
@@ -89,12 +96,20 @@ def export_transactions_to_excel(transactions):
             exp = expenses[i]
             total_expense += exp.amount
             
+            # Date
+            cell_date = worksheet[f'E{row_num}']
+            cell_date.value = exp.date.strftime('%Y-%m-%d') if exp.date else ""
+            cell_date.border = border_bottom
+            cell_date.alignment = Alignment(horizontal='center')
+
+            # Description
             desc = f"{exp.category or 'General'}: {exp.description}"
-            cell_desc = worksheet[f'D{row_num}']
+            cell_desc = worksheet[f'F{row_num}']
             cell_desc.value = desc
             cell_desc.border = border_bottom
             
-            cell_amt = worksheet[f'E{row_num}']
+            # Amount
+            cell_amt = worksheet[f'G{row_num}']
             cell_amt.value = exp.amount
             cell_amt.number_format = '#,##0.00'
             cell_amt.font = Font(color="C62828") # Red text
@@ -110,18 +125,18 @@ def export_transactions_to_excel(transactions):
     worksheet[f'A{total_row}'].font = Font(bold=True)
     worksheet[f'A{total_row}'].border = thick_top
     
-    cell = worksheet[f'B{total_row}']
+    cell = worksheet[f'C{total_row}']
     cell.value = total_income
     cell.number_format = '$#,##0.00'
     cell.font = Font(bold=True, color="2E7D32")
     cell.border = thick_top
 
     # Expense Total
-    worksheet[f'D{total_row}'] = "TOTAL GASTOS"
-    worksheet[f'D{total_row}'].font = Font(bold=True)
-    worksheet[f'D{total_row}'].border = thick_top
+    worksheet[f'E{total_row}'] = "TOTAL GASTOS"
+    worksheet[f'E{total_row}'].font = Font(bold=True)
+    worksheet[f'E{total_row}'].border = thick_top
     
-    cell = worksheet[f'E{total_row}']
+    cell = worksheet[f'G{total_row}']
     cell.value = total_expense
     cell.number_format = '$#,##0.00'
     cell.font = Font(bold=True, color="C62828")
@@ -130,18 +145,20 @@ def export_transactions_to_excel(transactions):
     # Net Balance
     net_row = total_row + 2
     net_val = total_income - total_expense
-    worksheet.merge_cells(f'A{net_row}:E{net_row}')
+    worksheet.merge_cells(f'A{net_row}:G{net_row}')
     cell = worksheet[f'A{net_row}']
     cell.value = f"BALANCE NETO: ${net_val:,.2f}"
     cell.font = Font(bold=True, size=14, color="000000" if net_val >= 0 else "C62828")
     cell.alignment = Alignment(horizontal='center')
 
     # Column Widths
-    worksheet.column_dimensions['A'].width = 40
-    worksheet.column_dimensions['B'].width = 15
-    worksheet.column_dimensions['C'].width = 3 # Spacer
-    worksheet.column_dimensions['D'].width = 40
+    worksheet.column_dimensions['A'].width = 15
+    worksheet.column_dimensions['B'].width = 30
+    worksheet.column_dimensions['C'].width = 15
+    worksheet.column_dimensions['D'].width = 3 # Spacer
     worksheet.column_dimensions['E'].width = 15
+    worksheet.column_dimensions['F'].width = 30
+    worksheet.column_dimensions['G'].width = 15
 
     # Generate response
     response = HttpResponse(
