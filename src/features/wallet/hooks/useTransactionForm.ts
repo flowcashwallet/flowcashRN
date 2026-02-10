@@ -1,4 +1,5 @@
 import { useVisionData } from "@/features/vision/hooks/useVisionData";
+import { endpoints, getAuthHeaders } from "@/services/api";
 import { AppDispatch, RootState } from "@/store/store";
 import { formatAmountInput } from "@/utils/format";
 import { predictCategory } from "@/utils/smartCategorization";
@@ -23,7 +24,7 @@ export const useTransactionForm = ({
 }: UseTransactionFormProps) => {
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
-  const { user } = useSelector((state: RootState) => state.auth);
+  const { user, token } = useSelector((state: RootState) => state.auth);
   const { categories } = useSelector((state: RootState) => state.categories);
   const { transactions } = useSelector((state: RootState) => state.wallet);
   const { entities } = useVisionData();
@@ -134,17 +135,52 @@ export const useTransactionForm = ({
       .filter((e) => e !== undefined);
   }, [transactions, entities]);
 
-  // Smart Categorization Logic
+  // Smart Categorization Logic (AI + Local Fallback)
   useEffect(() => {
     if (manualCategorySelection) return;
-    if (!description) return;
+    if (!description || description.trim().length < 2) return;
 
-    const predicted = predictCategory(description);
-    if (predicted && selectedCategory !== predicted) {
-      setSelectedCategory(predicted);
-      Haptics.selectionAsync(); // Subtle feedback
-    }
-  }, [description, manualCategorySelection]);
+    const timeoutId = setTimeout(async () => {
+      try {
+        let predicted = null;
+
+        // 1. Try AI Prediction first
+        if (token) {
+          try {
+            const response = await fetch(endpoints.wallet.predictCategory, {
+              method: "POST",
+              headers: getAuthHeaders(token),
+              body: JSON.stringify({ description }),
+            });
+            
+            if (response.ok) {
+              const data = await response.json();
+              if (data.predicted_category) {
+                predicted = data.predicted_category;
+              }
+            }
+          } catch (err) {
+            console.log("AI Prediction failed, falling back to local:", err);
+          }
+        }
+
+        // 2. Fallback to Local Regex if AI returned nothing
+        if (!predicted) {
+          predicted = predictCategory(description);
+        }
+
+        // 3. Apply prediction
+        if (predicted && selectedCategory !== predicted) {
+          setSelectedCategory(predicted);
+          Haptics.selectionAsync(); // Subtle feedback
+        }
+      } catch (error) {
+        console.log("Smart Categorization error:", error);
+      }
+    }, 600); // Debounce to avoid spamming API
+
+    return () => clearTimeout(timeoutId);
+  }, [description, manualCategorySelection, token, selectedCategory]);
 
   const handleCategorySelect = (category: string | null) => {
     setSelectedCategory(category);
