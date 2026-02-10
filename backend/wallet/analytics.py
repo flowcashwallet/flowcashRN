@@ -39,15 +39,26 @@ def calculate_burn_rate(user, days=180):
     
     # Filter expenses in the effective period
     # EXCLUDE transfers disguised as expenses (e.g., category='Transferencia')
+    # Also exclude explicit 'transfer' type if it somehow got included (though type='expense' should filter it)
+    # And exclude common payment keywords that are not real spending (credit card payments, etc)
+    exclusion_filter = (
+        Q(type='transfer') | 
+        Q(category__icontains='transfer') | 
+        Q(category__icontains='traspaso') |
+        Q(category__icontains='spei') |
+        Q(category__icontains='tarjeta de credito') |
+        Q(category__icontains='credit card') |
+        Q(category__icontains='abono') |
+        Q(description__icontains='transfer') |
+        Q(description__icontains='traspaso') |
+        Q(description__icontains='spei')
+    )
+
     total_expenses = Transaction.objects.filter(
         user=user,
         type='expense',
         date__range=[start_date, end_date]
-    ).exclude(
-        Q(category__icontains='transferencia') | 
-        Q(category__icontains='transfer') |
-        Q(description__icontains='transferencia')
-    ).aggregate(Sum('amount'))['amount__sum'] or 0
+    ).exclude(exclusion_filter).aggregate(Sum('amount'))['amount__sum'] or 0
     
     daily_burn_rate = float(total_expenses) / effective_days
     return daily_burn_rate
@@ -77,16 +88,25 @@ def predict_runway(user):
 
     # 2. Get Current Month Expenses (Variable)
     # EXCLUDE transfers disguised as expenses
+    exclusion_filter = (
+        Q(type='transfer') | 
+        Q(category__icontains='transfer') | 
+        Q(category__icontains='traspaso') |
+        Q(category__icontains='spei') |
+        Q(category__icontains='tarjeta de credito') |
+        Q(category__icontains='credit card') |
+        Q(category__icontains='abono') |
+        Q(description__icontains='transfer') |
+        Q(description__icontains='traspaso') |
+        Q(description__icontains='spei')
+    )
+
     current_month_expenses = Transaction.objects.filter(
         user=user,
         type='expense',
         date__year=current_year,
         date__month=current_month
-    ).exclude(
-        Q(category__icontains='transferencia') | 
-        Q(category__icontains='transfer') |
-        Q(description__icontains='transferencia')
-    ).aggregate(Sum('amount'))['amount__sum'] or 0
+    ).exclude(exclusion_filter).aggregate(Sum('amount'))['amount__sum'] or 0
     current_month_expenses = float(current_month_expenses)
     
     remaining_budget = disposable_budget - current_month_expenses
