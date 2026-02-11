@@ -9,9 +9,8 @@ import {
   Dimensions,
   StatusBar,
   StyleSheet,
-  Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import Animated, {
   interpolateColor,
@@ -197,7 +196,7 @@ export function RevolutPager() {
             />
           </TouchableOpacity>
 
-          <View style={styles.searchBar}>
+          {/* <View style={styles.searchBar}>
             <IconSymbol
               name="magnifyingglass"
               size={18}
@@ -210,9 +209,9 @@ export function RevolutPager() {
                 Search {TABS[activeIndex].title}
               </Text>
             </Animated.View>
-          </View>
+          </View> */}
 
-          <View style={styles.headerActions}>
+          {/* <View style={styles.headerActions}>
             <Animated.View style={buttonAnimatedStyle}>
               <TouchableOpacity style={styles.actionButton}>
                 <IconSymbol
@@ -231,7 +230,7 @@ export function RevolutPager() {
                 />
               </TouchableOpacity>
             </Animated.View>
-          </View>
+          </View> */}
         </View>
       </View>
 
