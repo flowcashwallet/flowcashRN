@@ -181,9 +181,25 @@ def predict_runway(user):
     # Projected Spend = Daily Rate * Days Left
     projected_spending_rest_of_month = daily_burn_rate * days_left_in_month
     projected_balance = remaining_budget - projected_spending_rest_of_month
-
+    
+    # Financial Weather Logic
+    weather_status = "sunny"
+    weather_message = "Cielo despejado. Tus finanzas se ven saludables."
+    
+    if remaining_budget <= 0:
+        weather_status = "stormy"
+        weather_message = "Tormenta financiera. Has excedido tus ingresos del mes."
+    elif projected_balance < 0:
+        weather_status = "cloudy"
+        weather_message = "Se avecinan nubes. A este ritmo, terminarás el mes en negativo."
+    elif projected_balance < (total_income * 0.1): # Less than 10% buffer
+        weather_status = "cloudy"
+        weather_message = "Cielo parcialmente nublado. Margen de ahorro bajo."
+    
+    # Existing logic for status/message
     if remaining_budget <= 0:
         status = "danger"
+
         message = "Ya has excedido tu presupuesto este mes."
         tip = "Tip: Intenta limitar tus gastos a lo esencial hasta el próximo mes."
     elif daily_burn_rate <= 0:
@@ -224,5 +240,7 @@ def predict_runway(user):
         "forecast_date": forecast_date,
         "message": message,
         "projected_balance": projected_balance,
-        "tip": tip
+        "tip": tip,
+        "weather_status": weather_status,
+        "weather_message": weather_message
     }
