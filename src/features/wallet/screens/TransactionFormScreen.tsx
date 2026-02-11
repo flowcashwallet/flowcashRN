@@ -109,7 +109,7 @@ export default function TransactionFormScreen() {
         keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
       >
         <ScrollView contentContainerStyle={styles.content}>
-          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <TouchableWithoutFeedback onPress={Platform.OS === "web" ? undefined : Keyboard.dismiss}>
             <View>
               {/* Amount Input */}
               <View style={{ marginVertical: Spacing.l }}>
