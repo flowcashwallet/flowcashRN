@@ -51,7 +51,11 @@ const MAPPING = {
   "questionmark.circle.fill": "help",
   "list.bullet": "list",
   "arrow.triangle.2.circlepath": "autorenew",
-} as IconMapping;
+  "chart.bar.xaxis": "insert-chart",
+  "calendar": "calendar-today",
+  "list.bullet.rectangle.portrait": "list",
+  "wallet.pass": "account-balance-wallet",
+} as Partial<IconMapping>;
 
 /**
  * An icon component that uses native SF Symbols on iOS, and Material Icons on Android and web.
