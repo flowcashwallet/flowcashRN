@@ -1,4 +1,5 @@
 import { Typography } from "@/components/atoms/Typography";
+import { AnimatedCounter } from "@/components/ui/AnimatedCounter";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { BorderRadius, Colors, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -110,9 +111,21 @@ export const WalletHeader: React.FC<WalletHeaderProps> = ({
           marginBottom: Spacing.l,
         }}
       >
-        <Typography variant="h1" weight="bold" style={{ color: colors.text }}>
-          {isBalanceVisible ? formatCurrency(balance) : "****"}
-        </Typography>
+        {isBalanceVisible ? (
+          <AnimatedCounter
+            value={balance}
+            style={{
+              fontSize: 32, // h1 equivalent
+              fontWeight: "bold",
+              color: colors.text,
+              fontFamily: Platform.OS === "ios" ? "System" : "Roboto",
+            }}
+          />
+        ) : (
+          <Typography variant="h1" weight="bold" style={{ color: colors.text }}>
+            ****
+          </Typography>
+        )}
         <TouchableOpacity
           onPress={() => setIsBalanceVisible(!isBalanceVisible)}
           style={{ marginLeft: Spacing.s }}

@@ -173,6 +173,17 @@ export function RevolutPager() {
   const handleTabPress = (route: any, index: number) => {
     setActiveIndex(index);
     carouselRef.current?.scrollTo({ index, animated: false });
+
+    // Sync URL with Tab Press
+    const tab = TABS[index];
+    const isAlreadyOnTab =
+      tab.name === "index"
+        ? pathname === "/" || pathname === ""
+        : pathname.includes(tab.name);
+
+    if (!isAlreadyOnTab) {
+      router.replace(tab.route as any);
+    }
   };
 
   const toggleDrawer = () => {
@@ -237,6 +248,17 @@ export function RevolutPager() {
         }}
         onSnapToItem={(index) => {
           runOnJS(setActiveIndex)(index);
+
+          // Sync URL with Swipe
+          const tab = TABS[index];
+          const isAlreadyOnTab =
+            tab.name === "index"
+              ? pathname === "/" || pathname === ""
+              : pathname.includes(tab.name);
+
+          if (!isAlreadyOnTab) {
+            router.replace(tab.route as any);
+          }
         }}
         renderItem={({ item }) => {
           const ScreenComponent = item.component;

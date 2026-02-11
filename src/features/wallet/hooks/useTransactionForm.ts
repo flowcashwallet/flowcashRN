@@ -285,7 +285,15 @@ export const useTransactionForm = ({
             return true;
           }
         }
-        router.back();
+        
+        // If adding a new transaction, always return to Wallet (root)
+        // If editing, just go back to where we came from
+        if (isEditing) {
+          router.back();
+        } else {
+          // Use replace to ensure we land on Wallet even if we came from another tab
+          router.replace("/");
+        }
       } else {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       }
