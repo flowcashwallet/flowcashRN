@@ -33,6 +33,8 @@ export interface Forecast {
   message: string;
   projected_balance: number;
   tip: string;
+  weather_status?: "sunny" | "cloudy" | "stormy";
+  weather_message?: string;
 }
 
 interface WalletState {

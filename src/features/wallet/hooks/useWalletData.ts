@@ -100,7 +100,6 @@ export const useWalletData = () => {
     expense,
     colors,
     streak,
-    streakFreezes,
     repairedDays,
     categories,
     selectedDate,

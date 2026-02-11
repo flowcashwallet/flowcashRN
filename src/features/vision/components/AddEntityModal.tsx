@@ -10,15 +10,15 @@ import { fetchCryptoPrices } from "@/services/price/coingecko";
 import { formatAmountInput, formatCurrency, parseAmount } from "@/utils/format";
 import React, { useEffect, useState } from "react";
 import {
-    Keyboard,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    TouchableOpacity,
-    TouchableWithoutFeedback,
-    View,
+  Keyboard,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
 } from "react-native";
 
 interface AddEntityModalProps {
@@ -210,342 +210,350 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
                 { backgroundColor: colors.background },
               ]}
             >
-              <Typography
-                variant="h3"
-                weight="bold"
-                style={{ marginBottom: Spacing.m }}
-              >
-                {initialEntity
-                  ? "Editar"
-                  : selectedType === "asset"
-                    ? STRINGS.vision.addAsset
-                    : STRINGS.vision.addLiability}
-              </Typography>
+              <ScrollView showsVerticalScrollIndicator={false}>
+                <Typography
+                  variant="h3"
+                  weight="bold"
+                  style={{ marginBottom: Spacing.m }}
+                >
+                  {initialEntity
+                    ? "Editar"
+                    : selectedType === "asset"
+                      ? STRINGS.vision.addAsset
+                      : STRINGS.vision.addLiability}
+                </Typography>
 
-              {selectedType === "asset" && (
-                <View style={{ flexDirection: "row", marginBottom: Spacing.m }}>
-                  <TouchableOpacity
-                    style={{
-                      flex: 1,
-                      padding: Spacing.s,
-                      backgroundColor: !isCrypto
-                        ? colors.primary
-                        : colors.surface,
-                      alignItems: "center",
-                      borderTopLeftRadius: BorderRadius.m,
-                      borderBottomLeftRadius: BorderRadius.m,
-                    }}
-                    onPress={() => {
-                      setIsCrypto(false);
-                      setAmount("");
-                    }}
+                {selectedType === "asset" && (
+                  <View
+                    style={{ flexDirection: "row", marginBottom: Spacing.m }}
                   >
-                    <Typography
-                      variant="caption"
-                      style={{ color: !isCrypto ? "#FFF" : colors.text }}
+                    <TouchableOpacity
+                      style={{
+                        flex: 1,
+                        padding: Spacing.s,
+                        backgroundColor: !isCrypto
+                          ? colors.primary
+                          : colors.surface,
+                        alignItems: "center",
+                        borderTopLeftRadius: BorderRadius.m,
+                        borderBottomLeftRadius: BorderRadius.m,
+                      }}
+                      onPress={() => {
+                        setIsCrypto(false);
+                        setAmount("");
+                      }}
                     >
-                      Dinero Fiat
-                    </Typography>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={{
-                      flex: 1,
-                      padding: Spacing.s,
-                      backgroundColor: isCrypto
-                        ? colors.primary
-                        : colors.surface,
-                      alignItems: "center",
-                      borderTopRightRadius: BorderRadius.m,
-                      borderBottomRightRadius: BorderRadius.m,
-                    }}
-                    onPress={() => {
-                      setIsCrypto(true);
-                      setAmount("");
-                    }}
-                  >
-                    <Typography
-                      variant="caption"
-                      style={{ color: isCrypto ? "#FFF" : colors.text }}
+                      <Typography
+                        variant="caption"
+                        style={{ color: !isCrypto ? "#FFF" : colors.text }}
+                      >
+                        Dinero Fiat
+                      </Typography>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={{
+                        flex: 1,
+                        padding: Spacing.s,
+                        backgroundColor: isCrypto
+                          ? colors.primary
+                          : colors.surface,
+                        alignItems: "center",
+                        borderTopRightRadius: BorderRadius.m,
+                        borderBottomRightRadius: BorderRadius.m,
+                      }}
+                      onPress={() => {
+                        setIsCrypto(true);
+                        setAmount("");
+                      }}
                     >
-                      Criptomoneda
-                    </Typography>
-                  </TouchableOpacity>
-                </View>
-              )}
+                      <Typography
+                        variant="caption"
+                        style={{ color: isCrypto ? "#FFF" : colors.text }}
+                      >
+                        Criptomoneda
+                      </Typography>
+                    </TouchableOpacity>
+                  </View>
+                )}
 
-              {selectedType === "liability" && (
-                <View style={{ flexDirection: "row", marginBottom: Spacing.m }}>
-                  <TouchableOpacity
-                    style={{
-                      flex: 1,
-                      padding: Spacing.s,
-                      backgroundColor: !isCreditCard
-                        ? colors.primary
-                        : colors.surface,
-                      alignItems: "center",
-                      borderTopLeftRadius: BorderRadius.m,
-                      borderBottomLeftRadius: BorderRadius.m,
-                    }}
-                    onPress={() => {
-                      setIsCreditCard(false);
-                    }}
+                {selectedType === "liability" && (
+                  <View
+                    style={{ flexDirection: "row", marginBottom: Spacing.m }}
                   >
-                    <Typography
-                      variant="caption"
-                      style={{ color: !isCreditCard ? "#FFF" : colors.text }}
+                    <TouchableOpacity
+                      style={{
+                        flex: 1,
+                        padding: Spacing.s,
+                        backgroundColor: !isCreditCard
+                          ? colors.primary
+                          : colors.surface,
+                        alignItems: "center",
+                        borderTopLeftRadius: BorderRadius.m,
+                        borderBottomLeftRadius: BorderRadius.m,
+                      }}
+                      onPress={() => {
+                        setIsCreditCard(false);
+                      }}
                     >
-                      Deuda General
-                    </Typography>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={{
-                      flex: 1,
-                      padding: Spacing.s,
-                      backgroundColor: isCreditCard
-                        ? colors.primary
-                        : colors.surface,
-                      alignItems: "center",
-                      borderTopRightRadius: BorderRadius.m,
-                      borderBottomRightRadius: BorderRadius.m,
-                    }}
-                    onPress={() => {
-                      setIsCreditCard(true);
-                    }}
-                  >
-                    <Typography
-                      variant="caption"
-                      style={{ color: isCreditCard ? "#FFF" : colors.text }}
+                      <Typography
+                        variant="caption"
+                        style={{ color: !isCreditCard ? "#FFF" : colors.text }}
+                      >
+                        Deuda General
+                      </Typography>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={{
+                        flex: 1,
+                        padding: Spacing.s,
+                        backgroundColor: isCreditCard
+                          ? colors.primary
+                          : colors.surface,
+                        alignItems: "center",
+                        borderTopRightRadius: BorderRadius.m,
+                        borderBottomRightRadius: BorderRadius.m,
+                      }}
+                      onPress={() => {
+                        setIsCreditCard(true);
+                      }}
                     >
-                      Tarjeta de Crédito
-                    </Typography>
-                  </TouchableOpacity>
-                </View>
-              )}
+                      <Typography
+                        variant="caption"
+                        style={{ color: isCreditCard ? "#FFF" : colors.text }}
+                      >
+                        Tarjeta de Crédito
+                      </Typography>
+                    </TouchableOpacity>
+                  </View>
+                )}
 
-              {isCreditCard && selectedType === "liability" ? (
-                <>
-                  <Input
-                    label="Banco Emisor"
-                    value={issuerBank}
-                    onChangeText={setIssuerBank}
-                    placeholder="Ej: BBVA, Santander..."
-                  />
+                {isCreditCard && selectedType === "liability" ? (
+                  <>
+                    <Input
+                      label="Banco Emisor"
+                      value={issuerBank}
+                      onChangeText={setIssuerBank}
+                      placeholder="Ej: BBVA, Santander..."
+                    />
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      <View style={{ flex: 1, marginRight: Spacing.s }}>
+                        <Input
+                          label="Día de Corte"
+                          value={cutoffDate}
+                          onChangeText={(text) => {
+                            // Allow only numbers 1-31
+                            const num = parseInt(text);
+                            if (text === "" || (num >= 1 && num <= 31)) {
+                              setCutoffDate(text);
+                            }
+                          }}
+                          placeholder="Ej: 5"
+                          keyboardType="numeric"
+                          maxLength={2}
+                        />
+                      </View>
+                      <View style={{ flex: 1, marginLeft: Spacing.s }}>
+                        <Input
+                          label="Día de Pago"
+                          value={paymentDate}
+                          onChangeText={(text) => {
+                            const num = parseInt(text);
+                            if (text === "" || (num >= 1 && num <= 31)) {
+                              setPaymentDate(text);
+                            }
+                          }}
+                          placeholder="Ej: 25"
+                          keyboardType="numeric"
+                          maxLength={2}
+                        />
+                      </View>
+                    </View>
+                  </>
+                ) : null}
+
+                {isCrypto && selectedType === "asset" ? (
+                  <>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        justifyContent: "space-around",
+                        marginBottom: Spacing.m,
+                      }}
+                    >
+                      {(["BTC", "ETH", "USDT"] as const).map((symbol) => (
+                        <TouchableOpacity
+                          key={symbol}
+                          onPress={() => setSelectedCrypto(symbol)}
+                          style={{
+                            padding: Spacing.s,
+                            borderRadius: BorderRadius.m,
+                            backgroundColor:
+                              selectedCrypto === symbol
+                                ? colors.primary
+                                : colors.surface,
+                            borderWidth: 1,
+                            borderColor: colors.border,
+                          }}
+                        >
+                          <Typography
+                            style={{
+                              color:
+                                selectedCrypto === symbol
+                                  ? "#FFF"
+                                  : colors.text,
+                            }}
+                          >
+                            {symbol}
+                          </Typography>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+
+                    <Input
+                      label="Cantidad Cripto"
+                      value={cryptoAmount}
+                      onChangeText={handleCryptoAmountChange}
+                      placeholder="0.00"
+                      keyboardType="numeric"
+                    />
+
+                    {cryptoPrice && (
+                      <Typography
+                        variant="caption"
+                        style={{ marginBottom: Spacing.m, textAlign: "center" }}
+                      >
+                        Precio actual: {formatCurrency(cryptoPrice)} MXN
+                      </Typography>
+                    )}
+                  </>
+                ) : null}
+
+                <Input
+                  label={STRINGS.vision.name}
+                  value={name}
+                  onChangeText={setName}
+                  placeholder="Ej: Casa, Préstamo..."
+                />
+
+                <Typography
+                  variant="caption"
+                  style={{
+                    color: colors.text,
+                    marginBottom: Spacing.xs,
+                    marginLeft: 4,
+                  }}
+                >
+                  Categoría
+                </Typography>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={{ marginBottom: Spacing.m }}
+                >
+                  {(selectedType === "asset"
+                    ? STRINGS.vision.categories.asset
+                    : STRINGS.vision.categories.liability
+                  ).map((cat) => (
+                    <TouchableOpacity
+                      key={cat}
+                      onPress={() => setCategory(cat)}
+                      style={{
+                        paddingHorizontal: Spacing.m,
+                        paddingVertical: Spacing.s,
+                        borderRadius: BorderRadius.l,
+                        backgroundColor:
+                          category === cat ? colors.primary : colors.surface,
+                        marginRight: Spacing.s,
+                        borderWidth: 1,
+                        borderColor:
+                          category === cat ? colors.primary : colors.border,
+                      }}
+                    >
+                      <Typography
+                        variant="body"
+                        style={{
+                          color: category === cat ? "#FFF" : colors.text,
+                        }}
+                      >
+                        {cat}
+                      </Typography>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+                {selectedType === "liability" && (
                   <View
                     style={{
                       flexDirection: "row",
                       justifyContent: "space-between",
+                      marginBottom: Spacing.m,
                     }}
                   >
                     <View style={{ flex: 1, marginRight: Spacing.s }}>
                       <Input
-                        label="Día de Corte"
-                        value={cutoffDate}
-                        onChangeText={(text) => {
-                          // Allow only numbers 1-31
-                          const num = parseInt(text);
-                          if (text === "" || (num >= 1 && num <= 31)) {
-                            setCutoffDate(text);
-                          }
-                        }}
-                        placeholder="Ej: 5"
+                        label="Tasa Interés (Opcional)"
+                        value={interestRate}
+                        onChangeText={setInterestRate}
+                        placeholder="Ej: 18.5"
                         keyboardType="numeric"
-                        maxLength={2}
                       />
                     </View>
                     <View style={{ flex: 1, marginLeft: Spacing.s }}>
                       <Input
-                        label="Día de Pago"
-                        value={paymentDate}
-                        onChangeText={(text) => {
-                          const num = parseInt(text);
-                          if (text === "" || (num >= 1 && num <= 31)) {
-                            setPaymentDate(text);
-                          }
-                        }}
-                        placeholder="Ej: 25"
+                        label="Pago Mínimo (Opcional)"
+                        value={minimumPayment}
+                        onChangeText={(t) =>
+                          setMinimumPayment(formatAmountInput(t))
+                        }
+                        placeholder="0.00"
                         keyboardType="numeric"
-                        maxLength={2}
                       />
                     </View>
                   </View>
-                </>
-              ) : null}
+                )}
 
-              {isCrypto && selectedType === "asset" ? (
-                <>
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      justifyContent: "space-around",
-                      marginBottom: Spacing.m,
-                    }}
-                  >
-                    {(["BTC", "ETH", "USDT"] as const).map((symbol) => (
-                      <TouchableOpacity
-                        key={symbol}
-                        onPress={() => setSelectedCrypto(symbol)}
-                        style={{
-                          padding: Spacing.s,
-                          borderRadius: BorderRadius.m,
-                          backgroundColor:
-                            selectedCrypto === symbol
-                              ? colors.primary
-                              : colors.surface,
-                          borderWidth: 1,
-                          borderColor: colors.border,
-                        }}
-                      >
-                        <Typography
-                          style={{
-                            color:
-                              selectedCrypto === symbol ? "#FFF" : colors.text,
-                          }}
-                        >
-                          {symbol}
-                        </Typography>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
+                <Input
+                  label={STRINGS.vision.description}
+                  value={description}
+                  onChangeText={setDescription}
+                  placeholder="Opcional"
+                />
+                <Input
+                  label={STRINGS.wallet.amount}
+                  value={
+                    isCrypto
+                      ? amount
+                        ? formatCurrency(Number(amount)).replace("$", "").trim()
+                        : ""
+                      : amount
+                  }
+                  onChangeText={(text) =>
+                    !isCrypto && setAmount(formatAmountInput(text))
+                  }
+                  keyboardType="numeric"
+                  placeholder="0.00"
+                  editable={!isCrypto}
+                />
 
-                  <Input
-                    label="Cantidad Cripto"
-                    value={cryptoAmount}
-                    onChangeText={handleCryptoAmountChange}
-                    placeholder="0.00"
-                    keyboardType="numeric"
+                <View style={styles.modalActions}>
+                  <Button
+                    title={STRINGS.common.cancel}
+                    variant="outline"
+                    onPress={onClose}
+                    style={{ flex: 1, marginRight: Spacing.s }}
                   />
-
-                  {cryptoPrice && (
-                    <Typography
-                      variant="caption"
-                      style={{ marginBottom: Spacing.m, textAlign: "center" }}
-                    >
-                      Precio actual: {formatCurrency(cryptoPrice)} MXN
-                    </Typography>
-                  )}
-                </>
-              ) : null}
-
-              <Input
-                label={STRINGS.vision.name}
-                value={name}
-                onChangeText={setName}
-                placeholder="Ej: Casa, Préstamo..."
-              />
-
-              <Typography
-                variant="caption"
-                style={{
-                  color: colors.text,
-                  marginBottom: Spacing.xs,
-                  marginLeft: 4,
-                }}
-              >
-                Categoría
-              </Typography>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={{ marginBottom: Spacing.m }}
-              >
-                {(selectedType === "asset"
-                  ? STRINGS.vision.categories.asset
-                  : STRINGS.vision.categories.liability
-                ).map((cat) => (
-                  <TouchableOpacity
-                    key={cat}
-                    onPress={() => setCategory(cat)}
-                    style={{
-                      paddingHorizontal: Spacing.m,
-                      paddingVertical: Spacing.s,
-                      borderRadius: BorderRadius.l,
-                      backgroundColor:
-                        category === cat ? colors.primary : colors.surface,
-                      marginRight: Spacing.s,
-                      borderWidth: 1,
-                      borderColor:
-                        category === cat ? colors.primary : colors.border,
-                    }}
-                  >
-                    <Typography
-                      variant="body"
-                      style={{
-                        color: category === cat ? "#FFF" : colors.text,
-                      }}
-                    >
-                      {cat}
-                    </Typography>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-              {selectedType === "liability" && (
-                <View
-                  style={{
-                    flexDirection: "row",
-                    justifyContent: "space-between",
-                    marginBottom: Spacing.m,
-                  }}
-                >
-                  <View style={{ flex: 1, marginRight: Spacing.s }}>
-                    <Input
-                      label="Tasa Interés (%)"
-                      value={interestRate}
-                      onChangeText={setInterestRate}
-                      placeholder="Ej: 18.5"
-                      keyboardType="numeric"
-                    />
-                  </View>
-                  <View style={{ flex: 1, marginLeft: Spacing.s }}>
-                    <Input
-                      label="Pago Mínimo"
-                      value={minimumPayment}
-                      onChangeText={(t) =>
-                        setMinimumPayment(formatAmountInput(t))
-                      }
-                      placeholder="0.00"
-                      keyboardType="numeric"
-                    />
-                  </View>
+                  <Button
+                    title={STRINGS.common.save}
+                    onPress={handleSave}
+                    loading={isSaving}
+                    style={{ flex: 1, marginLeft: Spacing.s }}
+                  />
                 </View>
-              )}
-
-              <Input
-                label={STRINGS.vision.description}
-                value={description}
-                onChangeText={setDescription}
-                placeholder="Opcional"
-              />
-              <Input
-                label={STRINGS.wallet.amount}
-                value={
-                  isCrypto
-                    ? amount
-                      ? formatCurrency(Number(amount)).replace("$", "").trim()
-                      : ""
-                    : amount
-                }
-                onChangeText={(text) =>
-                  !isCrypto && setAmount(formatAmountInput(text))
-                }
-                keyboardType="numeric"
-                placeholder="0.00"
-                editable={!isCrypto}
-              />
-
-              <View style={styles.modalActions}>
-                <Button
-                  title={STRINGS.common.cancel}
-                  variant="outline"
-                  onPress={onClose}
-                  style={{ flex: 1, marginRight: Spacing.s }}
-                />
-                <Button
-                  title={STRINGS.common.save}
-                  onPress={handleSave}
-                  loading={isSaving}
-                  style={{ flex: 1, marginLeft: Spacing.s }}
-                />
-              </View>
+              </ScrollView>
             </TouchableOpacity>
           </TouchableWithoutFeedback>
         </TouchableOpacity>
@@ -565,6 +573,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: BorderRadius.xl,
     padding: Spacing.l,
     minHeight: 400,
+    maxHeight: "90%",
   },
   modalActions: {
     flexDirection: "row",

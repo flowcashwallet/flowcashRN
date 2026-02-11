@@ -6,13 +6,13 @@ import STRINGS from "@/i18n/es.json";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-    Platform,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Platform,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MonthYearPickerModal } from "../components/MonthYearPickerModal";
@@ -20,6 +20,7 @@ import { QuickActions } from "../components/QuickActions";
 import { StreakCalendarModal } from "../components/StreakCalendarModal";
 import { TransactionFilterModal } from "../components/TransactionFilterModal";
 import { WalletHeader } from "../components/WalletHeader";
+import { FinancialWeatherWidget } from "../components/molecules/FinancialWeatherWidget";
 import { Transaction } from "../data/walletSlice";
 import { useWalletData } from "../hooks/useWalletData";
 import { useWalletTransactions } from "../hooks/useWalletTransactions";
@@ -41,6 +42,7 @@ export default function WalletScreen() {
     categories,
     selectedDate,
     setSelectedDate,
+    forecast,
   } = useWalletData();
 
   const insets = useSafeAreaInsets();
@@ -133,6 +135,8 @@ export default function WalletScreen() {
           showYear={selectedDate.getFullYear() !== new Date().getFullYear()}
           year={selectedDate.getFullYear()}
         />
+
+        <FinancialWeatherWidget forecast={forecast} />
 
         <QuickActions
           onPressIncome={() => {
