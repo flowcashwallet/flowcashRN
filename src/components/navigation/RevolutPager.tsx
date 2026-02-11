@@ -33,6 +33,15 @@ import WalletScreen from "@/features/wallet/screens/WalletScreen";
 
 const TABS = [
   {
+    name: "balance",
+    route: "/balance",
+    component: VisionScreen,
+    icon: "building.columns",
+    title: "Balance",
+    colorLight: "#F5F3FF", // Violet 50
+    colorDark: "#4c1d95", // Violet 900
+  },
+  {
     name: "index",
     route: "/",
     component: WalletScreen,
@@ -42,31 +51,22 @@ const TABS = [
     colorDark: "#0f172a", // Slate 900
   },
   {
-    name: "budget",
-    route: "/budget",
-    component: BudgetScreen,
-    icon: "chart.pie",
-    title: "Budget",
-    colorLight: "#ECFDF5", // Emerald 50
-    colorDark: "#064e3b", // Emerald 900
-  },
-  {
-    name: "balance",
-    route: "/balance",
-    component: VisionScreen,
-    icon: "building.columns",
-    title: "Vision",
-    colorLight: "#F5F3FF", // Violet 50
-    colorDark: "#4c1d95", // Violet 900
-  },
-  {
     name: "statistics",
     route: "/statistics",
     component: AnalyticsScreen,
     icon: "chart.bar",
-    title: "Analytics",
+    title: "Estadísticas",
     colorLight: "#FFF7ED", // Orange 50
     colorDark: "#7c2d12", // Orange 900
+  },
+  {
+    name: "budget",
+    route: "/budget",
+    component: BudgetScreen,
+    icon: "chart.pie",
+    title: "Presupuesto",
+    colorLight: "#ECFDF5", // Emerald 50
+    colorDark: "#064e3b", // Emerald 900
   },
 ];
 
@@ -82,16 +82,40 @@ export function RevolutPager({ onNotificationPress }: RevolutPagerProps) {
   const navigation = useNavigation();
   const pathname = usePathname();
   const router = useRouter();
-  const [activeIndex, setActiveIndex] = useState(0);
+
+  // Calculate initial index based on pathname
+  const initialIndex = useMemo(() => {
+    const idx = TABS.findIndex((tab) => {
+      if (tab.route === "/") return pathname === "/" || pathname === "";
+      return pathname.startsWith(tab.route);
+    });
+    // Default to Wallet (index 1) if no match found
+    return idx !== -1 ? idx : 1;
+  }, []); // Run only once on mount
+
+  const [activeIndex, setActiveIndex] = useState(initialIndex);
   const carouselRef = useRef<any>(null);
   const isForcedSwitch = useRef(false);
+  const isMounted = useRef(false);
+
+  // Force scroll to initial index on mount to ensure Carousel is in sync
+  useEffect(() => {
+    if (carouselRef.current) {
+      carouselRef.current.scrollTo({ index: initialIndex, animated: false });
+    }
+    // Allow a brief moment for layout before enabling URL updates from Carousel
+    const timer = setTimeout(() => {
+      isMounted.current = true;
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Sync Pager with URL on mount/update
   useEffect(() => {
     // Find tab index matching current pathname
     const tabIndex = TABS.findIndex((tab) => {
-      if (tab.name === "index") return pathname === "/" || pathname === "";
-      return pathname.includes(tab.name);
+      if (tab.route === "/") return pathname === "/" || pathname === "";
+      return pathname.startsWith(tab.route);
     });
 
     if (isForcedSwitch.current) {
@@ -119,7 +143,7 @@ export function RevolutPager({ onNotificationPress }: RevolutPagerProps) {
   }, []);
 
   // Animation Values
-  const progress = useSharedValue(0);
+  const progress = useSharedValue(initialIndex);
   const buttonScale = useSharedValue(1);
   const buttonOpacity = useSharedValue(1);
   const textOpacity = useSharedValue(1);
@@ -271,6 +295,8 @@ export function RevolutPager({ onNotificationPress }: RevolutPagerProps) {
       {/* Horizontal Pager */}
       <Carousel
         ref={carouselRef}
+        key={initialIndex} // Force re-render if initialIndex changes
+        defaultIndex={initialIndex}
         loop={false}
         enabled={true}
         width={width}
@@ -281,6 +307,9 @@ export function RevolutPager({ onNotificationPress }: RevolutPagerProps) {
         }}
         onSnapToItem={(index) => {
           runOnJS(setActiveIndex)(index);
+
+          // Ignore URL updates during initial mount to prevent overwriting correct URL
+          if (!isMounted.current) return;
 
           // Sync URL with Swipe
           const tab = TABS[index];
@@ -321,47 +350,48 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    paddingHorizontal: 16,
-    paddingBottom: 12,
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
     zIndex: 10,
+    backgroundColor: "transparent",
   },
   headerContent: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    height: 50,
-    position: "relative", // Ensure absolute children are relative to this
+    paddingHorizontal: 16,
+    height: 60,
   },
   profileButton: {
-    padding: 4,
-    zIndex: 2, // Above title
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.2)",
   },
-  // Replaced searchBar with titleContainer
   titleContainer: {
     position: "absolute",
     left: 0,
     right: 0,
-    top: 0,
-    bottom: 0,
     alignItems: "center",
     justifyContent: "center",
-    zIndex: 1, // Below buttons
+    height: 60,
   },
   titleText: {
-    fontSize: 22, // Increased from 18
-    fontWeight: "bold",
-    textAlign: "center",
+    fontSize: 18,
+    fontWeight: "600",
   },
   headerActions: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
   },
   actionButton: {
-    padding: 4,
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.2)",
   },
   screenContainer: {
     flex: 1,
-    paddingTop: 10, // Space below header
+    paddingTop: 100, // Make space for header
   },
 });

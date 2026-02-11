@@ -1,9 +1,9 @@
 import { loadUserFromStorage } from "@/features/auth/authSlice";
 import { AppDispatch, RootState, store } from "@/store/store";
 import {
-    DarkTheme,
-    DefaultTheme,
-    ThemeProvider,
+  DarkTheme,
+  DefaultTheme,
+  ThemeProvider,
 } from "@react-navigation/native";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -53,7 +53,7 @@ function RootLayoutNav() {
       }
     } else if (isAuthenticated && (inAuthGroup || inLanding)) {
       // If authenticated and on login/register/landing, redirect to home
-      router.replace("/(drawer)/(tabs)/budget");
+      router.replace("/(drawer)/(tabs)");
     }
   }, [isAuthenticated, segments, isMounted, loading, router]);
 

@@ -47,6 +47,12 @@ export async function scheduleDailyNotification(hour: number, minute: number) {
       title: "Recordatorio Diario",
       body: "¡Es hora de registrar tus transacciones del día!",
       sound: true,
+      data: {
+        type: "temporal",
+        frequency: "daily",
+        hour,
+        minute,
+      },
     },
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.CALENDAR,
@@ -69,6 +75,13 @@ export async function scheduleWeeklyNotification(
       title: "Recordatorio Semanal",
       body: "¡No olvides registrar tus gastos de la semana!",
       sound: true,
+      data: {
+        type: "temporal",
+        frequency: "weekly",
+        weekday,
+        hour,
+        minute,
+      },
     },
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.CALENDAR,
@@ -92,6 +105,13 @@ export async function scheduleMonthlyNotification(
       title: "Recordatorio Mensual",
       body: "Es momento de revisar tu presupuesto del mes.",
       sound: true,
+      data: {
+        type: "temporal",
+        frequency: "monthly",
+        day,
+        hour,
+        minute,
+      },
     },
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.CALENDAR,
@@ -120,6 +140,11 @@ export async function scheduleCreditCardReminder(
       title: "Pago de Tarjeta",
       body: `¡Recuerda pagar tu tarjeta ${bankName}! Vence el día ${paymentDay}.`,
       sound: true,
+      data: {
+        type: "credit_card",
+        bankName,
+        paymentDay,
+      },
     },
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.CALENDAR,

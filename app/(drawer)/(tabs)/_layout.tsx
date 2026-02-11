@@ -1,13 +1,12 @@
-import { NotificationDashboardModal } from "@/components/NotificationDashboardModal";
 import { OnboardingTutorial } from "@/components/OnboardingTutorial";
 import { RevolutPager } from "@/components/navigation/RevolutPager";
 import { registerForPushNotificationsAsync } from "@/services/notifications";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 
 export default function TabLayout() {
-  const [isNotificationModalVisible, setIsNotificationModalVisible] =
-    useState(false);
+  const router = useRouter();
   const [isTutorialVisible, setIsTutorialVisible] = useState(false);
 
   useEffect(() => {
@@ -26,17 +25,15 @@ export default function TabLayout() {
   };
 
   const handleNotificationPress = async () => {
-    await registerForPushNotificationsAsync();
-    setIsNotificationModalVisible(true);
+    const hasPermission = await registerForPushNotificationsAsync();
+    if (hasPermission) {
+      router.push("/notifications");
+    }
   };
 
   return (
     <>
       <RevolutPager onNotificationPress={handleNotificationPress} />
-      <NotificationDashboardModal
-        visible={isNotificationModalVisible}
-        onClose={() => setIsNotificationModalVisible(false)}
-      />
       <OnboardingTutorial
         visible={isTutorialVisible}
         onClose={() => setIsTutorialVisible(false)}
