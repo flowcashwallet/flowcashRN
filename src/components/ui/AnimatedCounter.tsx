@@ -1,3 +1,4 @@
+import { useIsFocused } from "@react-navigation/native";
 import React, { useEffect, useMemo } from "react";
 import {
   StyleProp,
@@ -29,6 +30,7 @@ const TickerDigit = ({
   color,
   fontFamily,
   fontWeight,
+  isFocused,
 }: {
   value: number;
   fontSize: number;
@@ -36,6 +38,7 @@ const TickerDigit = ({
   color: string;
   fontFamily?: string;
   fontWeight?: string;
+  isFocused: boolean;
 }) => {
   // Animate the translateY based on the value
   // We want to translate UP, so negative value * lineHeight
@@ -43,14 +46,19 @@ const TickerDigit = ({
   const translateY = useSharedValue(-value * lineHeight);
 
   useEffect(() => {
+    // Only animate if the screen is focused
+    // This prevents background animations (e.g. when adding transaction)
+    // and ensures animation triggers when returning to the screen
+    if (!isFocused) return;
+
     // Spring animation for a "mechanical" feel
     // Tuned for snappier response (higher stiffness, higher damping)
     translateY.value = withSpring(-value * lineHeight, {
-      damping: 20, // Increased from 15 to reduce wobble/settling time
-      stiffness: 200, // Increased from 150 for faster response
+      damping: 30, // Increased to 30 for almost no overshoot
+      stiffness: 400, // Increased to 400 for very fast movement
       mass: 1,
     });
-  }, [value, lineHeight, translateY]);
+  }, [value, lineHeight, translateY, isFocused]);
 
   const animatedStyle = useAnimatedStyle(() => {
     return {
@@ -123,6 +131,8 @@ export function AnimatedCounter({ value, style }: AnimatedCounterProps) {
   // Split into array of characters
   const characters = formattedString.split("");
 
+  const isFocused = useIsFocused();
+
   return (
     <View style={[styles.row, containerStyle]}>
       {characters.map((char, index) => {
@@ -137,6 +147,7 @@ export function AnimatedCounter({ value, style }: AnimatedCounterProps) {
               color={color}
               fontFamily={fontFamily}
               fontWeight={fontWeight as any}
+              isFocused={isFocused}
             />
           );
         }
