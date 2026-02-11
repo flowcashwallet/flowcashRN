@@ -297,6 +297,7 @@ export default function AnalyticsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    width: "100%",
   },
   content: {
     padding: Spacing.m,

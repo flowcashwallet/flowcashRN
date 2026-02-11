@@ -106,7 +106,11 @@ export default function WalletScreen() {
   return (
     <ThemedView style={styles.container}>
       <ScrollView
-        contentContainerStyle={{ paddingBottom: 150 + insets.bottom }}
+        contentContainerStyle={{
+          paddingBottom: 150 + insets.bottom,
+          paddingHorizontal: Spacing.m,
+          paddingTop: 10,
+        }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -250,7 +254,6 @@ export default function WalletScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingHorizontal: Spacing.m,
-    paddingTop: 10,
+    width: "100%",
   },
 });

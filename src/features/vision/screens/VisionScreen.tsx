@@ -225,7 +225,10 @@ export default function VisionScreen() {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
-        contentContainerStyle={{ paddingBottom: 150 + insets.bottom }}
+        contentContainerStyle={{
+          paddingBottom: 150 + insets.bottom,
+          padding: Spacing.m,
+        }}
         showsVerticalScrollIndicator={false}
       >
         <VisionHeader
@@ -320,6 +323,6 @@ export default function VisionScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: Spacing.m,
+    width: "100%",
   },
 });
