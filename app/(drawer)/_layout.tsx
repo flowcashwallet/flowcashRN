@@ -8,6 +8,7 @@ import {
   DrawerItem,
   DrawerItemList,
 } from "@react-navigation/drawer";
+import Constants from "expo-constants";
 import { Drawer } from "expo-router/drawer";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
@@ -84,6 +85,16 @@ function CustomDrawerContent(props: any) {
             />
           )}
         />
+        <Text
+          style={{
+            textAlign: "center",
+            color: colors.textSecondary,
+            fontSize: 12,
+            marginTop: 8,
+          }}
+        >
+          v{Constants.expoConfig?.version ?? "1.0.0"}
+        </Text>
       </View>
     </View>
   );
