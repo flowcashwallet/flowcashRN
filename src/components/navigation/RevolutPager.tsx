@@ -6,6 +6,7 @@ import { DrawerActions } from "@react-navigation/native";
 import { useNavigation, usePathname, useRouter } from "expo-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
+  DeviceEventEmitter,
   Dimensions,
   StatusBar,
   StyleSheet,
@@ -80,6 +81,7 @@ export function RevolutPager() {
   const router = useRouter();
   const [activeIndex, setActiveIndex] = useState(0);
   const carouselRef = useRef<any>(null);
+  const isForcedSwitch = useRef(false);
 
   // Sync Pager with URL on mount/update
   useEffect(() => {
@@ -89,11 +91,29 @@ export function RevolutPager() {
       return pathname.includes(tab.name);
     });
 
+    if (isForcedSwitch.current) {
+      isForcedSwitch.current = false;
+      return;
+    }
+
     if (tabIndex !== -1 && tabIndex !== activeIndex) {
       setActiveIndex(tabIndex);
       carouselRef.current?.scrollTo({ index: tabIndex, animated: false });
     }
   }, [pathname]);
+
+  // Listen for external tab switch events (e.g. from TransactionForm)
+  useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener(
+      "event.switchTab",
+      (index: number) => {
+        isForcedSwitch.current = true;
+        setActiveIndex(index);
+        carouselRef.current?.scrollTo({ index, animated: false });
+      },
+    );
+    return () => subscription.remove();
+  }, []);
 
   // Animation Values
   const progress = useSharedValue(0);
