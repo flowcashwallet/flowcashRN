@@ -32,7 +32,7 @@ export default function TabLayout() {
 
   return (
     <>
-      <RevolutPager />
+      <RevolutPager onNotificationPress={handleNotificationPress} />
       <NotificationDashboardModal
         visible={isNotificationModalVisible}
         onClose={() => setIsNotificationModalVisible(false)}

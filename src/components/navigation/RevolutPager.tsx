@@ -70,7 +70,11 @@ const TABS = [
   },
 ];
 
-export function RevolutPager() {
+interface RevolutPagerProps {
+  onNotificationPress?: () => void;
+}
+
+export function RevolutPager({ onNotificationPress }: RevolutPagerProps) {
   const { width, height } = useWindowDimensions();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
@@ -238,7 +242,17 @@ export function RevolutPager() {
 
           {/* Right: Actions */}
           <View style={styles.headerActions}>
-            <Animated.View style={buttonAnimatedStyle}>
+            <Animated.View
+              style={[buttonAnimatedStyle, { flexDirection: "row", gap: 12 }]}
+            >
+              {onNotificationPress && (
+                <TouchableOpacity
+                  style={styles.actionButton}
+                  onPress={onNotificationPress}
+                >
+                  <IconSymbol name="bell.fill" size={24} color={colors.text} />
+                </TouchableOpacity>
+              )}
               <TouchableOpacity
                 style={styles.actionButton}
                 onPress={() => router.push("/transaction-form")}
