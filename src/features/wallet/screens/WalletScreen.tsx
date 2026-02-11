@@ -6,14 +6,15 @@ import STRINGS from "@/i18n/es.json";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  Platform,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  View,
+    Platform,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MonthYearPickerModal } from "../components/MonthYearPickerModal";
 import { QuickActions } from "../components/QuickActions";
 import { StreakCalendarModal } from "../components/StreakCalendarModal";
@@ -41,6 +42,8 @@ export default function WalletScreen() {
     selectedDate,
     setSelectedDate,
   } = useWalletData();
+
+  const insets = useSafeAreaInsets();
 
   const { deleteTransaction, deleteMonthlyTransactions } =
     useWalletTransactions();
@@ -103,7 +106,7 @@ export default function WalletScreen() {
   return (
     <ThemedView style={styles.container}>
       <ScrollView
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{ paddingBottom: 150 + insets.bottom }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl

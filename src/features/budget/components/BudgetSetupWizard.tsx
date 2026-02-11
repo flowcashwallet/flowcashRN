@@ -11,16 +11,17 @@ import { AppDispatch, RootState } from "@/store/store";
 import { formatCurrency } from "@/utils/format";
 import React, { useEffect } from "react";
 import {
-    Alert,
-    Keyboard,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    TouchableOpacity,
-    TouchableWithoutFeedback,
-    View,
+  Alert,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useDispatch, useSelector } from "react-redux";
 
 export interface BudgetSetupWizardProps {
@@ -34,6 +35,7 @@ export const BudgetSetupWizard = ({
 }: BudgetSetupWizardProps) => {
   const dispatch = useDispatch<AppDispatch>();
   const { user } = useSelector((state: RootState) => state.auth);
+  const insets = useSafeAreaInsets();
   const { categories } = useSelector((state: RootState) => state.categories);
   const {
     step,
@@ -79,7 +81,10 @@ export const BudgetSetupWizard = ({
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <ScrollView
-          contentContainerStyle={{ padding: Spacing.m, paddingBottom: 100 }}
+          contentContainerStyle={{
+            padding: Spacing.m,
+            paddingBottom: 150 + insets.bottom,
+          }}
         >
           <View
             style={[

@@ -9,6 +9,7 @@ import { formatCurrency } from "@/utils/format";
 import React from "react";
 import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { BarChart, PieChart } from "react-native-gifted-charts";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSelector } from "react-redux";
 
 export interface BudgetDashboardProps {
@@ -16,6 +17,7 @@ export interface BudgetDashboardProps {
 }
 
 export const BudgetDashboard = ({ onEdit }: BudgetDashboardProps) => {
+  const insets = useSafeAreaInsets();
   const { user } = useSelector((state: RootState) => state.auth);
   const {
     colors,
@@ -33,7 +35,10 @@ export const BudgetDashboard = ({ onEdit }: BudgetDashboardProps) => {
 
   return (
     <ScrollView
-      contentContainerStyle={{ padding: Spacing.m, paddingBottom: 100 }}
+      contentContainerStyle={{
+        padding: Spacing.m,
+        paddingBottom: 200 + insets.bottom,
+      }}
     >
       <View
         style={[

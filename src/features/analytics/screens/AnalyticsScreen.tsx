@@ -14,6 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useDispatch, useSelector } from "react-redux";
 import { useAnalyticsData } from "../hooks/useAnalyticsData";
 
@@ -46,6 +47,7 @@ export default function AnalyticsScreen() {
   } = useAnalyticsData();
 
   const [refreshing, setRefreshing] = useState(false);
+  const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
   const [datePickerVisible, setDatePickerVisible] = useState(false);
@@ -76,7 +78,10 @@ export default function AnalyticsScreen() {
   return (
     <ThemedView style={styles.container}>
       <ScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: 200 + insets.bottom },
+        ]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl

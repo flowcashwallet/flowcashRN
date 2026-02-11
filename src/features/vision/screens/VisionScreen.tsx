@@ -30,6 +30,7 @@ import {
   StyleSheet,
   TouchableOpacity,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const VISION_SORT_PREF_KEY = "vision_sort_preference";
 
@@ -55,6 +56,7 @@ export default function VisionScreen() {
     handleUpdateCryptoPrice,
   } = useVisionOperations(user?.id?.toString());
 
+  const insets = useSafeAreaInsets();
   const [addModalVisible, setAddModalVisible] = useState(false);
   const [debtPlannerVisible, setDebtPlannerVisible] = useState(false);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
@@ -223,7 +225,7 @@ export default function VisionScreen() {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{ paddingBottom: 150 + insets.bottom }}
         showsVerticalScrollIndicator={false}
       >
         <VisionHeader
