@@ -1,27 +1,35 @@
+import { Typography } from "@/components/atoms/Typography";
 import { ThemedView } from "@/components/themed-view";
 import { Spacing } from "@/constants/theme";
 import { AddEntityModal } from "@/features/vision/components/AddEntityModal";
+import { DebtPayoffPlanner } from "@/features/vision/components/DebtPayoffPlanner";
 import { EntityDetailModal } from "@/features/vision/components/EntityDetailModal";
 import { VisionEntityList } from "@/features/vision/components/VisionEntityList";
 import { VisionFilterModal } from "@/features/vision/components/VisionFilterModal";
 import { VisionHeader } from "@/features/vision/components/VisionHeader";
 import {
-    SortOption,
-    VisionSortModal,
+  SortOption,
+  VisionSortModal,
 } from "@/features/vision/components/VisionSortModal";
 import { VisionEntity } from "@/features/vision/data/visionSlice";
 import { useVisionData } from "@/features/vision/hooks/useVisionData";
 import {
-    AddEntityData,
-    useVisionOperations,
+  AddEntityData,
+  useVisionOperations,
 } from "@/features/vision/hooks/useVisionOperations";
 import {
-    registerForPushNotificationsAsync,
-    scheduleCreditCardReminder,
+  registerForPushNotificationsAsync,
+  scheduleCreditCardReminder,
 } from "@/services/notifications";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useEffect, useState } from "react";
-import { Alert, RefreshControl, ScrollView, StyleSheet } from "react-native";
+import {
+  Alert,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+} from "react-native";
 
 const VISION_SORT_PREF_KEY = "vision_sort_preference";
 
@@ -48,6 +56,7 @@ export default function VisionScreen() {
   } = useVisionOperations(user?.id?.toString());
 
   const [addModalVisible, setAddModalVisible] = useState(false);
+  const [debtPlannerVisible, setDebtPlannerVisible] = useState(false);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [activeTab, setActiveTab] = useState<"asset" | "liability">("asset");
   const [selectedType, setSelectedType] = useState<"asset" | "liability">(
@@ -154,47 +163,50 @@ export default function VisionScreen() {
         // If we were editing from the detail view, we closed it to open this modal.
         // So we don't need to update selectedEntity for the detail view immediately unless we re-open it.
         // But let's keep it simple.
-      } else if (!isEditing) {
-        // Post-save logic for new Credit Card Liability
-        if (
-          data.type === "liability" &&
-          data.isCreditCard &&
-          data.paymentDate &&
-          data.issuerBank
-        ) {
-          Alert.alert(
-            "Recordatorio de Pago",
-            `¿Quieres que te enviemos un recordatorio mensual 2 días antes de tu fecha de pago (${data.paymentDate})?`,
-            [
-              {
-                text: "No",
-                style: "cancel",
-              },
-              {
-                text: "Sí, por favor",
-                onPress: async () => {
-                  const hasPermission =
-                    await registerForPushNotificationsAsync();
-                  if (hasPermission) {
-                    await scheduleCreditCardReminder(
-                      data.issuerBank!,
-                      parseInt(data.paymentDate!),
-                    );
-                    Alert.alert(
-                      "Listo",
-                      "Te recordaremos 2 días antes de tu fecha de pago.",
-                    );
-                  } else {
-                    Alert.alert(
-                      "Error",
-                      "No tenemos permisos para enviar notificaciones.",
-                    );
-                  }
-                },
-              },
-            ],
-          );
-        }
+      }
+
+      // Logic for Credit Card Liability (New OR Edit)
+      // Check if we should prompt for reminder (applies to both new and edited entities)
+      if (
+        data.type === "liability" &&
+        data.isCreditCard &&
+        data.paymentDate &&
+        data.issuerBank
+      ) {
+        const promptTitle = isEditing
+          ? "Actualizar Recordatorio"
+          : "Recordatorio de Pago";
+        const promptMessage = isEditing
+          ? `¿Quieres actualizar o activar el recordatorio de pago para el día ${data.paymentDate}?`
+          : `¿Quieres que te enviemos un recordatorio mensual 2 días antes de tu fecha de pago (${data.paymentDate})?`;
+
+        Alert.alert(promptTitle, promptMessage, [
+          {
+            text: "No",
+            style: "cancel",
+          },
+          {
+            text: isEditing ? "Sí, actualizar" : "Sí, por favor",
+            onPress: async () => {
+              const hasPermission = await registerForPushNotificationsAsync();
+              if (hasPermission) {
+                await scheduleCreditCardReminder(
+                  data.issuerBank!,
+                  parseInt(data.paymentDate!),
+                );
+                Alert.alert(
+                  "Listo",
+                  "Te recordaremos 2 días antes de tu fecha de pago.",
+                );
+              } else {
+                Alert.alert(
+                  "Error",
+                  "No tenemos permisos para enviar notificaciones.",
+                );
+              }
+            },
+          },
+        ]);
       }
     }
     return result;
@@ -219,6 +231,30 @@ export default function VisionScreen() {
           totalAssets={totalAssets}
           totalLiabilities={totalLiabilities}
         />
+
+        {activeTab === "liability" && totalLiabilities > 0 && (
+          <TouchableOpacity
+            style={{
+              backgroundColor: colors.primary,
+              marginHorizontal: Spacing.m,
+              marginBottom: Spacing.m,
+              padding: Spacing.m,
+              borderRadius: 12,
+              flexDirection: "row",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+            onPress={() => setDebtPlannerVisible(true)}
+          >
+            <Typography
+              variant="body"
+              weight="bold"
+              style={{ color: colors.background, marginRight: 8 }}
+            >
+              🚀 Planificador de Deudas
+            </Typography>
+          </TouchableOpacity>
+        )}
 
         <VisionEntityList
           activeTab={activeTab}
@@ -257,6 +293,11 @@ export default function VisionScreen() {
         selectedType={selectedType}
         initialEntity={selectedEntity}
         isSaving={isSaving}
+      />
+
+      <DebtPayoffPlanner
+        visible={debtPlannerVisible}
+        onClose={() => setDebtPlannerVisible(false)}
       />
 
       <EntityDetailModal

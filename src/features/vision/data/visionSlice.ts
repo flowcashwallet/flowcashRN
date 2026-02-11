@@ -20,6 +20,9 @@ export interface VisionEntity {
   cutoffDate?: number; // Day of month 1-31
   paymentDate?: number; // Day of month 1-31
   issuerBank?: string;
+  // Debt Specific
+  interestRate?: number;
+  minimumPayment?: number;
 }
 
 interface VisionState {
@@ -48,6 +51,10 @@ const mapBackendToFrontend = (data: any): VisionEntity => ({
   cryptoAmount: data.crypto_amount ? parseFloat(data.crypto_amount) : undefined,
   category: data.category,
   isCreditCard: data.is_credit_card,
+  interestRate: data.interest_rate ? parseFloat(data.interest_rate) : undefined,
+  minimumPayment: data.minimum_payment
+    ? parseFloat(data.minimum_payment)
+    : undefined,
   cutoffDate: data.cutoff_date,
   paymentDate: data.payment_date,
   issuerBank: data.issuer_bank,

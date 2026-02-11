@@ -30,6 +30,9 @@ export interface AddEntityData {
   cutoffDate?: string;
   paymentDate?: string;
   issuerBank?: string;
+  // Debt fields
+  interestRate?: string;
+  minimumPayment?: string;
 }
 
 export interface AddTransactionToEntityData {
@@ -74,6 +77,12 @@ export const useVisionOperations = (userId?: string) => {
             issuerBank: data.issuerBank,
           }
         : {}),
+      interestRate: data.interestRate
+        ? parseFloat(data.interestRate)
+        : undefined,
+      minimumPayment: data.minimumPayment
+        ? parseFloat(data.minimumPayment)
+        : undefined,
     };
 
     try {

@@ -62,6 +62,10 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
   const [paymentDate, setPaymentDate] = useState("");
   const [issuerBank, setIssuerBank] = useState("");
 
+  // Debt Logic
+  const [interestRate, setInterestRate] = useState("");
+  const [minimumPayment, setMinimumPayment] = useState("");
+
   useEffect(() => {
     if (visible) {
       if (initialEntity) {
@@ -69,6 +73,15 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
         setDescription(initialEntity.description || "");
         setAmount(initialEntity.amount.toString());
         setCategory(initialEntity.category || "");
+
+        // Debt Fields
+        if (initialEntity.type === "liability") {
+          setInterestRate(initialEntity.interestRate?.toString() || "");
+          setMinimumPayment(initialEntity.minimumPayment?.toString() || "");
+        } else {
+          setInterestRate("");
+          setMinimumPayment("");
+        }
 
         // Asset - Crypto
         if (initialEntity.isCrypto) {
@@ -99,6 +112,10 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
         setCategory("");
         setIsCrypto(false);
         setCryptoAmount("");
+
+        // Reset Debt
+        setInterestRate("");
+        setMinimumPayment("");
 
         setIsCreditCard(false);
         setCutoffDate("");
@@ -160,6 +177,8 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
         cutoffDate,
         paymentDate,
         issuerBank,
+        interestRate,
+        minimumPayment,
       },
       !!initialEntity,
       initialEntity,
@@ -459,6 +478,37 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
                   </TouchableOpacity>
                 ))}
               </ScrollView>
+              {selectedType === "liability" && (
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    marginBottom: Spacing.m,
+                  }}
+                >
+                  <View style={{ flex: 1, marginRight: Spacing.s }}>
+                    <Input
+                      label="Tasa Interés (%)"
+                      value={interestRate}
+                      onChangeText={setInterestRate}
+                      placeholder="Ej: 18.5"
+                      keyboardType="numeric"
+                    />
+                  </View>
+                  <View style={{ flex: 1, marginLeft: Spacing.s }}>
+                    <Input
+                      label="Pago Mínimo"
+                      value={minimumPayment}
+                      onChangeText={(t) =>
+                        setMinimumPayment(formatAmountInput(t))
+                      }
+                      placeholder="0.00"
+                      keyboardType="numeric"
+                    />
+                  </View>
+                </View>
+              )}
+
               <Input
                 label={STRINGS.vision.description}
                 value={description}
