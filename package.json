@@ -11,6 +11,7 @@
     "lint": "expo lint",
     "test": "jest",
     "update": "eas update --channel preview --message",
+    "update:web": "sudo npx expo export --platform web && eas deploy",
     "build:android": "eas build --profile preview --platform android",
     "build:ios": "eas build --profile preview --platform ios",
     "prepare": "husky"
