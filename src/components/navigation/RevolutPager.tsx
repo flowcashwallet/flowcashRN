@@ -9,8 +9,9 @@ import {
   Dimensions,
   StatusBar,
   StyleSheet,
+  Text,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 import Animated, {
   interpolateColor,
@@ -187,8 +188,8 @@ export function RevolutPager() {
       {/* Persistent Header */}
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <View style={styles.headerContent}>
+          {/* Left: Menu Button */}
           <TouchableOpacity style={styles.profileButton} onPress={toggleDrawer}>
-            {/* Using line.3.horizontal as per original layout, or person circle */}
             <IconSymbol
               name="line.3.horizontal"
               size={28}
@@ -196,24 +197,22 @@ export function RevolutPager() {
             />
           </TouchableOpacity>
 
-          {/* <View style={styles.searchBar}>
-            <IconSymbol
-              name="magnifyingglass"
-              size={18}
-              color={colors.textSecondary}
-            />
+          {/* Center: Absolute Title */}
+          <View style={styles.titleContainer} pointerEvents="none">
             <Animated.View style={textAnimatedStyle}>
-              <Text
-                style={[styles.searchText, { color: colors.textSecondary }]}
-              >
-                Search {TABS[activeIndex].title}
+              <Text style={[styles.titleText, { color: colors.text }]}>
+                {TABS[activeIndex].title}
               </Text>
             </Animated.View>
-          </View> */}
+          </View>
 
-          {/* <View style={styles.headerActions}>
+          {/* Right: Actions */}
+          <View style={styles.headerActions}>
             <Animated.View style={buttonAnimatedStyle}>
-              <TouchableOpacity style={styles.actionButton}>
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={() => router.push("/transaction-form")}
+              >
                 <IconSymbol
                   name="plus.circle.fill"
                   size={28}
@@ -221,16 +220,7 @@ export function RevolutPager() {
                 />
               </TouchableOpacity>
             </Animated.View>
-            <Animated.View style={[buttonAnimatedStyle, { marginLeft: 8 }]}>
-              <TouchableOpacity style={styles.actionButton}>
-                <IconSymbol
-                  name="arrow.triangle.2.circlepath"
-                  size={28}
-                  color={colors.text}
-                />
-              </TouchableOpacity>
-            </Animated.View>
-          </View> */}
+          </View>
         </View>
       </View>
 
@@ -285,23 +275,27 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     height: 50,
+    position: "relative", // Ensure absolute children are relative to this
   },
   profileButton: {
     padding: 4,
+    zIndex: 2, // Above title
   },
-  searchBar: {
-    flex: 1,
-    flexDirection: "row",
+  // Replaced searchBar with titleContainer
+  titleContainer: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
     alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.05)",
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    height: 36,
-    marginHorizontal: 12,
+    justifyContent: "center",
+    zIndex: 1, // Below buttons
   },
-  searchText: {
-    marginLeft: 8,
-    fontSize: 14,
+  titleText: {
+    fontSize: 22, // Increased from 18
+    fontWeight: "bold",
+    textAlign: "center",
   },
   headerActions: {
     flexDirection: "row",
