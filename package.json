@@ -10,7 +10,7 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "test": "jest",
-    "update": "eas update --branch main --message",
+    "update": "eas update --channel preview --message",
     "build:android": "eas build --profile preview --platform android",
     "build:ios": "eas build --profile preview --platform ios",
     "prepare": "husky"
