@@ -7,12 +7,12 @@ import { useNavigation, usePathname, useRouter } from "expo-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   DeviceEventEmitter,
-  Dimensions,
   StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
+  useWindowDimensions,
 } from "react-native";
 import Animated, {
   interpolateColor,
@@ -30,8 +30,6 @@ import AnalyticsScreen from "@/features/analytics/screens/AnalyticsScreen";
 import BudgetScreen from "@/features/budget/screens/BudgetScreen";
 import VisionScreen from "@/features/vision/screens/VisionScreen";
 import WalletScreen from "@/features/wallet/screens/WalletScreen";
-
-const { width, height } = Dimensions.get("window");
 
 const TABS = [
   {
@@ -73,6 +71,7 @@ const TABS = [
 ];
 
 export function RevolutPager() {
+  const { width, height } = useWindowDimensions();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
   const insets = useSafeAreaInsets();
