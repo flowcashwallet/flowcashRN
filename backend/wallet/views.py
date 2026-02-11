@@ -1,6 +1,7 @@
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from decimal import Decimal
 from .models import Transaction, Budget, Category, Subscription, VisionEntity, GamificationStats
 from .serializers import TransactionSerializer, BudgetSerializer, CategorySerializer, SubscriptionSerializer, VisionEntitySerializer, GamificationStatsSerializer
 from .ml import predict_category_for_user
@@ -74,6 +75,29 @@ class VisionEntityViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return VisionEntity.objects.filter(user=self.request.user).order_by('-amount')
+
+    @action(detail=False, methods=['get'], url_path='debt-plan')
+    def debt_plan(self, request):
+        """
+        Calculates debt payoff plan for user's liabilities.
+        Query Params: extra_payment (default 0)
+        """
+        try:
+            extra_payment = Decimal(request.query_params.get('extra_payment', 0))
+        except:
+            extra_payment = Decimal(0)
+            
+        # Fetch liabilities
+        liabilities = VisionEntity.objects.filter(
+            user=request.user, 
+            type='liability'
+        ).values('id', 'name', 'amount', 'interest_rate', 'minimum_payment')
+        
+        # Calculate
+        from .debt_planner import calculate_payoff_plans
+        plans = calculate_payoff_plans(list(liabilities), extra_payment)
+        
+        return Response(plans)
 
     @action(detail=False, methods=['get'], url_path='export/excel')
     def export_excel(self, request):

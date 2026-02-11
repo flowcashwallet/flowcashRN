@@ -98,6 +98,10 @@ class VisionEntity(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField(null=True, blank=True)
     amount = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    
+    # Debt specific fields (only relevant for type='liability')
+    interest_rate = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, help_text="Annual interest rate (percentage)")
+    minimum_payment = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     type = models.CharField(max_length=20, choices=ENTITY_TYPES)
     category = models.CharField(max_length=100, null=True, blank=True)
     
