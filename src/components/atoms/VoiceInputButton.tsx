@@ -1,7 +1,6 @@
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import Voice, { SpeechResultsEvent } from "@react-native-voice/voice";
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -20,6 +19,14 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { Typography } from "../atoms/Typography";
+
+// Safely import Voice module to avoid crashes in Expo Go
+let Voice: any = null;
+try {
+  Voice = require("@react-native-voice/voice").default;
+} catch (e) {
+  console.log("Voice module not available (likely running in Expo Go)");
+}
 
 interface VoiceInputButtonProps {
   onCommandDetected: (text: string) => void;
@@ -96,7 +103,7 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
     }
   };
 
-  const onSpeechResults = (e: SpeechResultsEvent) => {
+  const onSpeechResults = (e: any) => {
     if (e.value && e.value[0]) {
       const text = e.value[0];
       // Use the ref to get the latest callback
