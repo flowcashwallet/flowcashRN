@@ -5,6 +5,7 @@ from decimal import Decimal
 from .models import Transaction, Budget, Category, Subscription, VisionEntity, GamificationStats
 from .serializers import TransactionSerializer, BudgetSerializer, CategorySerializer, SubscriptionSerializer, VisionEntitySerializer, GamificationStatsSerializer
 from .ml import predict_category_for_user
+from .nlp import parse_voice_command
 from .analytics import predict_runway
 
 class AnalyticsViewSet(viewsets.ViewSet):
@@ -164,6 +165,22 @@ class TransactionViewSet(viewsets.ModelViewSet):
         queryset = self.filter_queryset(self.get_queryset())
         from .exporters import export_transactions_to_pdf
         return export_transactions_to_pdf(queryset)
+
+    @action(detail=False, methods=['post'], url_path='parse-command')
+    def parse_command(self, request):
+        """
+        Parses a natural language voice command into structured transaction data.
+        Body: { "text": "Gasté 500 en Oxxo" }
+        """
+        text = request.data.get('text', '')
+        if not text:
+            return Response({"error": "Text is required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            result = parse_voice_command(text, request.user)
+            return Response(result)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class BudgetViewSet(viewsets.ModelViewSet):
     serializer_class = BudgetSerializer

@@ -30,7 +30,7 @@ import { useTransactionForm } from "../hooks/useTransactionForm";
 export default function TransactionFormScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const { id, initialType } = params;
+  const { id, initialType, amount: paramAmount, description: paramDescription, category: paramCategory } = params;
 
   const {
     type,
@@ -62,6 +62,9 @@ export default function TransactionFormScreen() {
   } = useTransactionForm({
     id: id as string,
     initialType: initialType as "income" | "expense",
+    initialAmount: paramAmount as string,
+    initialDescription: paramDescription as string,
+    initialCategory: paramCategory as string,
   });
 
   const colorScheme = useColorScheme();

@@ -1,6 +1,10 @@
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Colors } from "@/constants/theme";
 import { logout } from "@/features/auth/authSlice";
+import {
+  loadSettings,
+  toggleVoiceCommand,
+} from "@/features/settings/settingsSlice";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { AppDispatch, RootState } from "@/store/store";
 import {
@@ -10,17 +14,24 @@ import {
 } from "@react-navigation/drawer";
 import Constants from "expo-constants";
 import { Drawer } from "expo-router/drawer";
-import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import React, { useEffect } from "react";
+import { Platform, StyleSheet, Switch, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useDispatch, useSelector } from "react-redux";
 
 function CustomDrawerContent(props: any) {
   const dispatch = useDispatch<AppDispatch>();
   const { user } = useSelector((state: RootState) => state.auth);
+  const { isVoiceCommandEnabled } = useSelector(
+    (state: RootState) => state.settings,
+  );
   const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
+
+  useEffect(() => {
+    dispatch(loadSettings());
+  }, [dispatch]);
 
   const handleLogout = async () => {
     try {
@@ -28,6 +39,10 @@ function CustomDrawerContent(props: any) {
     } catch (error) {
       console.error("Error signing out: ", error);
     }
+  };
+
+  const handleToggleVoice = (value: boolean) => {
+    dispatch(toggleVoiceCommand(value));
   };
 
   return (
@@ -62,6 +77,48 @@ function CustomDrawerContent(props: any) {
 
         <View style={{ paddingVertical: 10 }}>
           <DrawerItemList {...props} />
+        </View>
+
+        <View
+          style={{
+            borderTopWidth: 1,
+            borderTopColor: colors.border,
+            paddingVertical: 10,
+          }}
+        >
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+            }}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <IconSymbol
+                name={isVoiceCommandEnabled ? "mic.fill" : "mic.slash.fill"}
+                size={24}
+                color={colors.text}
+                style={{ marginRight: 32 }}
+              />
+              <Text style={{ color: colors.text, fontWeight: "500" }}>
+                Comando de Voz
+              </Text>
+            </View>
+            <Switch
+              value={isVoiceCommandEnabled}
+              onValueChange={handleToggleVoice}
+              trackColor={{ false: "#767577", true: colors.primary }}
+              thumbColor={
+                Platform.OS === "ios"
+                  ? "#fff"
+                  : isVoiceCommandEnabled
+                    ? colors.primary
+                    : "#f4f3f4"
+              }
+            />
+          </View>
         </View>
       </DrawerContentScrollView>
 

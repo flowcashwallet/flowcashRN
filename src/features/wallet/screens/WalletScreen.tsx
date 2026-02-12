@@ -1,11 +1,15 @@
+import { VoiceInputButton } from "@/components/atoms/VoiceInputButton";
 import { TransactionList } from "@/components/organisms/TransactionList";
 import { ThemedView } from "@/components/themed-view";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { BorderRadius, Spacing } from "@/constants/theme";
 import STRINGS from "@/i18n/es.json";
+import { endpoints } from "@/services/api";
+import { RootState } from "@/store/store";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
+  Alert,
   Platform,
   RefreshControl,
   ScrollView,
@@ -15,6 +19,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSelector } from "react-redux";
 import { MonthYearPickerModal } from "../components/MonthYearPickerModal";
 import { QuickActions } from "../components/QuickActions";
 import { StreakCalendarModal } from "../components/StreakCalendarModal";
@@ -27,6 +32,10 @@ import { useWalletTransactions } from "../hooks/useWalletTransactions";
 
 export default function WalletScreen() {
   const router = useRouter();
+  const { token } = useSelector((state: RootState) => state.auth);
+  const { isVoiceCommandEnabled } = useSelector(
+    (state: RootState) => state.settings,
+  );
   const {
     currentMonthTransactions,
     balance,
@@ -71,6 +80,46 @@ export default function WalletScreen() {
     type: null,
     paymentType: null,
   });
+
+  const [processingVoice, setProcessingVoice] = useState(false);
+
+  const handleVoiceCommand = async (text: string) => {
+    setProcessingVoice(true);
+    try {
+      // Call Backend to parse command
+      const response = await fetch(endpoints.wallet.parseCommand, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ text }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Error procesando el comando");
+      }
+
+      const data = await response.json();
+
+      // Redirect to Transaction Form with pre-filled data
+      router.push({
+        pathname: "/transaction-form",
+        params: {
+          amount: data.amount.toString(),
+          description: data.description,
+          category: data.category,
+          type: data.type,
+          fromVoice: "true", // Flag to trigger auto-save if needed or just better UX
+        },
+      });
+    } catch (error) {
+      console.error("Voice command failed:", error);
+      Alert.alert("Error", "No pude entender el comando. Intenta de nuevo.");
+    } finally {
+      setProcessingVoice(false);
+    }
+  };
 
   const handleDeleteMonthly = () => {
     deleteMonthlyTransactions(currentMonthTransactions, currentMonthName);
@@ -251,6 +300,14 @@ export default function WalletScreen() {
           })
         }
       />
+      {isVoiceCommandEnabled && (
+        <View style={styles.fabContainer}>
+          <VoiceInputButton
+            onCommandDetected={handleVoiceCommand}
+            isLoading={processingVoice}
+          />
+        </View>
+      )}
     </ThemedView>
   );
 }
@@ -259,5 +316,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     width: "100%",
+  },
+  fabContainer: {
+    position: "absolute",
+    bottom: 130,
+    right: 20,
+    zIndex: 100,
   },
 });

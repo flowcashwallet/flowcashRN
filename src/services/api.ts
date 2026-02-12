@@ -21,6 +21,7 @@ export const endpoints = {
     debtPlan: `${API_BASE_URL}/wallet/vision/debt-plan/`,
     gamification: `${API_BASE_URL}/wallet/gamification/current/`,
     forecast: `${API_BASE_URL}/wallet/analytics/forecast/`,
+    parseCommand: `${API_BASE_URL}/wallet/transactions/parse-command/`,
   },
 };
 

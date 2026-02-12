@@ -13,7 +13,9 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.juliovargas.beta1",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSMicrophoneUsageDescription": "FlowCash necesita acceso al micrófono para que puedas registrar transacciones por voz.",
+        "NSSpeechRecognitionUsageDescription": "FlowCash necesita reconocimiento de voz para convertir tus comandos en texto."
       }
     },
     "android": {
@@ -23,6 +25,7 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
+      "permissions": ["android.permission.RECORD_AUDIO"],
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },

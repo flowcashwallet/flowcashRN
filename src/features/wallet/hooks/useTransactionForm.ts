@@ -16,11 +16,17 @@ import { useWalletTransactions } from "./useWalletTransactions";
 export interface UseTransactionFormProps {
   id?: string;
   initialType?: "income" | "expense" | "transfer";
+  initialAmount?: string;
+  initialDescription?: string;
+  initialCategory?: string;
 }
 
 export const useTransactionForm = ({
   id,
   initialType,
+  initialAmount,
+  initialDescription,
+  initialCategory,
 }: UseTransactionFormProps) => {
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
@@ -45,15 +51,19 @@ export const useTransactionForm = ({
   const [amount, setAmount] = useState(
     existingTransaction
       ? formatAmountInput(existingTransaction.amount.toFixed(2))
-      : "",
+      : initialAmount
+        ? formatAmountInput(initialAmount)
+        : "",
   );
   const [description, setDescription] = useState(
-    existingTransaction?.description || "",
+    existingTransaction?.description || initialDescription || "",
   );
   const [selectedCategory, setSelectedCategory] = useState<string | null>(
-    existingTransaction?.category || null,
+    existingTransaction?.category || initialCategory || null,
   );
-  const [manualCategorySelection, setManualCategorySelection] = useState(false);
+  const [manualCategorySelection, setManualCategorySelection] = useState(
+    !!(existingTransaction?.category || initialCategory),
+  );
 
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(
     existingTransaction?.relatedEntityId || null,
