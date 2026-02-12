@@ -4,20 +4,20 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import Voice, { SpeechResultsEvent } from "@react-native-voice/voice";
 import React, { useEffect, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Platform,
-    StyleSheet,
-    View,
+  ActivityIndicator,
+  Alert,
+  Platform,
+  StyleSheet,
+  View,
 } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
-    runOnJS,
-    useAnimatedStyle,
-    useSharedValue,
-    withRepeat,
-    withSpring,
-    withTiming,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSpring,
+  withTiming,
 } from "react-native-reanimated";
 import { Typography } from "../atoms/Typography";
 
@@ -48,6 +48,9 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
   const rippleOpacity = useSharedValue(0);
 
   useEffect(() => {
+    // Check if Voice is available before attaching listeners
+    if (!Voice) return;
+
     // Setup voice listeners
     Voice.onSpeechStart = onSpeechStart;
     Voice.onSpeechEnd = onSpeechEnd;
@@ -55,7 +58,9 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
     Voice.onSpeechError = onSpeechError;
 
     return () => {
-      Voice.destroy().then(Voice.removeAllListeners);
+      if (Voice) {
+        Voice.destroy().then(Voice.removeAllListeners);
+      }
     };
   }, []);
 
@@ -107,7 +112,15 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
 
   const startListening = async () => {
     try {
-      if (Platform.OS !== "web") {
+      if (!Voice) {
+        Alert.alert(
+          "Función no disponible",
+          "Esta versión de la app no soporta comandos de voz. Por favor, actualiza la app desde la tienda o espera una nueva versión.",
+        );
+        return;
+      }
+
+      if (Platform.OS === "android") {
         await Voice.start("es-MX");
       } else {
         Alert.alert(

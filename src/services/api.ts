@@ -1,5 +1,7 @@
-export const API_BASE_URL = "https://flowcash-rn.vercel.app/api";
-// export const API_BASE_URL = "http://localhost:8000/api";
+// export const API_BASE_URL = "https://flowcash-rn.vercel.app/api";
+export const API_BASE_URL = __DEV__
+  ? "http://localhost:8000/api"
+  : "https://flowcash-rn.vercel.app/api";
 
 export const endpoints = {
   auth: {
