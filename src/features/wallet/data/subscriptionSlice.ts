@@ -2,7 +2,7 @@ import { fetchWithAuth } from "@/utils/apiClient";
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { endpoints } from "../../../services/api";
 import { AppDispatch, RootState } from "../../../store/store";
-import { updateVisionEntity } from "../../vision/data/visionSlice";
+import { fetchVisionEntities } from "../../vision/data/visionSlice";
 import { addTransaction } from "./walletSlice";
 
 export interface Subscription {
@@ -181,7 +181,6 @@ export const processDueSubscriptions = createAsyncThunk(
       const state = getState() as RootState;
       const { subscriptions } = state.subscriptions;
       const { user } = state.auth;
-      const { entities } = state.vision;
 
       if (!(user as any)?.id) return;
 
@@ -213,20 +212,6 @@ export const processDueSubscriptions = createAsyncThunk(
         };
         await dispatch(addTransaction(transactionData));
 
-        // 2. Update Vision Entity Balance (if applicable)
-        if (sub.relatedEntityId) {
-          const entity = entities.find((e) => e.id === sub.relatedEntityId);
-          if (entity) {
-            const newAmount =
-              entity.type === "asset"
-                ? entity.amount - sub.amount
-                : entity.amount + sub.amount; // Liability increases
-            await dispatch(
-              updateVisionEntity({ ...entity, amount: newAmount }),
-            );
-          }
-        }
-
         // 3. Update Next Payment Date
         const nextDate = new Date(sub.nextPaymentDate);
         if (sub.frequency === "weekly")
@@ -240,6 +225,10 @@ export const processDueSubscriptions = createAsyncThunk(
         await dispatch(
           updateSubscription({ ...sub, nextPaymentDate: nextDate.getTime() }),
         );
+      }
+
+      if (dueSubscriptions.length > 0) {
+        dispatch(fetchVisionEntities());
       }
       return dueSubscriptions.length;
     } catch (error: any) {

@@ -8,7 +8,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import { Alert, DeviceEventEmitter } from "react-native";
+import { Alert } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchCategories } from "../data/categoriesSlice";
 import { useWalletTransactions } from "./useWalletTransactions";
@@ -298,13 +298,7 @@ export const useTransactionForm = ({
 
         // If adding a new transaction, always return to Wallet (root)
         // If editing, just go back to where we came from
-        if (isEditing) {
-          router.back();
-        } else {
-          // Force switch to Wallet tab (index 0) without unmounting the pager
-          DeviceEventEmitter.emit("event.switchTab", 0);
-          router.back();
-        }
+        router.back();
       } else {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       }

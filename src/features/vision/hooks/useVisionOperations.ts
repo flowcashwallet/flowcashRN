@@ -2,6 +2,7 @@ import {
   VisionEntity,
   addVisionEntity,
   deleteVisionEntity,
+  fetchVisionEntities,
   updateVisionEntity,
 } from "@/features/vision/data/visionSlice";
 import {
@@ -153,36 +154,11 @@ export const useVisionOperations = (userId?: string) => {
         }),
       ).unwrap();
 
-      // Update Entity Amount
-      const transAmount = parseAmount(data.amount);
-      let newAmount = data.entity.amount;
-
-      if (data.entity.type === "asset") {
-        if (data.type === "income") {
-          newAmount += transAmount;
-        } else {
-          newAmount -= transAmount;
-        }
-      } else {
-        // Liability
-        if (data.type === "income") {
-          newAmount -= transAmount;
-        } else {
-          newAmount += transAmount;
-        }
-      }
-
-      await dispatch(
-        updateVisionEntity({
-          ...data.entity,
-          amount: newAmount,
-        }),
-      ).unwrap();
-
-      // Refresh transactions
+      // Refresh transactions and entities
       dispatch(fetchTransactions());
+      dispatch(fetchVisionEntities());
 
-      return { ...data.entity, amount: newAmount };
+      return true;
     } catch (error: any) {
       Alert.alert(STRINGS.common.error, STRINGS.wallet.saveError + error);
       return false;
