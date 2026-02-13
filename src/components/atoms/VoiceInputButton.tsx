@@ -44,6 +44,7 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
 
   // Use ref to hold the latest callback to avoid stale closures in listeners
   const onCommandDetectedRef = useRef(onCommandDetected);
+  const processedResult = useRef(false);
 
   useEffect(() => {
     onCommandDetectedRef.current = onCommandDetected;
@@ -104,7 +105,10 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
   };
 
   const onSpeechResults = (e: any) => {
+    console.log("Speech Results:", e);
     if (e.value && e.value[0]) {
+      if (processedResult.current) return;
+      processedResult.current = true;
       const text = e.value[0];
       // Use the ref to get the latest callback
       onCommandDetectedRef.current(text);
@@ -127,7 +131,8 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
         return;
       }
 
-      if (Platform.OS === "android") {
+      processedResult.current = false;
+      if (Platform.OS === "android" || Platform.OS === "ios") {
         await Voice.start("es-MX");
       } else {
         Alert.alert(

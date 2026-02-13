@@ -109,7 +109,7 @@ export default function WalletScreen() {
           amount: data.amount.toString(),
           description: data.description,
           category: data.category,
-          type: data.type,
+          initialType: (data.type || "expense").toLowerCase(),
           fromVoice: "true", // Flag to trigger auto-save if needed or just better UX
         },
       });
