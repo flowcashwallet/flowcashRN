@@ -1,5 +1,6 @@
 import re
 from .ml import CategoryPredictor
+from .models import VisionEntity
 
 def parse_voice_command(text, user):
     """
@@ -7,6 +8,7 @@ def parse_voice_command(text, user):
     - Monto (float)
     - Descripción (string limpio)
     - Categoría (predicha)
+    - Entidad relacionada (VisionEntity)
     
     Ejemplo entrada: "Gasté quinientos cincuenta pesos en Oxxo para unas papas"
     Ejemplo salida: { amount: 550.0, description: "Oxxo papas", category: "Supermercado" }
@@ -15,6 +17,7 @@ def parse_voice_command(text, user):
         return None
 
     # 1. Normalización
+    original_text = text
     text = text.lower()
     
     # 2. Extracción de Monto
@@ -52,12 +55,32 @@ def parse_voice_command(text, user):
         if temp_amount > 0:
             amount = float(temp_amount)
 
+    # 3.5. Extracción de Entidad (VisionEntity)
+    related_entity_id = None
+    related_entity_name = None
+    
+    # Solo buscamos si hay usuario (por si acaso)
+    if user and not user.is_anonymous:
+        user_entities = VisionEntity.objects.filter(user=user)
+        # Ordenamos por longitud de nombre descendente para matchear nombres más largos primero
+        sorted_entities = sorted(user_entities, key=lambda e: len(e.name), reverse=True)
+        
+        for entity in sorted_entities:
+            entity_name_normalized = entity.name.lower()
+            if entity_name_normalized in text:
+                related_entity_id = entity.id
+                related_entity_name = entity.name
+                # Removemos el nombre de la entidad del texto
+                text = text.replace(entity_name_normalized, "")
+                break
+
     # 4. Limpieza (Stopwords y palabras de relleno)
     stopwords = [
         'gaste', 'gasté', 'pague', 'pagué', 'compre', 'compré', 'transferi', 'transferí',
         'en', 'el', 'la', 'los', 'las', 'un', 'una', 'unos', 'unas',
         'pesos', 'dolares', 'euros', 'mxn', 'usd',
-        'para', 'por', 'de', 'a', 'con', 'y'
+        'para', 'por', 'de', 'a', 'con', 'y',
+        'asocialo', 'asocia', 'pasivo', 'activo', 'entidad', 'cuenta'
     ]
     
     words = text.split()
@@ -87,5 +110,7 @@ def parse_voice_command(text, user):
         "category": predicted_category, # Puede ser None
         "description": description.capitalize(),
         "type": transaction_type,
-        "original_text": text
+        "original_text": original_text,
+        "relatedEntityId": related_entity_id,
+        "relatedEntityName": related_entity_name
     }
