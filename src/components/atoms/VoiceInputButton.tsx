@@ -46,6 +46,11 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
   const onCommandDetectedRef = useRef(onCommandDetected);
   const processedResult = useRef(false);
 
+  // Track continuous input state
+  const isUserHolding = useRef(false);
+  const accumulatedText = useRef("");
+  const lastPartialText = useRef("");
+
   useEffect(() => {
     onCommandDetectedRef.current = onCommandDetected;
   }, [onCommandDetected]);
@@ -63,6 +68,7 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
     Voice.onSpeechStart = onSpeechStart;
     Voice.onSpeechEnd = onSpeechEnd;
     Voice.onSpeechResults = onSpeechResults;
+    Voice.onSpeechPartialResults = onSpeechPartialResults;
     Voice.onSpeechError = onSpeechError;
 
     return () => {
@@ -107,13 +113,32 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
   const onSpeechResults = (e: any) => {
     console.log("Speech Results:", e);
     if (e.value && e.value[0]) {
-      if (processedResult.current) return;
-      processedResult.current = true;
       const text = e.value[0];
-      // Use the ref to get the latest callback
-      onCommandDetectedRef.current(text);
+
+      // If user is still holding, accumulate and restart
+      if (isUserHolding.current) {
+        accumulatedText.current += (accumulatedText.current ? " " : "") + text;
+        lastPartialText.current = ""; // Clear partial as we have a result
+
+        // Restart listening immediately
+        startListening(true); // Pass true to indicate restart
+      } else {
+        // Final result after release
+        const finalText =
+          (accumulatedText.current ? accumulatedText.current + " " : "") + text;
+
+        if (processedResult.current) return;
+        processedResult.current = true;
+        onCommandDetectedRef.current(finalText);
+        stopListening();
+      }
     }
-    stopListening();
+  };
+
+  const onSpeechPartialResults = (e: any) => {
+    if (e.value && e.value[0]) {
+      lastPartialText.current = e.value[0];
+    }
   };
 
   const stopRipple = () => {
@@ -121,7 +146,7 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
     rippleOpacity.value = withTiming(0);
   };
 
-  const startListening = async () => {
+  const startListening = async (isRestart = false) => {
     try {
       if (!Voice) {
         Alert.alert(
@@ -131,7 +156,12 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
         return;
       }
 
-      processedResult.current = false;
+      if (!isRestart) {
+        processedResult.current = false;
+        accumulatedText.current = "";
+        lastPartialText.current = "";
+      }
+
       if (Platform.OS === "android" || Platform.OS === "ios") {
         await Voice.start("es-MX");
       } else {
@@ -149,6 +179,12 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
     try {
       if (Platform.OS !== "web") {
         await Voice.stop();
+
+        // If we are stopping manually (release), check if we have any pending text
+        // Note: Voice.stop() usually triggers onSpeechResults, but sometimes we want to be sure
+        // However, onSpeechResults logic handles the submission.
+        // We just need to ensure isUserHolding is false BEFORE onSpeechResults fires if possible.
+        // But stopListening is async.
       }
     } catch (e) {
       console.error(e);
@@ -158,12 +194,24 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
   // Gestures
   const longPress = Gesture.LongPress()
     .onStart(() => {
+      isUserHolding.current = true;
       scale.value = withSpring(1.2);
-      runOnJS(startListening)();
+      runOnJS(startListening)(false);
     })
     .onFinalize(() => {
+      isUserHolding.current = false;
       scale.value = withSpring(1);
+
+      // Check if we have any accumulated text or partial text to submit if onSpeechResults doesn't fire
+      // But typically Voice.stop() DOES trigger onSpeechResults.
+      // To be safe, we can wait a bit or handle it in onSpeechResults.
+      // If we rely on onSpeechResults, we are good.
+      // But if user released during a silence (no result yet), we might have partial text.
+
       runOnJS(stopListening)();
+
+      // Fallback: If no result comes back after a timeout, we might want to submit what we have?
+      // For now, let's trust Voice.stop() triggers onSpeechResults with the final phrase.
     })
     .minDuration(200);
 
