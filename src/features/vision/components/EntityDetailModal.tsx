@@ -9,6 +9,7 @@ import { Transaction } from "@/features/wallet/data/walletSlice";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import STRINGS from "@/i18n/es.json";
 import { formatAmountInput, formatCurrency } from "@/utils/format";
+import { router } from "expo-router";
 import React, { useState } from "react";
 import {
   FlatList,
@@ -78,7 +79,13 @@ export const EntityDetailModal: React.FC<EntityDetailModalProps> = ({
     : [];
 
   if (!entity) return null;
-
+  const onPressTransaction = (transaction: Transaction) => {
+    onClose();
+    router.push({
+      pathname: "/transaction-form",
+      params: { id: transaction.id },
+    });
+  };
   return (
     <Modal
       animationType="slide"
@@ -255,38 +262,40 @@ export const EntityDetailModal: React.FC<EntityDetailModalProps> = ({
                 }}
                 keyboardShouldPersistTaps="handled"
                 renderItem={({ item }) => (
-                  <Card
-                    style={{ marginBottom: Spacing.xs, padding: Spacing.s }}
-                  >
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        justifyContent: "space-between",
-                      }}
+                  <Pressable onPress={() => onPressTransaction(item)}>
+                    <Card
+                      style={{ marginBottom: Spacing.xs, padding: Spacing.s }}
                     >
-                      <View>
-                        <Typography variant="body" weight="bold">
-                          {item.description}
-                        </Typography>
-                        <Typography variant="caption">
-                          {new Date(item.date).toLocaleDateString()}
-                        </Typography>
-                      </View>
-                      <Typography
-                        variant="body"
-                        weight="bold"
+                      <View
                         style={{
-                          color:
-                            item.type === "income"
-                              ? colors.success
-                              : colors.error,
+                          flexDirection: "row",
+                          justifyContent: "space-between",
                         }}
                       >
-                        {item.type === "income" ? "+" : "-"}{" "}
-                        {formatCurrency(item.amount)}
-                      </Typography>
-                    </View>
-                  </Card>
+                        <View>
+                          <Typography variant="body" weight="bold">
+                            {item.description}
+                          </Typography>
+                          <Typography variant="caption">
+                            {new Date(item.date).toLocaleDateString()}
+                          </Typography>
+                        </View>
+                        <Typography
+                          variant="body"
+                          weight="bold"
+                          style={{
+                            color:
+                              item.type === "income"
+                                ? colors.success
+                                : colors.error,
+                          }}
+                        >
+                          {item.type === "income" ? "+" : "-"}{" "}
+                          {formatCurrency(item.amount)}
+                        </Typography>
+                      </View>
+                    </Card>
+                  </Pressable>
                 )}
                 ListEmptyComponent={
                   <Typography
