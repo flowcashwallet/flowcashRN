@@ -4,10 +4,10 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
+  PermissionsAndroid,
   Platform,
   StyleSheet,
-  View,
+  View
 } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
@@ -20,12 +20,12 @@ import Animated, {
 } from "react-native-reanimated";
 import { Typography } from "../atoms/Typography";
 
-// Safely import Voice module to avoid crashes in Expo Go
+// Safely import Voice module
 let Voice: any = null;
 try {
   Voice = require("@react-native-voice/voice").default;
 } catch (e) {
-  console.log("Voice module not available (likely running in Expo Go)");
+  console.log("Voice module not available");
 }
 
 interface VoiceInputButtonProps {
@@ -39,50 +39,124 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
 }) => {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
+
   const [isListening, setIsListening] = useState(false);
-  const [hasPermission, setHasPermission] = useState(false);
-
-  // Use ref to hold the latest callback to avoid stale closures in listeners
-  const onCommandDetectedRef = useRef(onCommandDetected);
-  const processedResult = useRef(false);
-
-  // Track continuous input state
   const isUserHolding = useRef(false);
   const accumulatedText = useRef("");
   const lastPartialText = useRef("");
-
-  useEffect(() => {
-    onCommandDetectedRef.current = onCommandDetected;
-  }, [onCommandDetected]);
+  const currentSentence = useRef(""); // Guardará lo que estás diciendo actualmente
+  const processedResult = useRef(false);
 
   // Animation values
   const scale = useSharedValue(1);
   const rippleScale = useSharedValue(1);
   const rippleOpacity = useSharedValue(0);
 
+  const combineText = (prev: string, next: string) => {
+    if (!prev) return next;
+    if (!next) return prev;
+
+    // Si la nueva parte ya contiene la anterior (común en motores de voz),
+    // nos quedamos solo con la nueva.
+    if (next.toLowerCase().includes(prev.toLowerCase())) return next;
+
+    return `${prev} ${next}`.trim();
+  };
+
   useEffect(() => {
-    // Check if Voice is available before attaching listeners
     if (!Voice) return;
 
-    // Setup voice listeners
-    Voice.onSpeechStart = onSpeechStart;
-    Voice.onSpeechEnd = onSpeechEnd;
-    Voice.onSpeechResults = onSpeechResults;
-    Voice.onSpeechPartialResults = onSpeechPartialResults;
-    Voice.onSpeechError = onSpeechError;
+    Voice.onSpeechStart = () => {
+      runOnJS(setIsListening)(true);
+      startRipple();
+    };
+
+    Voice.onSpeechEnd = () => {
+      if (isUserHolding.current) {
+        // Al terminar una ráfaga de voz, pasamos lo actual al acumulado
+        if (currentSentence.current) {
+          accumulatedText.current = combineText(
+            accumulatedText.current,
+            currentSentence.current,
+          );
+          currentSentence.current = "";
+        }
+        startVoiceEngine(true);
+      } else {
+        runOnJS(setIsListening)(false);
+        stopRipple();
+      }
+    };
+
+    Voice.onSpeechResults = (e: any) => {
+      if (e.value && e.value[0]) {
+        // Guardamos el resultado de esta ráfaga
+        currentSentence.current = e.value[0];
+      }
+    };
+
+    Voice.onSpeechPartialResults = (e: any) => {
+      if (e.value && e.value[0]) {
+        currentSentence.current = e.value[0];
+      }
+    };
+
+    Voice.onSpeechError = () => {
+      if (isUserHolding.current) startVoiceEngine(true);
+    };
 
     return () => {
-      if (Voice) {
-        Voice.destroy().then(Voice.removeAllListeners);
-      }
+      Voice.destroy().then(Voice.removeAllListeners);
     };
   }, []);
 
-  const onSpeechStart = (e: any) => {
-    setIsListening(true);
-    // Start ripple animation
-    rippleScale.value = 1;
-    rippleOpacity.value = 0.5;
+  const requestPermissions = async () => {
+    if (Platform.OS === "android") {
+      try {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+        );
+        return granted === PermissionsAndroid.RESULTS.GRANTED;
+      } catch (err) {
+        return false;
+      }
+    }
+    return true; // iOS maneja permisos vía Info.plist automáticamente al llamar a Voice
+  };
+
+  const startVoiceEngine = async (isRestart = false) => {
+    try {
+      if (!isRestart) {
+        accumulatedText.current = "";
+        currentSentence.current = "";
+        processedResult.current = false;
+      }
+      await Voice.start("es-MX");
+    } catch (e) {
+      console.log("Voice Start Error:", e);
+    }
+  };
+
+  const processFinalText = () => {
+    if (processedResult.current) return;
+
+    // Combinamos lo acumulado de ráfagas anteriores con lo último detectado
+    const finalResult = combineText(
+      accumulatedText.current,
+      currentSentence.current,
+    )
+      .replace(/\s+/g, " ") // Limpiar espacios extra
+      .trim();
+
+    console.log("--- RESULTADO FINAL ---", finalResult);
+
+    if (finalResult.length > 0) {
+      processedResult.current = true;
+      onCommandDetected(finalResult);
+    }
+  };
+
+  const startRipple = () => {
     rippleScale.value = withRepeat(
       withTiming(2, { duration: 1000 }),
       -1,
@@ -95,142 +169,55 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
     );
   };
 
-  const onSpeechEnd = (e: any) => {
-    setIsListening(false);
-    stopRipple();
-  };
-
-  const onSpeechError = (e: any) => {
-    console.error("Speech Error:", e);
-    setIsListening(false);
-    stopRipple();
-    // Only show alert if it's not a "no match" error which happens frequently
-    if (e.error?.message && !e.error.message.includes("7")) {
-      Alert.alert("Error", "No pude escucharte bien. Intenta de nuevo.");
-    }
-  };
-
-  const onSpeechResults = (e: any) => {
-    console.log("Speech Results:", e);
-    if (e.value && e.value[0]) {
-      const text = e.value[0];
-
-      // If user is still holding, accumulate and restart
-      if (isUserHolding.current) {
-        accumulatedText.current += (accumulatedText.current ? " " : "") + text;
-        lastPartialText.current = ""; // Clear partial as we have a result
-
-        // Restart listening immediately
-        startListening(true); // Pass true to indicate restart
-      } else {
-        // Final result after release
-        const finalText =
-          (accumulatedText.current ? accumulatedText.current + " " : "") + text;
-
-        if (processedResult.current) return;
-        processedResult.current = true;
-        onCommandDetectedRef.current(finalText);
-        stopListening();
-      }
-    }
-  };
-
-  const onSpeechPartialResults = (e: any) => {
-    if (e.value && e.value[0]) {
-      lastPartialText.current = e.value[0];
-    }
-  };
-
   const stopRipple = () => {
     rippleScale.value = withTiming(1);
     rippleOpacity.value = withTiming(0);
   };
+  // 2. Crea esta función fuera del return (dentro del componente)
 
-  const startListening = async (isRestart = false) => {
-    try {
-      if (!Voice) {
-        Alert.alert(
-          "Función no disponible",
-          "Esta versión de la app no soporta comandos de voz. Por favor, actualiza la app desde la tienda o espera una nueva versión.",
-        );
-        return;
-      }
+  // --- GESTOS ---
+  const handlePressStart = async () => {
+    const hasPerms = await requestPermissions();
+    if (!hasPerms) return;
 
-      if (!isRestart) {
-        processedResult.current = false;
-        accumulatedText.current = "";
-        lastPartialText.current = "";
-      }
-
-      if (Platform.OS === "android" || Platform.OS === "ios") {
-        await Voice.start("es-MX");
-      } else {
-        Alert.alert(
-          "No soportado",
-          "El reconocimiento de voz no está soportado en web por ahora.",
-        );
-      }
-    } catch (e) {
-      console.error(e);
-    }
+    isUserHolding.current = true;
+    scale.value = withSpring(1.2);
+    await startVoiceEngine(false);
   };
 
-  const stopListening = async () => {
-    try {
-      if (Platform.OS !== "web") {
-        await Voice.stop();
+  const handlePressStop = async () => {
+    isUserHolding.current = false;
+    scale.value = withSpring(1);
 
-        // If we are stopping manually (release), check if we have any pending text
-        // Note: Voice.stop() usually triggers onSpeechResults, but sometimes we want to be sure
-        // However, onSpeechResults logic handles the submission.
-        // We just need to ensure isUserHolding is false BEFORE onSpeechResults fires if possible.
-        // But stopListening is async.
-      }
-    } catch (e) {
-      console.error(e);
-    }
+    try {
+      await Voice.stop();
+    } catch (e) {}
+
+    // Esperamos un momento a que llegue el último "SpeechResult"
+    setTimeout(() => {
+      processFinalText();
+    }, 600);
   };
 
-  // Gestures
   const longPress = Gesture.LongPress()
     .onStart(() => {
-      isUserHolding.current = true;
-      scale.value = withSpring(1.2);
-      runOnJS(startListening)(false);
+      runOnJS(handlePressStart)();
     })
     .onFinalize(() => {
-      isUserHolding.current = false;
-      scale.value = withSpring(1);
-
-      // Check if we have any accumulated text or partial text to submit if onSpeechResults doesn't fire
-      // But typically Voice.stop() DOES trigger onSpeechResults.
-      // To be safe, we can wait a bit or handle it in onSpeechResults.
-      // If we rely on onSpeechResults, we are good.
-      // But if user released during a silence (no result yet), we might have partial text.
-
-      runOnJS(stopListening)();
-
-      // Fallback: If no result comes back after a timeout, we might want to submit what we have?
-      // For now, let's trust Voice.stop() triggers onSpeechResults with the final phrase.
+      runOnJS(handlePressStop)();
     })
     .minDuration(200);
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
 
-  const animatedStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ scale: scale.value }],
-    };
-  });
-
-  const rippleStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ scale: rippleScale.value }],
-      opacity: rippleOpacity.value,
-    };
-  });
+  const rippleStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: rippleScale.value }],
+    opacity: rippleOpacity.value,
+  }));
 
   return (
     <View style={styles.container}>
-      {/* Ripple Effect Background */}
       <Animated.View
         style={[
           styles.ripple,
@@ -266,11 +253,14 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
             style={{
               color: colors.textSecondary,
               backgroundColor: colors.background,
-              padding: 4,
-              borderRadius: 4,
+              paddingHorizontal: 8,
+              paddingVertical: 4,
+              borderRadius: 8,
+              overflow: "hidden",
+              elevation: 2,
             }}
           >
-            Soltar para enviar
+            Habla ahora...
           </Typography>
         </View>
       )}
@@ -282,34 +272,33 @@ const styles = StyleSheet.create({
   container: {
     alignItems: "center",
     justifyContent: "center",
+    height: 100,
+    width: 100,
   },
   button: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    elevation: 8,
     zIndex: 10,
   },
   ripple: {
     position: "absolute",
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     zIndex: 5,
   },
   hintContainer: {
     position: "absolute",
-    top: -30,
+    top: -20,
     alignItems: "center",
-    width: 120,
+    width: 150,
   },
 });
