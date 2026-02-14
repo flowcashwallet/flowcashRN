@@ -30,7 +30,14 @@ import { useTransactionForm } from "../hooks/useTransactionForm";
 export default function TransactionFormScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const { id, initialType, amount: paramAmount, description: paramDescription, category: paramCategory } = params;
+  const {
+    id,
+    initialType,
+    amount: paramAmount,
+    description: paramDescription,
+    category: paramCategory,
+    relatedEntityId,
+  } = params;
 
   const {
     type,
@@ -65,6 +72,7 @@ export default function TransactionFormScreen() {
     initialAmount: paramAmount as string,
     initialDescription: paramDescription as string,
     initialCategory: paramCategory as string,
+    relatedEntityId: relatedEntityId as string,
   });
 
   const colorScheme = useColorScheme();
@@ -112,7 +120,9 @@ export default function TransactionFormScreen() {
         keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
       >
         <ScrollView contentContainerStyle={styles.content}>
-          <TouchableWithoutFeedback onPress={Platform.OS === "web" ? undefined : Keyboard.dismiss}>
+          <TouchableWithoutFeedback
+            onPress={Platform.OS === "web" ? undefined : Keyboard.dismiss}
+          >
             <View>
               {/* Amount Input */}
               <View style={{ marginVertical: Spacing.l }}>

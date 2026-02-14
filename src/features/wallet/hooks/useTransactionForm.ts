@@ -19,6 +19,7 @@ export interface UseTransactionFormProps {
   initialAmount?: string;
   initialDescription?: string;
   initialCategory?: string;
+  relatedEntityId?: string;
 }
 
 export const useTransactionForm = ({
@@ -27,6 +28,7 @@ export const useTransactionForm = ({
   initialAmount,
   initialDescription,
   initialCategory,
+  relatedEntityId,
 }: UseTransactionFormProps) => {
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
@@ -66,7 +68,7 @@ export const useTransactionForm = ({
   );
 
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(
-    existingTransaction?.relatedEntityId || null,
+    existingTransaction?.relatedEntityId || relatedEntityId || null,
   );
   const [transferRelatedEntityId, setTransferRelatedEntityId] = useState<
     string | null

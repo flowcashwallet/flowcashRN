@@ -110,6 +110,7 @@ export default function WalletScreen() {
           description: data.description,
           category: data.category,
           initialType: (data.type || "expense").toLowerCase(),
+          relatedEntityId: data.relatedEntityId,
           fromVoice: "true", // Flag to trigger auto-save if needed or just better UX
         },
       });
