@@ -76,11 +76,24 @@ def parse_voice_command(text, user):
 
     # 4. Limpieza (Stopwords y palabras de relleno)
     stopwords = [
+        # Verbos de acción comunes
         'gaste', 'gasté', 'pague', 'pagué', 'compre', 'compré', 'transferi', 'transferí',
+        'anota', 'agrega', 'pon', 'registra', 'mete', 'ingresa', 'añade',
+        
+        # Artículos y preposiciones
         'en', 'el', 'la', 'los', 'las', 'un', 'una', 'unos', 'unas',
+        'del', 'al', 'lo',
+        'para', 'por', 'de', 'a', 'con', 'y', 'e', 'ni', 'que',
+        
+        # Monedas
         'pesos', 'dolares', 'euros', 'mxn', 'usd',
-        'para', 'por', 'de', 'a', 'con', 'y',
-        'asocialo', 'asocia', 'pasivo', 'activo', 'entidad', 'cuenta'
+        
+        # Pronombres personales
+        'yo', 'mi', 'me', 'nosotros', 'nos', 'le', 'les', 'se',
+        
+        # Comandos de asociación
+        'asocialo', 'asócialo', 'asocia', 'asociar', 'asociado', 
+        'pasivo', 'activo', 'entidad', 'cuenta', 'tarjeta', 'deuda', 'ahorro'
     ]
     
     words = text.split()
