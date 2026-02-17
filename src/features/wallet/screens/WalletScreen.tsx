@@ -6,6 +6,7 @@ import { BorderRadius, Spacing } from "@/constants/theme";
 import STRINGS from "@/i18n/es.json";
 import { endpoints } from "@/services/api";
 import { RootState } from "@/store/store";
+import { fetchWithAuth } from "@/utils/apiClient";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -19,7 +20,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector, useStore } from "react-redux";
 import { MonthYearPickerModal } from "../components/MonthYearPickerModal";
 import { QuickActions } from "../components/QuickActions";
 import { StreakCalendarModal } from "../components/StreakCalendarModal";
@@ -32,7 +33,8 @@ import { useWalletTransactions } from "../hooks/useWalletTransactions";
 
 export default function WalletScreen() {
   const router = useRouter();
-  const { token } = useSelector((state: RootState) => state.auth);
+  const dispatch = useDispatch();
+  const store = useStore<RootState>();
   const { isVoiceCommandEnabled } = useSelector(
     (state: RootState) => state.settings,
   );
@@ -87,14 +89,18 @@ export default function WalletScreen() {
     setProcessingVoice(true);
     try {
       // Call Backend to parse command
-      const response = await fetch(endpoints.wallet.parseCommand, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+      const response = await fetchWithAuth(
+        endpoints.wallet.parseCommand,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ text }),
         },
-        body: JSON.stringify({ text }),
-      });
+        dispatch,
+        store.getState,
+      );
 
       if (!response.ok) {
         throw new Error("Error procesando el comando");

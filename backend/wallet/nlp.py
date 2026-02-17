@@ -79,6 +79,7 @@ def parse_voice_command(text, user):
         # Verbos de acción comunes
         'gaste', 'gasté', 'pague', 'pagué', 'compre', 'compré', 'transferi', 'transferí',
         'anota', 'agrega', 'pon', 'registra', 'mete', 'ingresa', 'añade',
+        'ponlo', 'ponle', 'cargalo', 'cárgalo',
         
         # Artículos y preposiciones
         'en', 'el', 'la', 'los', 'las', 'un', 'una', 'unos', 'unas',
@@ -96,7 +97,9 @@ def parse_voice_command(text, user):
         'pasivo', 'activo', 'entidad', 'cuenta', 'tarjeta', 'deuda', 'ahorro'
     ]
     
-    words = text.split()
+    # Remove punctuation for cleaner splitting
+    text_no_punct = re.sub(r'[^\w\s]', '', text)
+    words = text_no_punct.split()
     clean_words = [w for w in words if w not in stopwords]
     description = " ".join(clean_words).strip()
     

@@ -24,7 +24,7 @@ export const useWalletData = () => {
   );
   const { categories } = useSelector((state: RootState) => state.categories);
   const { user } = useSelector((state: RootState) => state.auth);
-  const { streakFreezes, repairedDays } = useSelector(
+  const { repairedDays } = useSelector(
     (state: RootState) => state.gamification,
   );
   const colorScheme = useColorScheme();
@@ -56,6 +56,7 @@ export const useWalletData = () => {
         dispatch(fetchForecast()).unwrap(),
         dispatch(fetchGamificationData()).unwrap(),
         dispatch(fetchCategories(user.id.toString())).unwrap(),
+        dispatch(fetchVisionEntities()).unwrap(),
       ])
         .then(() => setRefreshing(false))
         .catch(() => setRefreshing(false));

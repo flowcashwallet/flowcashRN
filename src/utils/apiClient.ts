@@ -1,5 +1,5 @@
 import { AppDispatch, RootState } from "@/store/store";
-import { refreshToken } from "@/features/auth/authSlice";
+import { logout, refreshToken } from "@/features/auth/authSlice";
 import { getAuthHeaders } from "@/services/api";
 
 export const fetchWithAuth = async (
@@ -22,8 +22,13 @@ export const fetchWithAuth = async (
   if (response.status === 401) {
     // Token might be expired, try to refresh
     try {
+      // Update state to get the latest refresh token
+      state = getState();
+
       // Check if we already have a refresh token
       if (!state.auth.refreshToken) {
+        console.warn("No refresh token available. Logging out.");
+        dispatch(logout());
         throw new Error("No refresh token available");
       }
 
@@ -43,9 +48,10 @@ export const fetchWithAuth = async (
         
         response = await fetch(url, { ...options, headers });
       } else {
-        console.log("Token refresh failed");
-        // Refresh failed, error will be thrown by the thunk or handled here
-        // The refreshToken thunk already dispatches logout on failure
+        console.warn("Token refresh failed. Logging out.");
+        // Refresh failed, ensure logout is dispatched
+        dispatch(logout());
+        throw new Error("Token refresh failed");
       }
     } catch (error) {
        console.error("Error during token refresh:", error);

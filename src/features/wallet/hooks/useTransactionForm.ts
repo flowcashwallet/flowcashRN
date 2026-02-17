@@ -1,6 +1,7 @@
 import { useVisionData } from "@/features/vision/hooks/useVisionData";
-import { endpoints, getAuthHeaders } from "@/services/api";
+import { endpoints } from "@/services/api";
 import { AppDispatch, RootState } from "@/store/store";
+import { fetchWithAuth } from "@/utils/apiClient";
 import { formatAmountInput } from "@/utils/format";
 import { predictCategory } from "@/utils/smartCategorization";
 import { determineDefaultPaymentType } from "@/utils/transactionUtils";
@@ -9,7 +10,7 @@ import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { Alert } from "react-native";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch, useSelector, useStore } from "react-redux";
 import { fetchCategories } from "../data/categoriesSlice";
 import { useWalletTransactions } from "./useWalletTransactions";
 
@@ -32,6 +33,7 @@ export const useTransactionForm = ({
 }: UseTransactionFormProps) => {
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
+  const store = useStore<RootState>();
   const { user, token } = useSelector((state: RootState) => state.auth);
   const { categories } = useSelector((state: RootState) => state.categories);
   const { transactions } = useSelector((state: RootState) => state.wallet);
@@ -159,11 +161,15 @@ export const useTransactionForm = ({
         // 1. Try AI Prediction first
         if (token) {
           try {
-            const response = await fetch(endpoints.wallet.predictCategory, {
-              method: "POST",
-              headers: getAuthHeaders(token),
-              body: JSON.stringify({ description }),
-            });
+            const response = await fetchWithAuth(
+              endpoints.wallet.predictCategory,
+              {
+                method: "POST",
+                body: JSON.stringify({ description }),
+              },
+              dispatch,
+              store.getState,
+            );
 
             if (response.ok) {
               const data = await response.json();
