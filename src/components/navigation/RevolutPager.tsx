@@ -82,6 +82,9 @@ export function RevolutPager({ onNotificationPress }: RevolutPagerProps) {
   const navigation = useNavigation();
   const pathname = usePathname();
   const router = useRouter();
+  const headerHeight = 60;
+  const headerOffset = insets.top;
+  const screenTopPadding = headerHeight + headerOffset;
 
   // Calculate initial index based on pathname
   const initialIndex = useMemo(() => {
@@ -244,7 +247,12 @@ export function RevolutPager({ onNotificationPress }: RevolutPagerProps) {
       />
 
       {/* Persistent Header */}
-      <View style={[styles.header, { paddingTop: insets.top }]}>
+      <View
+        style={[
+          styles.header,
+          { paddingTop: headerOffset, height: screenTopPadding },
+        ]}
+      >
         <View style={styles.headerContent}>
           {/* Left: Menu Button */}
           <TouchableOpacity style={styles.profileButton} onPress={toggleDrawer}>
@@ -325,7 +333,9 @@ export function RevolutPager({ onNotificationPress }: RevolutPagerProps) {
         renderItem={({ item }) => {
           const ScreenComponent = item.component;
           return (
-            <View style={[styles.screenContainer]}>
+            <View
+              style={[styles.screenContainer, { paddingTop: screenTopPadding }]}
+            >
               <ScreenComponent />
             </View>
           );
@@ -392,6 +402,6 @@ const styles = StyleSheet.create({
   },
   screenContainer: {
     flex: 1,
-    paddingTop: 100, // Make space for header
+    paddingTop: 0,
   },
 });
