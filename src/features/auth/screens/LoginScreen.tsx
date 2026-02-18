@@ -12,7 +12,12 @@ import {
   View,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
-import { setAuthData, setError, setLoading } from "../authSlice";
+import {
+  enableBiometrics,
+  loginSuccess,
+  setError,
+  setLoading,
+} from "../authSlice";
 // Atomic Components
 import { Button } from "@/components/atoms/Button";
 import { Card } from "@/components/atoms/Card";
@@ -99,13 +104,23 @@ export default function LoginScreen() {
       console.log("Login successful:", data);
 
       // data contains: access, refresh, and user object (from our custom serializer)
-      dispatch(
-        setAuthData({
+      await dispatch(
+        loginSuccess({
           token: data.access,
           refreshToken: data.refresh,
           user: data.user,
         }),
-      );
+      ).unwrap();
+      console.log("User authenticated:", data.user);
+
+      // Ask for biometric permission
+      try {
+        console.log("Enabling biometrics...");
+        await dispatch(enableBiometrics()).unwrap();
+      } catch (bioError) {
+        console.log("Biometrics not enabled or failed:", bioError);
+        // Continue anyway
+      }
 
       // Navigation is handled by auth state listener or manual replace
       router.replace("/(drawer)/(tabs)");

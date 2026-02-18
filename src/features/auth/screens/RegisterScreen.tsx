@@ -23,7 +23,12 @@ import {
   View,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
-import { setAuthData, setError, setLoading } from "../authSlice";
+import {
+  enableBiometrics,
+  loginSuccess,
+  setError,
+  setLoading,
+} from "../authSlice";
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -131,13 +136,21 @@ export default function RegisterScreen() {
 
       // Auto-login if tokens are present
       if (data.access && data.refresh) {
-        dispatch(
-          setAuthData({
+        await dispatch(
+          loginSuccess({
             token: data.access,
             refreshToken: data.refresh,
             user: data.user,
           }),
-        );
+        ).unwrap();
+
+        // Ask for biometric permission
+        try {
+          await dispatch(enableBiometrics()).unwrap();
+        } catch (bioError) {
+          console.log("Biometrics not enabled or failed:", bioError);
+        }
+
         router.replace("/(drawer)/(tabs)");
       } else {
         // Fallback if no tokens (shouldn't happen with updated backend)
