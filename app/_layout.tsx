@@ -1,3 +1,4 @@
+import { Colors } from "@/constants/theme";
 import {
   loadUserFromStorage,
   logout,
@@ -12,7 +13,7 @@ import {
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
-import { Platform } from "react-native";
+import { ActivityIndicator, Platform, View } from "react-native";
 import "react-native-gesture-handler";
 import "react-native-reanimated";
 import { Provider, useDispatch, useSelector } from "react-redux";
@@ -25,6 +26,7 @@ export const unstable_settings = {
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
+  const colors = Colors[colorScheme ?? "light"];
   const { isAuthenticated, loading, biometricRequired } = useSelector(
     (state: RootState) => state.auth,
   );
@@ -80,6 +82,23 @@ function RootLayoutNav() {
     loading,
     router,
   ]);
+
+  if (loading && biometricRequired) {
+    return (
+      <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+        <View
+          style={{
+            flex: 1,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: colors.background,
+          }}
+        >
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      </ThemeProvider>
+    );
+  }
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>

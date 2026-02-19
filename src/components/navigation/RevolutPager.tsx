@@ -19,8 +19,6 @@ import Animated, {
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
-  withTiming,
 } from "react-native-reanimated";
 import Carousel from "react-native-reanimated-carousel";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -147,10 +145,6 @@ export function RevolutPager({ onNotificationPress }: RevolutPagerProps) {
 
   // Animation Values
   const progress = useSharedValue(initialIndex);
-  const buttonScale = useSharedValue(1);
-  const buttonOpacity = useSharedValue(1);
-  const textOpacity = useSharedValue(1);
-  const textTranslateY = useSharedValue(0);
 
   // Background Interpolation
   const bgColors = TABS.map((t) =>
@@ -164,34 +158,6 @@ export function RevolutPager({ onNotificationPress }: RevolutPagerProps) {
       bgColors,
     );
     return { backgroundColor };
-  });
-
-  // Micro-interaction: Buttons animate on tab change
-  useEffect(() => {
-    buttonScale.value = 0.8;
-    buttonOpacity.value = 0.5;
-    buttonScale.value = withSpring(1, { damping: 12 });
-    buttonOpacity.value = withTiming(1, { duration: 300 });
-
-    // Text Transition
-    textOpacity.value = 0;
-    textTranslateY.value = 10;
-    textOpacity.value = withTiming(1, { duration: 300 });
-    textTranslateY.value = withSpring(0, { damping: 12 });
-  }, [activeIndex]);
-
-  const buttonAnimatedStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ scale: buttonScale.value }],
-      opacity: buttonOpacity.value,
-    };
-  });
-
-  const textAnimatedStyle = useAnimatedStyle(() => {
-    return {
-      opacity: textOpacity.value,
-      transform: [{ translateY: textTranslateY.value }],
-    };
   });
 
   // Mock Descriptors for CustomTabBar
@@ -265,18 +231,14 @@ export function RevolutPager({ onNotificationPress }: RevolutPagerProps) {
 
           {/* Center: Absolute Title */}
           <View style={styles.titleContainer} pointerEvents="none">
-            <Animated.View style={textAnimatedStyle}>
-              <Text style={[styles.titleText, { color: colors.text }]}>
-                {TABS[activeIndex].title}
-              </Text>
-            </Animated.View>
+            <Text style={[styles.titleText, { color: colors.text }]}>
+              {TABS[activeIndex].title}
+            </Text>
           </View>
 
           {/* Right: Actions */}
           <View style={styles.headerActions}>
-            <Animated.View
-              style={[buttonAnimatedStyle, { flexDirection: "row", gap: 12 }]}
-            >
+            <View style={{ flexDirection: "row", gap: 12 }}>
               {onNotificationPress && (
                 <TouchableOpacity
                   style={styles.actionButton}
@@ -295,7 +257,7 @@ export function RevolutPager({ onNotificationPress }: RevolutPagerProps) {
                   color={colors.primary}
                 />
               </TouchableOpacity>
-            </Animated.View>
+            </View>
           </View>
         </View>
       </View>
@@ -306,7 +268,7 @@ export function RevolutPager({ onNotificationPress }: RevolutPagerProps) {
         key={initialIndex} // Force re-render if initialIndex changes
         defaultIndex={initialIndex}
         loop={false}
-        enabled={true}
+        enabled={false}
         width={width}
         height={height}
         data={TABS}

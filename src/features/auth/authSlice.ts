@@ -179,13 +179,13 @@ export const verifyBiometrics = createAsyncThunk(
       });
 
       if (result.success) {
-        // On success, we can refresh the token to ensure session is valid
-        dispatch(refreshToken());
+        await dispatch(refreshToken()).unwrap();
         return true;
       } else {
         throw new Error("Authentication failed");
       }
     } catch (error: any) {
+      dispatch(logout());
       return rejectWithValue(error.message);
     }
   },
