@@ -37,7 +37,7 @@ export const fetchWithAuth = async (
       
       if (refreshToken.fulfilled.match(resultAction)) {
         // Refresh successful, get new token
-        const newToken = resultAction.payload;
+        const newToken = resultAction.payload.access;
         console.log("Token refreshed successfully");
         
         // Retry request with new token

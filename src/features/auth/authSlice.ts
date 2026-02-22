@@ -114,8 +114,11 @@ export const refreshToken = createAsyncThunk(
 
       // Save new access token
       await saveToken(KEY_ACCESS_TOKEN, data.access);
+      if (data.refresh) {
+        await saveToken(KEY_REFRESH_TOKEN, data.refresh);
+      }
 
-      return data.access;
+      return { access: data.access, refresh: data.refresh ?? null };
     } catch (error: any) {
       return rejectWithValue(error.message);
     }
@@ -236,7 +239,10 @@ const authSlice = createSlice({
     });
     builder.addCase(refreshToken.fulfilled, (state, action) => {
       state.loading = false;
-      state.token = action.payload;
+      state.token = action.payload.access;
+      if (action.payload.refresh) {
+        state.refreshToken = action.payload.refresh;
+      }
     });
     builder.addCase(loginSuccess.fulfilled, (state, action) => {
       state.user = action.payload.user;

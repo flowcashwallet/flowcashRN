@@ -8,12 +8,11 @@ import { endpoints } from "@/services/api";
 import { RootState } from "@/store/store";
 import { fetchWithAuth } from "@/utils/apiClient";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   Alert,
   Platform,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   TextInput,
   TouchableOpacity,
@@ -85,100 +84,110 @@ export default function WalletScreen() {
 
   const [processingVoice, setProcessingVoice] = useState(false);
 
-  const handleVoiceCommand = async (text: string) => {
-    setProcessingVoice(true);
-    try {
-      // Call Backend to parse command
-      const response = await fetchWithAuth(
-        endpoints.wallet.parseCommand,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
+  const handleVoiceCommand = useCallback(
+    async (text: string) => {
+      setProcessingVoice(true);
+      try {
+        // Call Backend to parse command
+        const response = await fetchWithAuth(
+          endpoints.wallet.parseCommand,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ text }),
           },
-          body: JSON.stringify({ text }),
-        },
-        dispatch,
-        store.getState,
-      );
+          dispatch,
+          store.getState,
+        );
 
-      if (!response.ok) {
-        throw new Error("Error procesando el comando");
+        if (!response.ok) {
+          throw new Error("Error procesando el comando");
+        }
+
+        const data = await response.json();
+
+        // Redirect to Transaction Form with pre-filled data
+        router.push({
+          pathname: "/transaction-form",
+          params: {
+            amount: data.amount.toString(),
+            description: data.description,
+            category: data.category,
+            initialType: (data.type || "expense").toLowerCase(),
+            relatedEntityId: data.relatedEntityId,
+            fromVoice: "true", // Flag to trigger auto-save if needed or just better UX
+          },
+        });
+      } catch (error) {
+        console.error("Voice command failed:", error);
+        Alert.alert("Error", "No pude entender el comando. Intenta de nuevo.");
+      } finally {
+        setProcessingVoice(false);
       }
+    },
+    [dispatch, router, store.getState],
+  );
 
-      const data = await response.json();
+  const handleDeleteMonthly = useCallback(() => {
+    deleteMonthlyTransactions(currentMonthTransactions, currentMonthName);
+  }, [currentMonthTransactions, currentMonthName, deleteMonthlyTransactions]);
 
-      // Redirect to Transaction Form with pre-filled data
+  const handleTransactionPress = useCallback(
+    (transaction: Transaction) => {
       router.push({
         pathname: "/transaction-form",
-        params: {
-          amount: data.amount.toString(),
-          description: data.description,
-          category: data.category,
-          initialType: (data.type || "expense").toLowerCase(),
-          relatedEntityId: data.relatedEntityId,
-          fromVoice: "true", // Flag to trigger auto-save if needed or just better UX
-        },
+        params: { id: transaction.id },
       });
-    } catch (error) {
-      console.error("Voice command failed:", error);
-      Alert.alert("Error", "No pude entender el comando. Intenta de nuevo.");
-    } finally {
-      setProcessingVoice(false);
-    }
-  };
+    },
+    [router],
+  );
 
-  const handleDeleteMonthly = () => {
-    deleteMonthlyTransactions(currentMonthTransactions, currentMonthName);
-  };
-
-  const handleTransactionPress = (transaction: Transaction) => {
-    router.push({
-      pathname: "/transaction-form",
-      params: { id: transaction.id },
-    });
-  };
-
-  const filteredTransactions = currentMonthTransactions.filter((t) => {
-    if (filters.category && t.category !== filters.category) return false;
-    if (filters.entityId && t.relatedEntityId !== filters.entityId)
-      return false;
-    if (filters.type && t.type !== filters.type) return false;
-    if (filters.paymentType && t.paymentType !== filters.paymentType)
-      return false;
-
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      const description = t.description || "";
-      if (!description.toLowerCase().includes(query)) {
+  const filteredTransactions = useMemo(() => {
+    return currentMonthTransactions.filter((t) => {
+      if (filters.category && t.category !== filters.category) return false;
+      if (filters.entityId && t.relatedEntityId !== filters.entityId)
         return false;
-      }
-    }
+      if (filters.type && t.type !== filters.type) return false;
+      if (filters.paymentType && t.paymentType !== filters.paymentType)
+        return false;
 
-    return true;
-  });
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const description = t.description || "";
+        if (!description.toLowerCase().includes(query)) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [currentMonthTransactions, filters, searchQuery]);
 
   const hasActiveFilters =
     filters.category || filters.entityId || filters.type || filters.paymentType;
 
-  return (
-    <ThemedView style={styles.container}>
-      <ScrollView
-        contentContainerStyle={{
-          paddingBottom: 150 + insets.bottom,
-          paddingHorizontal: Spacing.m,
-          paddingTop: 10,
-        }}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={colors.primary}
-            colors={[colors.primary]} // Android
-          />
-        }
-      >
+  const headerRight = useMemo(
+    () => (
+      <TouchableOpacity onPress={() => setFilterVisible(true)}>
+        <IconSymbol
+          name={
+            hasActiveFilters
+              ? "line.3.horizontal.decrease.circle.fill"
+              : "line.3.horizontal.decrease.circle"
+          }
+          size={24}
+          color={colors.primary}
+        />
+      </TouchableOpacity>
+    ),
+    [colors.primary, hasActiveFilters],
+  );
+
+  const listHeader = useMemo(
+    () => (
+      <>
         <WalletHeader
           balance={balance}
           currentMonthName={currentMonthName}
@@ -256,26 +265,48 @@ export default function WalletScreen() {
             </TouchableOpacity>
           )}
         </View>
+      </>
+    ),
+    [
+      balance,
+      colors.border,
+      colors.surfaceHighlight,
+      colors.text,
+      colors.textSecondary,
+      currentMonthName,
+      expense,
+      forecast,
+      handleDeleteMonthly,
+      income,
+      router,
+      searchQuery,
+      selectedDate,
+      streak,
+    ],
+  );
 
-        <TransactionList
-          transactions={filteredTransactions}
-          onDelete={deleteTransaction}
-          onTransactionPress={handleTransactionPress}
-          headerRight={
-            <TouchableOpacity onPress={() => setFilterVisible(true)}>
-              <IconSymbol
-                name={
-                  hasActiveFilters
-                    ? "line.3.horizontal.decrease.circle.fill"
-                    : "line.3.horizontal.decrease.circle"
-                }
-                size={24}
-                color={colors.primary}
-              />
-            </TouchableOpacity>
-          }
-        />
-      </ScrollView>
+  return (
+    <ThemedView style={styles.container}>
+      <TransactionList
+        transactions={filteredTransactions}
+        onDelete={deleteTransaction}
+        onTransactionPress={handleTransactionPress}
+        headerRight={headerRight}
+        listHeaderComponent={listHeader}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+          />
+        }
+        contentContainerStyle={{
+          paddingBottom: 150 + insets.bottom,
+          paddingHorizontal: Spacing.m,
+          paddingTop: 10,
+        }}
+      />
 
       <StreakCalendarModal
         visible={calendarVisible}

@@ -3,8 +3,15 @@ import { Colors, Spacing } from "@/constants/theme";
 import { Transaction } from "@/features/wallet/data/walletSlice";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import STRINGS from "@/i18n/es.json";
-import React, { useMemo } from "react";
-import { SectionList, StyleSheet, View } from "react-native";
+import React, { useCallback, useMemo } from "react";
+import {
+    RefreshControlProps,
+    SectionList,
+    StyleProp,
+    StyleSheet,
+    View,
+    ViewStyle,
+} from "react-native";
 import { TransactionItem } from "../molecules/TransactionItem";
 
 interface TransactionListProps {
@@ -12,6 +19,10 @@ interface TransactionListProps {
   onTransactionPress?: (transaction: Transaction) => void;
   onDelete?: (id: string) => void;
   headerRight?: React.ReactNode;
+  listHeaderComponent?: React.ReactNode;
+  contentContainerStyle?: StyleProp<ViewStyle>;
+  refreshControl?: React.ReactElement<RefreshControlProps>;
+  scrollEnabled?: boolean;
 }
 
 const formatDateHeader = (timestamp: number) => {
@@ -38,6 +49,10 @@ export function TransactionList({
   onTransactionPress,
   onDelete,
   headerRight,
+  listHeaderComponent,
+  contentContainerStyle,
+  refreshControl,
+  scrollEnabled = true,
 }: TransactionListProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
@@ -72,25 +87,44 @@ export function TransactionList({
       .sort((a, b) => b.timestamp - a.timestamp);
   }, [transactions]);
 
+  const renderItem = useCallback(
+    ({ item }: { item: Transaction }) => (
+      <TransactionItem
+        id={item.id}
+        amount={item.amount}
+        description={item.description}
+        date={item.date}
+        type={item.type}
+        category={item.category}
+        onDelete={onDelete}
+        onPress={() => onTransactionPress?.(item)}
+      />
+    ),
+    [onDelete, onTransactionPress],
+  );
+
   if (!transactions || transactions.length === 0) {
     return (
-      <View style={styles.emptyContainer}>
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            width: "100%",
-            marginBottom: Spacing.m,
-          }}
-        >
-          <Typography variant="h3" weight="bold">
-            {STRINGS.wallet.recentTransactions}
+      <View>
+        {listHeaderComponent}
+        <View style={styles.emptyContainer}>
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              width: "100%",
+              marginBottom: Spacing.m,
+            }}
+          >
+            <Typography variant="h3" weight="bold">
+              {STRINGS.wallet.recentTransactions}
+            </Typography>
+            {headerRight}
+          </View>
+          <Typography variant="body" style={{ opacity: 0.6 }}>
+            {STRINGS.wallet.noRecentTransactions}
           </Typography>
-          {headerRight}
         </View>
-        <Typography variant="body" style={{ opacity: 0.6 }}>
-          {STRINGS.wallet.noRecentTransactions}
-        </Typography>
       </View>
     );
   }
@@ -114,18 +148,7 @@ export function TransactionList({
       <SectionList
         sections={sections}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <TransactionItem
-            id={item.id}
-            amount={item.amount}
-            description={item.description}
-            date={item.date}
-            type={item.type}
-            category={item.category}
-            onDelete={onDelete}
-            onPress={() => onTransactionPress?.(item)}
-          />
-        )}
+        renderItem={renderItem}
         renderSectionHeader={({ section: { title } }) => (
           <View
             style={[
@@ -146,8 +169,12 @@ export function TransactionList({
           </View>
         )}
         stickySectionHeadersEnabled={true}
-        contentContainerStyle={styles.listContent}
-        scrollEnabled={false} // Often used inside a ScrollView parent
+        contentContainerStyle={[styles.listContent, contentContainerStyle]}
+        scrollEnabled={scrollEnabled}
+        ListHeaderComponent={
+          listHeaderComponent ? <View>{listHeaderComponent}</View> : undefined
+        }
+        refreshControl={refreshControl}
       />
     </View>
   );
