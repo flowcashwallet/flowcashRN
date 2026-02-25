@@ -5,6 +5,7 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Colors, Spacing } from "@/constants/theme";
 import { MonthYearPickerModal } from "@/features/wallet/components/MonthYearPickerModal";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   RefreshControl,
@@ -32,6 +33,7 @@ const FontSize = {
 
 export default function AnalyticsScreen() {
   const dispatch = useDispatch<AppDispatch>();
+  const router = useRouter();
   const { forecast } = useSelector((state: RootState) => state.wallet);
 
   const {
@@ -43,7 +45,6 @@ export default function AnalyticsScreen() {
     currentMonthName,
     currentYear,
     onRefresh: onRefreshAnalytics,
-    refreshing: refreshingAnalytics,
   } = useAnalyticsData();
 
   const [refreshing, setRefreshing] = useState(false);
@@ -59,6 +60,16 @@ export default function AnalyticsScreen() {
 
   const handleCategoryPress = (category: string) => {
     setExpandedCategory((prev) => (prev === category ? null : category));
+  };
+
+  const handleViewAllCategories = () => {
+    router.push({
+      pathname: "/statistics-categories",
+      params: {
+        month: selectedDate.getMonth().toString(),
+        year: selectedDate.getFullYear().toString(),
+      },
+    } as any);
   };
 
   const onRefresh = async () => {
@@ -154,7 +165,7 @@ export default function AnalyticsScreen() {
                     {expense.description}
                   </Text>
                   <Text style={[styles.expenseAmount, { color: colors.text }]}>
-                    ${expense.averageAmount.toFixed(2)}
+                    ${expense.totalAmount.toFixed(2)}
                   </Text>
                 </View>
                 <Text
@@ -163,7 +174,7 @@ export default function AnalyticsScreen() {
                     { color: colors.textSecondary },
                   ]}
                 >
-                  Promedio mensual
+                  Total del mes
                 </Text>
               </Card>
             ))
@@ -172,9 +183,16 @@ export default function AnalyticsScreen() {
 
         {/* Top Categorías */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            Top Categorías
-          </Text>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              Top Categorías
+            </Text>
+            <TouchableOpacity onPress={handleViewAllCategories}>
+              <Text style={[styles.viewMoreText, { color: colors.primary }]}>
+                Ver más
+              </Text>
+            </TouchableOpacity>
+          </View>
           {topCategories.length === 0 ? (
             <Text style={{ color: colors.textSecondary }}>
               No hay gastos registrados este mes.
@@ -305,10 +323,19 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: Spacing.l,
   },
+  sectionHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
   sectionTitle: {
     fontSize: FontSize.l,
     fontWeight: "bold",
     marginBottom: Spacing.s,
+  },
+  viewMoreText: {
+    fontSize: FontSize.s,
+    fontWeight: "600",
   },
   tipCard: {
     flexDirection: "row",

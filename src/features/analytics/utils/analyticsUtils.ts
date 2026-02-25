@@ -48,8 +48,10 @@ export const calculateTopCategories = (
 ): CategoryInsight[] => {
   const expenses = transactions.filter((t) => t.type === "expense");
   const totalExpenses = expenses.reduce((sum, t) => sum + t.amount, 0);
-  const grouped: Record<string, { amount: number; transactions: Transaction[] }> =
-    {};
+  const grouped: Record<
+    string,
+    { amount: number; transactions: Transaction[] }
+  > = {};
 
   expenses.forEach((t) => {
     const cat = t.category || "Sin categoría";
@@ -70,6 +72,36 @@ export const calculateTopCategories = (
     }))
     .sort((a, b) => b.totalAmount - a.totalAmount)
     .slice(0, 5); // Top 5
+};
+
+export const calculateAllCategories = (
+  transactions: Transaction[],
+): CategoryInsight[] => {
+  const expenses = transactions.filter((t) => t.type === "expense");
+  const totalExpenses = expenses.reduce((sum, t) => sum + t.amount, 0);
+  const grouped: Record<
+    string,
+    { amount: number; transactions: Transaction[] }
+  > = {};
+
+  expenses.forEach((t) => {
+    const cat = t.category || "Sin categoría";
+    if (!grouped[cat]) {
+      grouped[cat] = { amount: 0, transactions: [] };
+    }
+    grouped[cat].amount += t.amount;
+    grouped[cat].transactions.push(t);
+  });
+
+  return Object.keys(grouped)
+    .map((key) => ({
+      category: key,
+      totalAmount: grouped[key].amount,
+      percentage:
+        totalExpenses > 0 ? (grouped[key].amount / totalExpenses) * 100 : 0,
+      transactions: grouped[key].transactions.sort((a, b) => b.date - a.date),
+    }))
+    .sort((a, b) => b.totalAmount - a.totalAmount);
 };
 
 export const generateFinancialTips = (

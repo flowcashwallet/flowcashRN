@@ -5,12 +5,12 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import STRINGS from "@/i18n/es.json";
 import React, { useCallback, useMemo } from "react";
 import {
-    RefreshControlProps,
-    SectionList,
-    StyleProp,
-    StyleSheet,
-    View,
-    ViewStyle,
+  RefreshControlProps,
+  SectionList,
+  StyleProp,
+  StyleSheet,
+  View,
+  ViewStyle,
 } from "react-native";
 import { TransactionItem } from "../molecules/TransactionItem";
 
@@ -103,24 +103,32 @@ export function TransactionList({
     [onDelete, onTransactionPress],
   );
 
-  if (!transactions || transactions.length === 0) {
+  const ListHeader = useMemo(() => {
     return (
       <View>
         {listHeaderComponent}
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: Spacing.s,
+          }}
+        >
+          <Typography variant="h3" weight="bold">
+            {STRINGS.wallet.recentTransactions}
+          </Typography>
+          {headerRight}
+        </View>
+      </View>
+    );
+  }, [headerRight, listHeaderComponent]);
+
+  if (!transactions || transactions.length === 0) {
+    return (
+      <View>
+        {ListHeader}
         <View style={styles.emptyContainer}>
-          <View
-            style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              width: "100%",
-              marginBottom: Spacing.m,
-            }}
-          >
-            <Typography variant="h3" weight="bold">
-              {STRINGS.wallet.recentTransactions}
-            </Typography>
-            {headerRight}
-          </View>
           <Typography variant="body" style={{ opacity: 0.6 }}>
             {STRINGS.wallet.noRecentTransactions}
           </Typography>
@@ -131,20 +139,6 @@ export function TransactionList({
 
   return (
     <View style={styles.container}>
-      <View
-        style={{
-          flexDirection: "row",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: Spacing.s,
-        }}
-      >
-        <Typography variant="h3" weight="bold">
-          {STRINGS.wallet.recentTransactions}
-        </Typography>
-        {headerRight}
-      </View>
-
       <SectionList
         sections={sections}
         keyExtractor={(item) => item.id}
@@ -171,9 +165,7 @@ export function TransactionList({
         stickySectionHeadersEnabled={true}
         contentContainerStyle={[styles.listContent, contentContainerStyle]}
         scrollEnabled={scrollEnabled}
-        ListHeaderComponent={
-          listHeaderComponent ? <View>{listHeaderComponent}</View> : undefined
-        }
+        ListHeaderComponent={ListHeader}
         refreshControl={refreshControl}
       />
     </View>
