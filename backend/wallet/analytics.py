@@ -159,11 +159,18 @@ def predict_runway(user):
     total_outflow = month_txs.filter(type='expense').aggregate(Sum('amount'))['amount__sum'] or 0
     total_outflow = float(total_outflow)
 
-    # Calculate today's expenses (local day) to exclude from backend remaining
+    # Calculate today's income/expenses (local day) to exclude from backend remaining
     start_of_today_local = now_local.replace(hour=0, minute=0, second=0, microsecond=0)
     start_of_tomorrow_local = start_of_today_local + datetime.timedelta(days=1)
     start_today_utc = start_of_today_local.astimezone(datetime.timezone.utc)
     end_today_utc = start_of_tomorrow_local.astimezone(datetime.timezone.utc)
+
+    today_income = month_txs.filter(
+        type='income',
+        date__gte=start_today_utc,
+        date__lt=end_today_utc
+    ).aggregate(Sum('amount'))['amount__sum'] or 0
+    today_income = float(today_income)
 
     today_outflow = month_txs.filter(
         type='expense',
@@ -172,8 +179,8 @@ def predict_runway(user):
     ).aggregate(Sum('amount'))['amount__sum'] or 0
     today_outflow = float(today_outflow)
 
-    # Remaining budget excludes today's expenses (frontend will handle today)
-    remaining_budget = total_income - (total_outflow - today_outflow)
+    # Remaining budget excludes today's income/expenses (frontend will handle today)
+    remaining_budget = (total_income - today_income) - (total_outflow - today_outflow)
     
     # 3. Calculate Burn Rate (Spending Speed)
     # Use "Smart" logic (IQR) to exclude one-off outliers so the daily rate represents "Typical Day"
@@ -255,6 +262,7 @@ def predict_runway(user):
         "message": message,
         "projected_balance": projected_balance,
         "tip": tip,
+        "today_income": today_income,
         "today_expenses": today_outflow,
         "days_left_including_today": days_left_including_today,
         "weather_status": weather_status,
