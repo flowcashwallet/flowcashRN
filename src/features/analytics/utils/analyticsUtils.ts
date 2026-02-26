@@ -43,6 +43,15 @@ export const calculateRecurringExpenses = (
     .sort((a, b) => b.count - a.count); // Ordenar por frecuencia descendente
 };
 
+export const calculateTopRecurringExpenses = (
+  transactions: Transaction[],
+  limit = 5,
+): RecurringExpense[] => {
+  return calculateRecurringExpenses(transactions)
+    .sort((a, b) => b.totalAmount - a.totalAmount)
+    .slice(0, limit);
+};
+
 export const calculateTopCategories = (
   transactions: Transaction[],
 ): CategoryInsight[] => {

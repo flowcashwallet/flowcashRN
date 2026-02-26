@@ -1,11 +1,11 @@
+import { fetchTransactions } from "@/features/wallet/data/walletSlice";
 import STRINGS from "@/i18n/es.json";
 import { AppDispatch, RootState } from "@/store/store";
 import { useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchTransactions } from "@/features/wallet/data/walletSlice";
 import {
-  calculateRecurringExpenses,
   calculateTopCategories,
+  calculateTopRecurringExpenses,
   generateFinancialTips,
 } from "../utils/analyticsUtils";
 
@@ -29,7 +29,7 @@ export const useAnalyticsData = () => {
   }, [transactions, currentMonth, currentYear]);
 
   const recurringExpenses = useMemo(
-    () => calculateRecurringExpenses(filteredTransactions),
+    () => calculateTopRecurringExpenses(filteredTransactions, 5),
     [filteredTransactions],
   );
   const topCategories = useMemo(
@@ -44,11 +44,11 @@ export const useAnalyticsData = () => {
   const onRefresh = async () => {
     setRefreshing(true);
     try {
-        await dispatch(fetchTransactions()).unwrap();
+      await dispatch(fetchTransactions()).unwrap();
     } catch (error) {
-        console.error("Failed to refresh transactions in analytics:", error);
+      console.error("Failed to refresh transactions in analytics:", error);
     } finally {
-        setRefreshing(false);
+      setRefreshing(false);
     }
   };
 

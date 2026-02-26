@@ -72,6 +72,16 @@ export default function AnalyticsScreen() {
     } as any);
   };
 
+  const handleViewAllRecurring = () => {
+    router.push({
+      pathname: "/statistics-recurring",
+      params: {
+        month: selectedDate.getMonth().toString(),
+        year: selectedDate.getFullYear().toString(),
+      },
+    } as any);
+  };
+
   const onRefresh = async () => {
     setRefreshing(true);
     try {
@@ -150,9 +160,16 @@ export default function AnalyticsScreen() {
 
         {/* Gastos Recurrentes */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            Gastos Recurrentes
-          </Text>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              Gastos Recurrentes
+            </Text>
+            <TouchableOpacity onPress={handleViewAllRecurring}>
+              <Text style={[styles.viewMoreText, { color: colors.primary }]}>
+                Ver más
+              </Text>
+            </TouchableOpacity>
+          </View>
           {recurringExpenses.length === 0 ? (
             <Text style={{ color: colors.textSecondary }}>
               No hay gastos recurrentes detectados.

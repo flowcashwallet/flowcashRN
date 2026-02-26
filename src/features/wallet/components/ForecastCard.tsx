@@ -43,6 +43,27 @@ export const ForecastCard: React.FC<ForecastCardProps> = ({ forecast }) => {
     }
   };
 
+  const forecastDate = forecast.forecast_date
+    ? new Date(forecast.forecast_date)
+    : new Date();
+  const startOfDay = new Date(
+    forecastDate.getFullYear(),
+    forecastDate.getMonth(),
+    forecastDate.getDate(),
+  );
+  const endOfMonth = new Date(
+    forecastDate.getFullYear(),
+    forecastDate.getMonth() + 1,
+    0,
+  );
+  const msPerDay = 24 * 60 * 60 * 1000;
+  const daysLeft = Math.max(
+    1,
+    Math.ceil((endOfMonth.getTime() - startOfDay.getTime()) / msPerDay) + 1,
+  );
+  const remainingBudget = Math.max(0, forecast.remaining_budget);
+  const dailyAllowance = remainingBudget / daysLeft;
+
   return (
     <View
       style={[
@@ -104,6 +125,18 @@ export const ForecastCard: React.FC<ForecastCardProps> = ({ forecast }) => {
         </View>
       </View>
 
+      <View
+        style={[
+          styles.allowanceContainer,
+          { backgroundColor: colors.surfaceHighlight },
+        ]}
+      >
+        <Typography variant="caption" style={{ color: colors.textSecondary }}>
+          Hoy te quedarían {formatCurrency(dailyAllowance)} por gastar para
+          llegar a fin de mes
+        </Typography>
+      </View>
+
       {forecast.tip && (
         <View
           style={[
@@ -150,5 +183,10 @@ const styles = StyleSheet.create({
   tipContainer: {
     padding: Spacing.s,
     borderRadius: BorderRadius.m,
+  },
+  allowanceContainer: {
+    padding: Spacing.s,
+    borderRadius: BorderRadius.m,
+    marginBottom: Spacing.s,
   },
 });
