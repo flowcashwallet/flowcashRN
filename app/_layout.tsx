@@ -14,7 +14,7 @@ import { Provider, useDispatch, useSelector } from "react-redux";
 import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
 
 export const unstable_settings = {
-  initialRouteName: "(tabs)",
+  initialRouteName: "index",
 };
 
 function RootLayoutNav() {
@@ -22,6 +22,7 @@ function RootLayoutNav() {
   const { isAuthenticated, loading, biometricRequired } = useSelector(
     (state: RootState) => state.auth,
   );
+
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
   const segments = useSegments();
@@ -90,18 +91,21 @@ function RootLayoutNav() {
     );
   }
 
+  console.log("Rendering main stack navigator");
   return (
     <Stack>
-      <Stack.Screen name="index" options={{ headerShown: false }} />
-      <Stack.Screen name="landing" options={{ headerShown: false }} />
-      <Stack.Screen name="login" options={{ headerShown: false }} />
-      <Stack.Screen name="register" options={{ headerShown: false }} />
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="transaction-form" options={{ headerShown: false }} />
-      <Stack.Screen
-        name="modal"
-        options={{ presentation: "modal", title: "Modal" }}
-      />
+      <Stack.Protected guard={isAuthenticated}>
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="transaction-form"
+          options={{ headerShown: false }}
+        />
+      </Stack.Protected>
+      <Stack.Protected guard={!isAuthenticated}>
+        <Stack.Screen name="login" options={{ headerShown: false }} />
+        <Stack.Screen name="register" options={{ headerShown: false }} />
+        <Stack.Screen name="landing" options={{ headerShown: false }} />
+      </Stack.Protected>
     </Stack>
   );
 }

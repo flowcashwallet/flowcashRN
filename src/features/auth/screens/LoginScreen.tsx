@@ -122,7 +122,6 @@ export default function LoginScreen() {
       }
 
       // Navigation is handled by auth state listener or manual replace
-      router.replace("/(tabs)/wallet");
     } catch (err: any) {
       console.error("Login Error:", err);
       dispatch(setError(err.message || "Error al iniciar sesión"));

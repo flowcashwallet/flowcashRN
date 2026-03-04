@@ -39,7 +39,7 @@ const initialState: AuthState = {
   refreshToken: null,
   isAuthenticated: false,
   biometricRequired: false,
-  loading: false,
+  loading: true,
   error: null,
 };
 

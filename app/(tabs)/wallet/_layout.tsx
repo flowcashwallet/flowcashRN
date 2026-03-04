@@ -29,18 +29,37 @@ export default function WalletLayout() {
           },
           headerTransparent: true,
 
-          headerLeft: () => <HeaderButton icon="line.3.horizontal" />,
+          headerLeft: () => (
+            <HeaderButton
+              imageProps={{ systemName: "line.3.horizontal", name: "menu" }}
+            />
+          ),
           headerRight: () => (
-            <View style={{ flexDirection: "row", gap: 12 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+              }}
+            >
               <HeaderButton
-                icon="bell.fill"
-                onPress={handleNotificationPress}
+                imageProps={{
+                  systemName: "bell",
+                  name: "notifications-outline",
+                  color: colors.text,
+                }}
+                buttonProps={{ onPress: handleNotificationPress }}
+                style={{ marginRight: 14 }}
               />
               <HeaderButton
-                icon="plus.circle.fill"
-                size={28}
-                color={colors.primary}
-                onPress={() => router.push("/transaction-form")}
+                imageProps={{
+                  systemName: "plus",
+                  name: "add",
+                  size: 26,
+                  color: colors.primary,
+                }}
+                buttonProps={{
+                  onPress: () => router.push("/transaction-form"),
+                }}
               />
             </View>
           ),

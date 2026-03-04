@@ -150,7 +150,7 @@ export default function RegisterScreen() {
           console.log("Biometrics not enabled or failed:", bioError);
         }
 
-        router.replace("/(tabs)/wallet");
+        router.replace("/");
       } else {
         // Fallback if no tokens (shouldn't happen with updated backend)
         router.replace("/login");
