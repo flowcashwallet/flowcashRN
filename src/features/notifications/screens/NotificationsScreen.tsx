@@ -1,7 +1,7 @@
 import { Typography } from "@/components/atoms/Typography";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { Colors, Spacing } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { Spacing } from "@/constants/theme";
+import { useTheme } from "@/contexts/ThemeContext";
 import {
     cancelScheduledNotification,
     getAllScheduledNotifications,
@@ -19,8 +19,7 @@ import {
 import { EditNotificationModal } from "../components/EditNotificationModal";
 
 export default function NotificationsScreen() {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  const { colors } = useTheme();
 
   const [notifications, setNotifications] = useState<NotificationRequest[]>([]);
   const [refreshing, setRefreshing] = useState(false);

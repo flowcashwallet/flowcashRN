@@ -1,24 +1,18 @@
 import { OnboardingTutorial } from "@/components/OnboardingTutorial";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { Colors } from "@/constants/theme";
+import { useTheme } from "@/contexts/ThemeContext";
 import { registerForPushNotificationsAsync } from "@/services/notifications";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { NativeTabs } from "expo-router/unstable-native-tabs";
 import { useEffect, useState } from "react";
-import {
-  StyleSheet,
-  TouchableOpacity,
-  View,
-  useColorScheme,
-} from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function TabLayout() {
   const router = useRouter();
   const [isTutorialVisible, setIsTutorialVisible] = useState(false);
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme === "dark" ? "dark" : "light"];
+  const { colors } = useTheme();
 
   useEffect(() => {
     checkTutorial();

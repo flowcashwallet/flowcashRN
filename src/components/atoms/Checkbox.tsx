@@ -1,5 +1,5 @@
-import { Colors, Spacing } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { Spacing } from "@/constants/theme";
+import { useTheme } from "@/contexts/ThemeContext";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { IconSymbol } from "../ui/icon-symbol";
 import { Typography } from "./Typography";
@@ -19,8 +19,7 @@ export function Checkbox({
   error,
   testID,
 }: CheckboxProps) {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  const { colors } = useTheme();
 
   return (
     <View style={styles.container}>

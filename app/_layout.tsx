@@ -1,32 +1,24 @@
-import { Colors } from "@/constants/theme";
 import {
   loadUserFromStorage,
   logout,
   verifyBiometrics,
 } from "@/features/auth/authSlice";
 import { AppDispatch, RootState, store } from "@/store/store";
-import {
-  DarkTheme,
-  DefaultTheme,
-  ThemeProvider,
-} from "@react-navigation/native";
 import { Stack, useRouter, useSegments } from "expo-router";
-import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Platform, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
 import { Provider, useDispatch, useSelector } from "react-redux";
 
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
 
 export const unstable_settings = {
   initialRouteName: "(tabs)",
 };
 
 function RootLayoutNav() {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme === "dark" ? "dark" : "light"];
+  const { colors } = useTheme();
   const { isAuthenticated, loading, biometricRequired } = useSelector(
     (state: RootState) => state.auth,
   );
@@ -72,7 +64,7 @@ function RootLayoutNav() {
         router.replace("/login");
       }
     } else if (isAuthenticated && (inAuthGroup || inLanding)) {
-      router.replace("/(tabs)");
+      router.replace("/(tabs)/wallet");
     }
   }, [
     isAuthenticated,
@@ -85,54 +77,43 @@ function RootLayoutNav() {
 
   if (loading && biometricRequired) {
     return (
-      <GestureHandlerRootView>
-        <ThemeProvider
-          value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
-        >
-          <View
-            style={{
-              flex: 1,
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundColor: colors.background,
-            }}
-          >
-            <ActivityIndicator size="large" color={colors.primary} />
-          </View>
-        </ThemeProvider>
-      </GestureHandlerRootView>
+      <View
+        style={{
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: colors.background,
+        }}
+      >
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
     );
   }
 
   return (
-    <GestureHandlerRootView>
-      <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-        <Stack>
-          <Stack.Screen name="index" options={{ headerShown: false }} />
-          <Stack.Screen name="landing" options={{ headerShown: false }} />
-          <Stack.Screen name="login" options={{ headerShown: false }} />
-          <Stack.Screen name="register" options={{ headerShown: false }} />
-          <Stack.Screen name="(drawer)" options={{ headerShown: false }} />
-          <Stack.Screen name="wallet" options={{ headerShown: false }} />
-          <Stack.Screen
-            name="transaction-form"
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="modal"
-            options={{ presentation: "modal", title: "Modal" }}
-          />
-        </Stack>
-        <StatusBar style="auto" />
-      </ThemeProvider>
-    </GestureHandlerRootView>
+    <Stack>
+      <Stack.Screen name="index" options={{ headerShown: false }} />
+      <Stack.Screen name="landing" options={{ headerShown: false }} />
+      <Stack.Screen name="login" options={{ headerShown: false }} />
+      <Stack.Screen name="register" options={{ headerShown: false }} />
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="transaction-form" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="modal"
+        options={{ presentation: "modal", title: "Modal" }}
+      />
+    </Stack>
   );
 }
 
 export default function RootLayout() {
   return (
     <Provider store={store}>
-      <RootLayoutNav />
+      <ThemeProvider>
+        <GestureHandlerRootView>
+          <RootLayoutNav />
+        </GestureHandlerRootView>
+      </ThemeProvider>
     </Provider>
   );
 }

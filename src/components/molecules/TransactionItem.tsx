@@ -1,6 +1,6 @@
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { BorderRadius, Colors, Spacing } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { BorderRadius, Spacing } from "@/constants/theme";
+import { useTheme } from "@/contexts/ThemeContext";
 import STRINGS from "@/i18n/es.json";
 import { formatCurrency } from "@/utils/format";
 import React from "react";
@@ -35,8 +35,7 @@ export function TransactionItem({
   onDelete,
   onPress,
 }: TransactionItemProps) {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  const { colors } = useTheme();
 
   const isIncome = type === "income";
   const isTransfer = type === "transfer";

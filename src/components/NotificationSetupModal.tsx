@@ -1,8 +1,8 @@
 import { Button } from "@/components/atoms/Button";
 import { Typography } from "@/components/atoms/Typography";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { Colors, Spacing } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { Spacing } from "@/constants/theme";
+import { useTheme } from "@/contexts/ThemeContext";
 import {
   registerForPushNotificationsAsync,
   scheduleDailyNotification,
@@ -35,8 +35,7 @@ export const NotificationSetupModal: React.FC<NotificationSetupModalProps> = ({
   onClose,
   onSave,
 }) => {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  const { colors, theme } = useTheme();
 
   const [frequency, setFrequency] = useState<Frequency>("daily");
   const [time, setTime] = useState(new Date());
@@ -180,7 +179,7 @@ export const NotificationSetupModal: React.FC<NotificationSetupModalProps> = ({
                     display="spinner"
                     onChange={(e, date) => date && setTime(date)}
                     textColor={colors.text}
-                    themeVariant={colorScheme ?? "light"}
+                    themeVariant={theme}
                   />
                 ) : (
                   <>

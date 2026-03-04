@@ -5,8 +5,8 @@ import { Input } from "@/components/atoms/Input";
 import { Typography } from "@/components/atoms/Typography";
 import { ThemedView } from "@/components/themed-view";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { Colors, Spacing } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { Spacing } from "@/constants/theme";
+import { useTheme } from "@/contexts/ThemeContext";
 import STRINGS from "@/i18n/es.json";
 import { endpoints } from "@/services/api";
 import { AppDispatch, RootState } from "@/store/store";
@@ -34,8 +34,7 @@ export default function RegisterScreen() {
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
   const { loading, error } = useSelector((state: RootState) => state.auth);
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  const { colors } = useTheme();
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -151,7 +150,7 @@ export default function RegisterScreen() {
           console.log("Biometrics not enabled or failed:", bioError);
         }
 
-        router.replace("/(drawer)/(tabs)");
+        router.replace("/(tabs)/wallet");
       } else {
         // Fallback if no tokens (shouldn't happen with updated backend)
         router.replace("/login");

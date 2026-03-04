@@ -1,6 +1,5 @@
-import { Colors } from "@/constants/theme";
 import { fetchVisionEntities } from "@/features/vision/data/visionSlice";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useTheme } from "@/contexts/ThemeContext";
 import STRINGS from "@/i18n/es.json";
 import { AppDispatch, RootState } from "@/store/store";
 import { useEffect, useState } from "react";
@@ -27,8 +26,7 @@ export const useWalletData = () => {
   const { repairedDays } = useSelector(
     (state: RootState) => state.gamification,
   );
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  const { colors } = useTheme();
 
   const streak = useStreak(transactions, repairedDays);
 

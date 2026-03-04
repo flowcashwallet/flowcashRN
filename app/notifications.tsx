@@ -1,14 +1,12 @@
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { Colors } from "@/constants/theme";
+import { useTheme } from "@/contexts/ThemeContext";
 import NotificationsScreen from "@/features/notifications/screens/NotificationsScreen";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Stack, useRouter } from "expo-router";
 import { TouchableOpacity } from "react-native";
 
 export default function NotificationsRoute() {
   const router = useRouter();
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  const { colors } = useTheme();
 
   return (
     <>

@@ -108,6 +108,7 @@ export const Colors = {
     gradients: darkPalette.gradients,
   },
 };
+export type ThemeColors = typeof Colors.light | typeof Colors.dark;
 
 export const Spacing = {
   xs: 4,

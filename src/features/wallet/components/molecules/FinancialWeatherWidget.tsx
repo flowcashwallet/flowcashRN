@@ -3,7 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, View } from "react-native";
 import { Spacing } from "../../../../constants/theme";
-import { useColorScheme } from "../../../../hooks/use-color-scheme";
+import { useTheme } from "@/contexts/ThemeContext";
 import { Forecast } from "../../data/walletSlice";
 
 interface FinancialWeatherWidgetProps {
@@ -13,8 +13,8 @@ interface FinancialWeatherWidgetProps {
 export const FinancialWeatherWidget = ({
   forecast,
 }: FinancialWeatherWidgetProps) => {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
 
   if (!forecast || !forecast.weather_status) {
     return null;

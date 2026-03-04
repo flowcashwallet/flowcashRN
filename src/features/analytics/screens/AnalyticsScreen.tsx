@@ -2,9 +2,9 @@ import { Card } from "@/components/atoms/Card";
 import { Typography } from "@/components/atoms/Typography";
 import { ThemedView } from "@/components/themed-view";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { Colors, Spacing } from "@/constants/theme";
+import { Spacing } from "@/constants/theme";
+import { useTheme } from "@/contexts/ThemeContext";
 import { MonthYearPickerModal } from "@/features/wallet/components/MonthYearPickerModal";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -49,8 +49,7 @@ export default function AnalyticsScreen() {
 
   const [refreshing, setRefreshing] = useState(false);
   const insets = useSafeAreaInsets();
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  const { colors } = useTheme();
   const [datePickerVisible, setDatePickerVisible] = useState(false);
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
 

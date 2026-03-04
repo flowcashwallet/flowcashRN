@@ -286,7 +286,7 @@ export default function WalletScreen() {
   );
 
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView collapsable={false} style={styles.container}>
       <TransactionList
         transactions={filteredTransactions}
         onDelete={deleteTransaction}
