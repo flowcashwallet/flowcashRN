@@ -20,7 +20,11 @@ export function ThemedView({
 
   return (
     <View style={[{ backgroundColor, flex: 1 }]}>
-      <SafeAreaView style={[{ flex: 1 }, style]} {...otherProps}>
+      <SafeAreaView
+        edges={["top", "bottom"]}
+        style={[{ flex: 1 }, style]}
+        {...otherProps}
+      >
         {children}
       </SafeAreaView>
     </View>

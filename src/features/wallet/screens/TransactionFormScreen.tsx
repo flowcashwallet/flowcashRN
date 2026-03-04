@@ -3,26 +3,26 @@ import { Button } from "@/components/atoms/Button";
 import { Input } from "@/components/atoms/Input";
 import { Typography } from "@/components/atoms/Typography";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { BorderRadius, Colors, Spacing } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { BorderRadius, Spacing } from "@/constants/theme";
+import { useTheme } from "@/contexts/ThemeContext";
 import STRINGS from "@/i18n/es.json";
 import { formatAmountInput } from "@/utils/format";
 import DateTimePicker, {
-  DateTimePickerEvent,
+    DateTimePickerEvent,
 } from "@react-native-community/datetimepicker";
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  Keyboard,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  View,
+    Keyboard,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    TouchableWithoutFeedback,
+    View,
 } from "react-native";
 import { EntitySelectionModal } from "../components/EntitySelectionModal";
 import { useTransactionForm } from "../hooks/useTransactionForm";
@@ -75,8 +75,7 @@ export default function TransactionFormScreen() {
     relatedEntityId: relatedEntityId as string,
   });
 
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  const { colors, theme } = useTheme();
 
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
@@ -314,7 +313,7 @@ export default function TransactionFormScreen() {
                     value={date}
                     mode="date"
                     display={Platform.OS === "ios" ? "inline" : "default"}
-                    themeVariant={colorScheme ?? "light"}
+                    themeVariant={theme}
                     onChange={(_: DateTimePickerEvent, selectedDate?: Date) => {
                       const currentDate = selectedDate || date;
                       setShowDatePicker(false);

@@ -1,7 +1,7 @@
 import { Typography } from "@/components/atoms/Typography";
-import { Colors, Spacing } from "@/constants/theme";
+import { Spacing } from "@/constants/theme";
+import { useTheme } from "@/contexts/ThemeContext";
 import { Transaction } from "@/features/wallet/data/walletSlice";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import STRINGS from "@/i18n/es.json";
 import React, { useCallback, useMemo } from "react";
 import {
@@ -54,8 +54,7 @@ export function TransactionList({
   refreshControl,
   scrollEnabled = true,
 }: TransactionListProps) {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  const { colors } = useTheme();
 
   const sections = useMemo(() => {
     if (!transactions) return [];

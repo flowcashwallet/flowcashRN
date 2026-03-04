@@ -287,65 +287,67 @@ export default function WalletScreen() {
 
   return (
     <ThemedView collapsable={false} style={styles.container}>
-      <TransactionList
-        transactions={filteredTransactions}
-        onDelete={deleteTransaction}
-        onTransactionPress={handleTransactionPress}
-        headerRight={headerRight}
-        listHeaderComponent={listHeader}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={colors.primary}
-            colors={[colors.primary]}
-          />
-        }
-        contentContainerStyle={{
-          paddingBottom: 150 + insets.bottom,
-          paddingHorizontal: Spacing.m,
-          paddingTop: 10,
-        }}
-      />
+      <View style={{ flex: 1 }}>
+        <TransactionList
+          transactions={filteredTransactions}
+          onDelete={deleteTransaction}
+          onTransactionPress={handleTransactionPress}
+          headerRight={headerRight}
+          listHeaderComponent={listHeader}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={colors.primary}
+              colors={[colors.primary]}
+            />
+          }
+          contentContainerStyle={{
+            paddingBottom: 150 + insets.bottom,
+            paddingHorizontal: Spacing.m,
+            paddingTop: 10,
+          }}
+        />
 
-      <StreakCalendarModal
-        visible={calendarVisible}
-        onClose={() => setCalendarVisible(false)}
-        transactions={currentMonthTransactions}
-        repairedDays={repairedDays || []}
-      />
+        <StreakCalendarModal
+          visible={calendarVisible}
+          onClose={() => setCalendarVisible(false)}
+          transactions={currentMonthTransactions}
+          repairedDays={repairedDays || []}
+        />
 
-      <MonthYearPickerModal
-        visible={datePickerVisible}
-        onClose={() => setDatePickerVisible(false)}
-        selectedDate={selectedDate}
-        onSelect={setSelectedDate}
-      />
+        <MonthYearPickerModal
+          visible={datePickerVisible}
+          onClose={() => setDatePickerVisible(false)}
+          selectedDate={selectedDate}
+          onSelect={setSelectedDate}
+        />
 
-      <TransactionFilterModal
-        visible={filterVisible}
-        onClose={() => setFilterVisible(false)}
-        categories={categories}
-        entities={visionEntities}
-        currentFilters={filters}
-        onApply={setFilters}
-        onClear={() =>
-          setFilters({
-            category: null,
-            entityId: null,
-            type: null,
-            paymentType: null,
-          })
-        }
-      />
-      {isVoiceCommandEnabled && (
-        <View style={styles.fabContainer}>
-          <VoiceInputButton
-            onCommandDetected={handleVoiceCommand}
-            isLoading={processingVoice}
-          />
-        </View>
-      )}
+        <TransactionFilterModal
+          visible={filterVisible}
+          onClose={() => setFilterVisible(false)}
+          categories={categories}
+          entities={visionEntities}
+          currentFilters={filters}
+          onApply={setFilters}
+          onClear={() =>
+            setFilters({
+              category: null,
+              entityId: null,
+              type: null,
+              paymentType: null,
+            })
+          }
+        />
+        {isVoiceCommandEnabled && (
+          <View style={styles.fabContainer}>
+            <VoiceInputButton
+              onCommandDetected={handleVoiceCommand}
+              isLoading={processingVoice}
+            />
+          </View>
+        )}
+      </View>
     </ThemedView>
   );
 }

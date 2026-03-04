@@ -1,7 +1,7 @@
 import { Typography } from "@/components/atoms/Typography";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { BorderRadius, Colors, Spacing } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { BorderRadius, Spacing } from "@/constants/theme";
+import { useTheme } from "@/contexts/ThemeContext";
 import { formatCurrency } from "@/utils/format";
 import React from "react";
 import { StyleSheet, View } from "react-native";
@@ -12,8 +12,7 @@ interface ForecastCardProps {
 }
 
 export const ForecastCard: React.FC<ForecastCardProps> = ({ forecast }) => {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  const { colors } = useTheme();
 
   if (!forecast) return null;
 
