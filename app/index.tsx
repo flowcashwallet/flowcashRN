@@ -7,7 +7,7 @@ export default function Index() {
   const { isAuthenticated } = useSelector((state: RootState) => state.auth);
 
   if (isAuthenticated) {
-    return <Redirect href="/(drawer)/(tabs)" />;
+    return <Redirect href="/(tabs)" />;
   }
 
   if (Platform.OS === "web") {

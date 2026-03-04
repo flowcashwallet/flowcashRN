@@ -14,19 +14,19 @@ import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Platform, View } from "react-native";
-import "react-native-gesture-handler";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
 import { Provider, useDispatch, useSelector } from "react-redux";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 export const unstable_settings = {
-  initialRouteName: "(drawer)",
+  initialRouteName: "(tabs)",
 };
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  const colors = Colors[colorScheme === "dark" ? "dark" : "light"];
   const { isAuthenticated, loading, biometricRequired } = useSelector(
     (state: RootState) => state.auth,
   );
@@ -72,7 +72,7 @@ function RootLayoutNav() {
         router.replace("/login");
       }
     } else if (isAuthenticated && (inAuthGroup || inLanding)) {
-      router.replace("/(drawer)/(tabs)");
+      router.replace("/(tabs)");
     }
   }, [
     isAuthenticated,
@@ -85,41 +85,47 @@ function RootLayoutNav() {
 
   if (loading && biometricRequired) {
     return (
-      <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-        <View
-          style={{
-            flex: 1,
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: colors.background,
-          }}
+      <GestureHandlerRootView>
+        <ThemeProvider
+          value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
         >
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
-      </ThemeProvider>
+          <View
+            style={{
+              flex: 1,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: colors.background,
+            }}
+          >
+            <ActivityIndicator size="large" color={colors.primary} />
+          </View>
+        </ThemeProvider>
+      </GestureHandlerRootView>
     );
   }
 
   return (
-    <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="index" options={{ headerShown: false }} />
-        <Stack.Screen name="landing" options={{ headerShown: false }} />
-        <Stack.Screen name="login" options={{ headerShown: false }} />
-        <Stack.Screen name="register" options={{ headerShown: false }} />
-        <Stack.Screen name="(drawer)" options={{ headerShown: false }} />
-        <Stack.Screen name="wallet" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="transaction-form"
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="modal"
-          options={{ presentation: "modal", title: "Modal" }}
-        />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    <GestureHandlerRootView>
+      <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+        <Stack>
+          <Stack.Screen name="index" options={{ headerShown: false }} />
+          <Stack.Screen name="landing" options={{ headerShown: false }} />
+          <Stack.Screen name="login" options={{ headerShown: false }} />
+          <Stack.Screen name="register" options={{ headerShown: false }} />
+          <Stack.Screen name="(drawer)" options={{ headerShown: false }} />
+          <Stack.Screen name="wallet" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="transaction-form"
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="modal"
+            options={{ presentation: "modal", title: "Modal" }}
+          />
+        </Stack>
+        <StatusBar style="auto" />
+      </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }
 

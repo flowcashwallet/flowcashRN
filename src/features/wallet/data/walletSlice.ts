@@ -33,6 +33,9 @@ export interface Forecast {
   message: string;
   projected_balance: number;
   tip: string;
+  today_expenses?: number;
+  today_income?: number;
+  days_left_including_today?: number;
   weather_status?: "sunny" | "cloudy" | "stormy";
   weather_message?: string;
 }
