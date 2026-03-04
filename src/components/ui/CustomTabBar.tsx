@@ -1,5 +1,4 @@
-import { Colors } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useTheme } from "@/contexts/ThemeContext";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 // import { BlurView } from "expo-blur"; // Commented out to avoid crash if native module missing
 import * as Haptics from "expo-haptics";
@@ -99,8 +98,8 @@ export function CustomTabBar({
   onTabPress?: (route: any, index: number) => void;
   scrollProgress?: SharedValue<number>;
 }) {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  const { colors, theme } = useTheme();
+  const isDark = theme === "dark";
   const insets = useSafeAreaInsets();
   const [layout, setLayout] = useState({ width: 0, height: 0 });
 
@@ -173,10 +172,9 @@ export function CustomTabBar({
         style={[
           styles.blurContainer,
           {
-            backgroundColor:
-              colorScheme === "dark"
-                ? "rgba(30, 41, 59, 0.95)" // Dark Slate with high opacity
-                : "rgba(255, 255, 255, 0.95)", // White with high opacity
+            backgroundColor: isDark
+              ? "rgba(30, 41, 59, 0.95)" // Dark Slate with high opacity
+              : "rgba(255, 255, 255, 0.95)", // White with high opacity
             borderColor: colors.border,
             borderWidth: 1, // Ensure border is visible
           },

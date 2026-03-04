@@ -3,9 +3,9 @@ import { Card } from "@/components/atoms/Card";
 import { Input } from "@/components/atoms/Input";
 import { Typography } from "@/components/atoms/Typography";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { BorderRadius, Colors, Spacing } from "@/constants/theme";
+import { BorderRadius, Spacing } from "@/constants/theme";
+import { useTheme } from "@/contexts/ThemeContext";
 import { useVisionData } from "@/features/vision/hooks/useVisionData";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { AppDispatch, RootState } from "@/store/store";
 import { formatCurrency } from "@/utils/format";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -46,8 +46,7 @@ export default function SubscriptionsScreen() {
     (state: RootState) => state.subscriptions,
   );
   const { entities: visionEntities } = useVisionData();
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  const { colors } = useTheme();
 
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingSubscription, setEditingSubscription] =

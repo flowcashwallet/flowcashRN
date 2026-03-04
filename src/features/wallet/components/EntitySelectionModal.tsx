@@ -1,8 +1,8 @@
 import { Input } from "@/components/atoms/Input";
 import { Typography } from "@/components/atoms/Typography";
-import { Colors, Spacing } from "@/constants/theme";
+import { Spacing } from "@/constants/theme";
+import { useTheme } from "@/contexts/ThemeContext";
 import { VisionEntity } from "@/features/vision/data/visionSlice";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import React, { useState } from "react";
 import {
   Modal,
@@ -26,8 +26,7 @@ export const EntitySelectionList: React.FC<EntitySelectionListProps> = ({
   visionEntities,
   selectedEntityId,
 }) => {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  const { colors } = useTheme();
   const [searchQuery, setSearchQuery] = useState("");
 
   const filteredEntities = visionEntities.filter((e) =>

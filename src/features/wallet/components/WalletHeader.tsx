@@ -1,8 +1,8 @@
 import { Typography } from "@/components/atoms/Typography";
 import { AnimatedCounter } from "@/components/ui/AnimatedCounter";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { BorderRadius, Colors, Spacing } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { BorderRadius, Spacing } from "@/constants/theme";
+import { useTheme } from "@/contexts/ThemeContext";
 import STRINGS from "@/i18n/es.json";
 import { formatCurrency } from "@/utils/format";
 import React, { useState } from "react";
@@ -36,8 +36,8 @@ export const WalletHeader: React.FC<WalletHeaderProps> = ({
   showYear = false,
   year,
 }) => {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  const { colors, theme } = useTheme();
+  const isDark = theme === "dark";
   const [isBalanceVisible, setIsBalanceVisible] = useState(true);
 
   const total = income + expense;
@@ -51,7 +51,7 @@ export const WalletHeader: React.FC<WalletHeaderProps> = ({
           padding: Spacing.l,
           borderRadius: BorderRadius.xl,
           backgroundColor: colors.surfaceHighlight,
-          ...(colorScheme === "dark"
+          ...(isDark
             ? Platform.select({
                 ios: {
                   shadowColor: "#000",

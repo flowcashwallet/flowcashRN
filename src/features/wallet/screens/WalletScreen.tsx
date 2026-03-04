@@ -7,6 +7,7 @@ import STRINGS from "@/i18n/es.json";
 import { endpoints } from "@/services/api";
 import { RootState } from "@/store/store";
 import { fetchWithAuth } from "@/utils/apiClient";
+import { useHeaderHeight } from "@react-navigation/elements";
 import { useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import {
@@ -18,7 +19,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useDispatch, useSelector, useStore } from "react-redux";
 import { MonthYearPickerModal } from "../components/MonthYearPickerModal";
 import { QuickActions } from "../components/QuickActions";
@@ -55,8 +55,8 @@ export default function WalletScreen() {
     forecast,
   } = useWalletData();
 
-  const insets = useSafeAreaInsets();
-
+  const headerHeight = useHeaderHeight();
+  console.log("headerHeight", headerHeight);
   const { deleteTransaction, deleteMonthlyTransactions } =
     useWalletTransactions();
 
@@ -303,9 +303,9 @@ export default function WalletScreen() {
             />
           }
           contentContainerStyle={{
-            paddingBottom: 150 + insets.bottom,
+            paddingBottom: 150,
             paddingHorizontal: Spacing.m,
-            paddingTop: 10,
+            paddingTop: headerHeight,
           }}
         />
 

@@ -1,10 +1,10 @@
 import { Button } from "@/components/atoms/Button";
 import { Input } from "@/components/atoms/Input";
 import { Typography } from "@/components/atoms/Typography";
-import { BorderRadius, Colors, Spacing } from "@/constants/theme";
+import { BorderRadius, Spacing } from "@/constants/theme";
+import { useTheme } from "@/contexts/ThemeContext";
 import { VisionEntity } from "@/features/vision/data/visionSlice";
 import { AddEntityData } from "@/features/vision/hooks/useVisionOperations";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import STRINGS from "@/i18n/es.json";
 import { fetchCryptoPrices } from "@/services/price/coingecko";
 import { formatAmountInput, formatCurrency, parseAmount } from "@/utils/format";
@@ -42,8 +42,7 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
   initialEntity,
   isSaving,
 }) => {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  const { colors } = useTheme();
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");

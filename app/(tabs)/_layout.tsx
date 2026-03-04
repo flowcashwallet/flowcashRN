@@ -2,7 +2,6 @@ import { OnboardingTutorial } from "@/components/OnboardingTutorial";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { NativeTabs } from "expo-router/unstable-native-tabs";
 import { useEffect, useState } from "react";
-import { StyleSheet } from "react-native";
 
 export default function TabLayout() {
   const [isTutorialVisible, setIsTutorialVisible] = useState(false);
@@ -49,9 +48,3 @@ export default function TabLayout() {
     </>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-});

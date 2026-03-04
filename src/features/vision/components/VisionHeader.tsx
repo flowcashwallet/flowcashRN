@@ -1,7 +1,7 @@
 import { Typography } from "@/components/atoms/Typography";
-import { BorderRadius, Colors, Spacing } from "@/constants/theme";
+import { BorderRadius, Spacing } from "@/constants/theme";
+import { useTheme } from "@/contexts/ThemeContext";
 import { ExportTransactions } from "@/features/wallet/components/ExportTransactions";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import STRINGS from "@/i18n/es.json";
 import { formatCurrency } from "@/utils/format";
 import React from "react";
@@ -19,8 +19,8 @@ export const VisionHeader: React.FC<VisionHeaderProps> = ({
   totalAssets,
   totalLiabilities,
 }) => {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  const { colors, theme } = useTheme();
+  const isDark = theme === "dark";
 
   const pieData = [
     { value: totalAssets || 1, color: colors.success },
@@ -33,7 +33,7 @@ export const VisionHeader: React.FC<VisionHeaderProps> = ({
         styles.container,
         {
           backgroundColor: colors.surfaceHighlight,
-          ...(colorScheme === "dark"
+          ...(isDark
             ? Platform.select({
                 ios: {
                   shadowColor: "#000",

@@ -1,8 +1,8 @@
 import { Button } from "@/components/atoms/Button";
 import { Typography } from "@/components/atoms/Typography";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { Colors, Spacing } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { Spacing } from "@/constants/theme";
+import { useTheme } from "@/contexts/ThemeContext";
 import {
     cancelScheduledNotification,
     registerForPushNotificationsAsync,
@@ -43,8 +43,7 @@ export const EditNotificationModal: React.FC<EditNotificationModalProps> = ({
   notification,
   initialType = "temporal",
 }) => {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  const { colors, theme } = useTheme();
 
   const [type, setType] = useState<"temporal" | "credit_card">(initialType);
 
@@ -333,8 +332,8 @@ export const EditNotificationModal: React.FC<EditNotificationModalProps> = ({
                         mode="time"
                         display="spinner"
                         onChange={(e, date) => date && setTime(date)}
-                        textColor={colors.text}
-                        themeVariant={colorScheme ?? "light"}
+                    textColor={colors.text}
+                    themeVariant={theme}
                       />
                     ) : (
                       <>
