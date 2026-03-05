@@ -1,5 +1,8 @@
 import { OnboardingTutorial } from "@/components/OnboardingTutorial";
+import { HeaderButton } from "@/components/atoms/HeaderButton";
+import { useTheme } from "@/contexts/ThemeContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Stack } from "expo-router";
 import { NativeTabs } from "expo-router/unstable-native-tabs";
 import { useEffect, useState } from "react";
 
@@ -20,9 +23,50 @@ export default function TabLayout() {
       console.error("Error checking tutorial status:", error);
     }
   };
+  const { colors } = useTheme();
 
   return (
     <>
+      <Stack.Screen
+        options={{
+          headerShown: true,
+          // headerTitle: "",
+
+          headerTransparent: true,
+
+          headerRight: () => (
+            <>
+              <HeaderButton
+                imageProps={{
+                  systemName: "bell",
+                  name: "notifications-outline",
+                  color: colors.text,
+                }}
+                // buttonProps={{ onPress: handleNotificationPress }}
+              />
+              <HeaderButton
+                imageProps={{
+                  systemName: "plus",
+                  name: "add",
+                  size: 26,
+                  color: colors.primary,
+                }}
+                buttonProps={
+                  {
+                    // onPress: () => router.push("/wallet/transaction-form"),
+                  }
+                }
+              />
+            </>
+          ),
+          headerLeft: () => (
+            <HeaderButton
+              imageProps={{ systemName: "line.3.horizontal", name: "menu" }}
+            />
+          ),
+        }}
+      />
+
       <NativeTabs>
         <NativeTabs.Trigger name="wallet">
           <NativeTabs.Trigger.Icon sf="wallet.bifold.fill" md="wallet" />

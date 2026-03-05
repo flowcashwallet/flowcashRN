@@ -16,44 +16,7 @@ export default function WalletLayout() {
 
   return (
     <Stack>
-      <Stack.Screen
-        name="index"
-        options={{
-          headerShown: false,
-          // headerTitle: "",
-
-          // headerTransparent: true,
-
-          // headerRight: () => (
-          //   <>
-          //     <HeaderButton
-          //       imageProps={{
-          //         systemName: "bell",
-          //         name: "notifications-outline",
-          //         color: colors.text,
-          //       }}
-          //       buttonProps={{ onPress: handleNotificationPress }}
-          //     />
-          //     <HeaderButton
-          //       imageProps={{
-          //         systemName: "plus",
-          //         name: "add",
-          //         size: 26,
-          //         color: colors.primary,
-          //       }}
-          //       buttonProps={{
-          //         onPress: () => router.push("/wallet/transaction-form"),
-          //       }}
-          //     />
-          //   </>
-          // ),
-          // headerLeft: () => (
-          //   <HeaderButton
-          //     imageProps={{ systemName: "line.3.horizontal", name: "menu" }}
-          //   />
-          // ),
-        }}
-      />
+      <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen
         name="categories"
         options={{

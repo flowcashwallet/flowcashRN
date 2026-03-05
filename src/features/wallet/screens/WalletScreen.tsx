@@ -8,17 +8,16 @@ import { endpoints } from "@/services/api";
 import { RootState } from "@/store/store";
 import { fetchWithAuth } from "@/utils/apiClient";
 import { useHeaderHeight } from "@react-navigation/elements";
-import { Stack, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import {
   Alert,
   Platform,
-  Pressable,
   RefreshControl,
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import { useDispatch, useSelector, useStore } from "react-redux";
 import { MonthYearPickerModal } from "../components/MonthYearPickerModal";
@@ -289,19 +288,6 @@ export default function WalletScreen() {
   return (
     <>
       <ThemedView collapsable={false} style={styles.container}>
-        <Stack.Screen
-          options={{
-            headerShown: true,
-            title: "",
-
-            headerTransparent: true,
-            headerRight: () => (
-              <Pressable>
-                <IconSymbol name="bell" size={24} color={colors.text} />
-              </Pressable>
-            ),
-          }}
-        />
         <View style={{ flex: 1 }}>
           <TransactionList
             transactions={filteredTransactions}
