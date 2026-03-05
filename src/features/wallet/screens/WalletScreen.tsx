@@ -17,7 +17,7 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 import { useDispatch, useSelector, useStore } from "react-redux";
 import { MonthYearPickerModal } from "../components/MonthYearPickerModal";

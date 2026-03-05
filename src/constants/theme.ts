@@ -7,7 +7,7 @@
 // --- LIGHT THEME (Glacial Breeze) ---
 const lightPalette = {
   // Backgrounds
-  background: "#F0FDFA", // Ice/Mint 50
+  background: "#fff", // Ice/Mint 50
   surface: "#FFFFFF", // Pure White
   surfaceHighlight: "#E0F2FE", // Sky 100
   surfaceActive: "#CCFBF1", // Teal 100

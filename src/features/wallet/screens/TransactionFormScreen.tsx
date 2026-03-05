@@ -1,4 +1,5 @@
 import { Button } from "@/components/atoms/Button";
+import { HeaderButton } from "@/components/atoms/HeaderButton";
 import { Input } from "@/components/atoms/Input";
 import { Typography } from "@/components/atoms/Typography";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -10,7 +11,7 @@ import DateTimePicker, {
   DateTimePickerEvent,
 } from "@react-native-community/datetimepicker";
 import * as Haptics from "expo-haptics";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   Keyboard,
@@ -86,6 +87,31 @@ export default function TransactionFormScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <Stack.Screen
+        options={{
+          headerShown: true,
+          headerTransparent: true,
+          headerTitle: isEditing ? "Editar" : "Agregar",
+          headerRight: () =>
+            isEditing ? (
+              <HeaderButton
+                imageProps={{
+                  systemName: "trash",
+                  name: "trash-outline",
+                  color: colors.error,
+                }}
+                buttonProps={{
+                  onPress: () => {
+                    Haptics.notificationAsync(
+                      Haptics.NotificationFeedbackType.Warning,
+                    );
+                    handleDelete();
+                  },
+                }}
+              />
+            ) : null,
+        }}
+      />
       {/* Header */}
 
       <KeyboardAvoidingView
