@@ -25,7 +25,6 @@ import { QuickActions } from "../components/QuickActions";
 import { StreakCalendarModal } from "../components/StreakCalendarModal";
 import { TransactionFilterModal } from "../components/TransactionFilterModal";
 import { WalletHeader } from "../components/WalletHeader";
-import { FinancialWeatherWidget } from "../components/molecules/FinancialWeatherWidget";
 import { Transaction } from "../data/walletSlice";
 import { useWalletData } from "../hooks/useWalletData";
 import { useWalletTransactions } from "../hooks/useWalletTransactions";
@@ -200,8 +199,6 @@ export default function WalletScreen() {
           showYear={selectedDate.getFullYear() !== new Date().getFullYear()}
           year={selectedDate.getFullYear()}
         />
-
-        <FinancialWeatherWidget forecast={forecast} />
 
         <QuickActions
           onPressIncome={() => {

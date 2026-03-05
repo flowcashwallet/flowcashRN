@@ -187,7 +187,8 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.s,
   },
   sectionHeader: {
-    paddingVertical: Spacing.s,
-    marginBottom: Spacing.xs,
+    paddingVertical: Spacing.m,
+    marginBottom: Spacing.s,
+    paddingHorizontal: Spacing.s,
   },
 });
