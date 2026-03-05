@@ -146,7 +146,6 @@ export default function TransactionFormScreen() {
                       minWidth: 100,
                       padding: 0,
                     }}
-                    autoFocus={!isEditing}
                   />
                 </View>
               </View>
