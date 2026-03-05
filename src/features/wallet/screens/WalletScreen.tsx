@@ -21,6 +21,8 @@ import {
   View,
 } from "react-native";
 import { useDispatch, useSelector, useStore } from "react-redux";
+import { ExportButton } from "../components/ExportTransactions";
+import { MonthSelector } from "../components/MonthSelector";
 import { MonthYearPickerModal } from "../components/MonthYearPickerModal";
 import { StreakCalendarModal } from "../components/StreakCalendarModal";
 import { TransactionFilterModal } from "../components/TransactionFilterModal";
@@ -187,6 +189,23 @@ export default function WalletScreen() {
   const listHeader = useMemo(
     () => (
       <>
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: Spacing.m,
+          }}
+        >
+          <MonthSelector
+            currentMonthName={currentMonthName}
+            year={selectedDate.getFullYear()}
+            showYear={selectedDate.getFullYear() !== new Date().getFullYear()}
+            onPress={() => setDatePickerVisible(true)}
+          />
+          <ExportButton />
+        </View>
+
         <WalletHeader
           balance={balance}
           currentMonthName={currentMonthName}
@@ -195,7 +214,7 @@ export default function WalletScreen() {
           onDeleteMonth={handleDeleteMonthly}
           streak={streak}
           onPressStreak={() => setCalendarVisible(true)}
-          onMonthPress={() => setDatePickerVisible(true)}
+          // onMonthPress={() => setDatePickerVisible(true)} // Removed from header
           showYear={selectedDate.getFullYear() !== new Date().getFullYear()}
           year={selectedDate.getFullYear()}
         />

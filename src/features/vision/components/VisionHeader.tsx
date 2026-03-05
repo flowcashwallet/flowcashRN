@@ -1,7 +1,7 @@
 import { Typography } from "@/components/atoms/Typography";
 import { BorderRadius, Spacing } from "@/constants/theme";
 import { useTheme } from "@/contexts/ThemeContext";
-import { ExportTransactions } from "@/features/wallet/components/ExportTransactions";
+import { ExportButton } from "@/features/wallet/components/ExportTransactions";
 import STRINGS from "@/i18n/es.json";
 import { formatCurrency } from "@/utils/format";
 import React from "react";
@@ -58,7 +58,7 @@ export const VisionHeader: React.FC<VisionHeaderProps> = ({
         <Typography variant="h3" style={{ color: colors.textSecondary }}>
           {STRINGS.vision.netWorth}
         </Typography>
-        <ExportTransactions type="vision" />
+        <ExportButton type="vision" />
       </View>
       <Typography
         variant="h1"

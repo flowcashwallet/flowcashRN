@@ -14,7 +14,7 @@ import {
 } from "react-native";
 import { useSelector } from "react-redux";
 
-export const ExportTransactions = ({
+export const ExportButton = ({
   type = "transactions",
 }: {
   type?: "transactions" | "vision";

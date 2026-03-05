@@ -1,15 +1,16 @@
 import { Typography } from "@/components/atoms/Typography";
-import { AnimatedCounter } from "@/components/ui/AnimatedCounter";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { BorderRadius, Spacing } from "@/constants/theme";
-import { useTheme } from "@/contexts/ThemeContext";
 import STRINGS from "@/i18n/es.json";
 import { formatCurrency } from "@/utils/format";
 import React, { useState } from "react";
 import { Platform, StyleSheet, TouchableOpacity, View } from "react-native";
+import Animated, {
+  FadeIn,
+  FadeOut,
+  LinearTransition,
+} from "react-native-reanimated";
 import { StreakInfo } from "../hooks/useStreak";
-import { ExportTransactions } from "./ExportTransactions";
-import { StreakBadge } from "./StreakBadge";
 
 interface WalletHeaderProps {
   balance: number;
@@ -25,207 +26,183 @@ interface WalletHeaderProps {
 }
 
 export const WalletHeader: React.FC<WalletHeaderProps> = ({
-  balance,
   currentMonthName,
   income,
   expense,
-  onDeleteMonth,
-  streak,
-  onPressStreak,
-  onMonthPress,
-  showYear = false,
-  year,
 }) => {
-  const { colors, theme } = useTheme();
-  const isDark = theme === "dark";
-  const [isBalanceVisible, setIsBalanceVisible] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
 
-  const total = income + expense;
-  const incomePercentage = total > 0 ? (income / total) * 100 : 0;
+  const remaining = income - expense;
 
   return (
     <View
       style={[
         styles.balanceCard,
         {
-          padding: Spacing.l,
+          padding: Spacing.m,
           borderRadius: BorderRadius.xl,
-          backgroundColor: colors.background,
-          borderWidth: 1.4,
-          borderColor: colors.border,
-          ...(isDark
-            ? Platform.select({
-                ios: {
-                  shadowColor: "#000",
-                  shadowOffset: { width: 0, height: 10 },
-                  shadowOpacity: 0.3,
-                  shadowRadius: 20,
-                },
-                android: { elevation: 10 },
-              })
-            : {}),
+          backgroundColor: "#2C2C2E", // Dark card background like the image
+          borderWidth: 0, // Remove border for the clean dark look
+          ...Platform.select({
+            ios: {
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 10,
+            },
+            android: { elevation: 6 },
+          }),
         },
       ]}
     >
-      <View
+      {/* Header / Title Row */}
+      <TouchableOpacity
+        onPress={() => setIsExpanded(!isExpanded)}
+        activeOpacity={0.8}
         style={{
           flexDirection: "row",
           justifyContent: "space-between",
-          width: "100%",
           alignItems: "center",
-          marginBottom: Spacing.m,
-        }}
-      >
-        <StreakBadge streak={streak} onPress={onPressStreak} />
-        <TouchableOpacity
-          style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
-          onPress={onMonthPress}
-          activeOpacity={onMonthPress ? 0.7 : 1}
-        >
-          <Typography
-            variant="h3"
-            weight="bold"
-            style={{ color: colors.textSecondary }}
-          >
-            {currentMonthName} {showYear && year ? year : ""}
-          </Typography>
-          {onMonthPress && (
-            <IconSymbol
-              name="chevron.down"
-              size={20}
-              color={colors.textSecondary}
-            />
-          )}
-        </TouchableOpacity>
-        <ExportTransactions />
-      </View>
-
-      <Typography variant="caption" style={{ color: colors.textSecondary }}>
-        {STRINGS.wallet.balanceTotal}
-      </Typography>
-
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "center",
-          marginTop: Spacing.xs,
-          marginBottom: Spacing.l,
-        }}
-      >
-        {isBalanceVisible ? (
-          <AnimatedCounter
-            value={balance}
-            style={{
-              fontSize: 32, // h1 equivalent
-              fontWeight: "bold",
-              color: colors.text,
-              fontFamily: Platform.OS === "ios" ? "System" : "Roboto",
-            }}
-          />
-        ) : (
-          <Typography variant="h1" weight="bold" style={{ color: colors.text }}>
-            ****
-          </Typography>
-        )}
-        <TouchableOpacity
-          onPress={() => setIsBalanceVisible(!isBalanceVisible)}
-          style={{ marginLeft: Spacing.s }}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <IconSymbol
-            name={isBalanceVisible ? "eye.fill" : "eye.slash.fill"}
-            size={24}
-            color={colors.textSecondary}
-          />
-        </TouchableOpacity>
-      </View>
-
-      {/* Summary Row */}
-      <View
-        style={{
-          flexDirection: "row",
-          justifyContent: "space-between",
-          width: "100%",
+          marginBottom: isExpanded ? Spacing.m : 0,
         }}
       >
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-          <View
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: 16,
-              backgroundColor: "rgba(0, 242, 96, 0.1)",
-              justifyContent: "center",
-              alignItems: "center",
-            }}
-          >
-            <IconSymbol
-              name="arrow.down.left"
-              size={16}
-              color={colors.success}
-            />
-          </View>
-          <View>
-            <Typography
-              variant="caption"
-              style={{ color: colors.textSecondary }}
-            >
-              Ingresos
-            </Typography>
-            <Typography
-              variant="body"
-              weight="bold"
-              style={{ color: colors.success }}
-            >
-              {isBalanceVisible ? formatCurrency(income) : "****"}
-            </Typography>
-          </View>
+          <Typography variant="h3" weight="bold" style={{ color: "#FFFFFF" }}>
+            {STRINGS.wallet.summary} ({currentMonthName})
+          </Typography>
         </View>
+        <IconSymbol
+          name={isExpanded ? "chevron.up" : "chevron.down"}
+          size={16}
+          color="#8E8E93"
+        />
+      </TouchableOpacity>
 
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+      {/* Expanded Content */}
+      {isExpanded ? (
+        <Animated.View
+          entering={FadeIn.duration(300)}
+          exiting={FadeOut.duration(200)}
+          layout={LinearTransition}
+        >
+          {/* Income */}
+          <View style={styles.row}>
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
+            >
+              <Typography style={{ color: "#D1D1D6", fontSize: 15 }}>
+                {STRINGS.wallet.income}
+              </Typography>
+              <IconSymbol name="info.circle" size={14} color="#8E8E93" />
+            </View>
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+            >
+              <Typography
+                weight="bold"
+                style={{ color: "#FFFFFF", fontSize: 16 }}
+              >
+                {formatCurrency(income)}
+              </Typography>
+              <View style={[styles.dot, { backgroundColor: "#30D158" }]} />
+            </View>
+          </View>
+
+          {/* Expenses */}
+          <View style={styles.row}>
+            <Typography style={{ color: "#D1D1D6", fontSize: 15 }}>
+              {STRINGS.wallet.expenses}
+            </Typography>
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+            >
+              <Typography
+                weight="bold"
+                style={{ color: "#FFFFFF", fontSize: 16 }}
+              >
+                -{formatCurrency(expense)}
+              </Typography>
+              <View style={[styles.dot, { backgroundColor: "#FF453A" }]} />
+            </View>
+          </View>
+
+          {/* Divider */}
           <View
             style={{
-              width: 32,
-              height: 32,
-              borderRadius: 16,
-              backgroundColor: "rgba(255, 65, 108, 0.1)",
-              justifyContent: "center",
+              height: 1,
+              backgroundColor: "#3A3A3C",
+              marginVertical: Spacing.s,
+            }}
+          />
+
+          {/* Remaining */}
+          <View style={styles.row}>
+            <Typography style={{ color: "#D1D1D6", fontSize: 15 }}>
+              {STRINGS.wallet.balanceTotal}
+            </Typography>
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+            >
+              <Typography
+                weight="bold"
+                style={{ color: "#FFFFFF", fontSize: 16 }}
+              >
+                {formatCurrency(remaining)}
+              </Typography>
+              <View
+                style={[
+                  styles.dot,
+                  { backgroundColor: remaining >= 0 ? "#30D158" : "#FF453A" },
+                ]}
+              />
+            </View>
+          </View>
+        </Animated.View>
+      ) : (
+        /* Collapsed View - Just Balance */
+        <Animated.View
+          entering={FadeIn.duration(300)}
+          exiting={FadeOut.duration(200)}
+          layout={LinearTransition}
+          style={{ marginTop: 4 }}
+        >
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
               alignItems: "center",
             }}
           >
-            <IconSymbol name="arrow.up.right" size={16} color={colors.error} />
-          </View>
-          <View style={{ alignItems: "flex-end" }}>
-            <Typography
-              variant="caption"
-              style={{ color: colors.textSecondary }}
-            >
-              Gastos
+            <Typography style={{ color: "#D1D1D6", fontSize: 15 }}>
+              {STRINGS.wallet.balanceTotal}
             </Typography>
             <Typography
-              variant="body"
               weight="bold"
-              style={{ color: colors.error }}
+              style={{ color: "#FFFFFF", fontSize: 16 }}
             >
-              {isBalanceVisible ? formatCurrency(expense) : "****"}
+              {formatCurrency(remaining)}
             </Typography>
           </View>
-        </View>
-      </View>
+        </Animated.View>
+      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   balanceCard: {
-    alignItems: "center",
     marginBottom: Spacing.l,
+    overflow: "hidden", // Ensure animated content doesn't spill
   },
-  chartContainer: {
-    marginTop: Spacing.m,
-    height: 150,
+  row: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-    justifyContent: "center",
+    marginBottom: 8,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
 });
