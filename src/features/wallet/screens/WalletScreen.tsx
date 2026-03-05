@@ -1,4 +1,5 @@
 import { VoiceInputButton } from "@/components/atoms/VoiceInputButton";
+import { FloatingActionMenu } from "@/components/molecules/FloatingActionMenu";
 import { TransactionList } from "@/components/organisms/TransactionList";
 import { ThemedView } from "@/components/themed-view";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -21,7 +22,6 @@ import {
 } from "react-native";
 import { useDispatch, useSelector, useStore } from "react-redux";
 import { MonthYearPickerModal } from "../components/MonthYearPickerModal";
-import { QuickActions } from "../components/QuickActions";
 import { StreakCalendarModal } from "../components/StreakCalendarModal";
 import { TransactionFilterModal } from "../components/TransactionFilterModal";
 import { WalletHeader } from "../components/WalletHeader";
@@ -200,37 +200,16 @@ export default function WalletScreen() {
           year={selectedDate.getFullYear()}
         />
 
-        <QuickActions
-          onPressIncome={() => {
-            router.push({
-              pathname: "/wallet/transaction-form",
-              params: { initialType: "income" },
-            });
-          }}
-          onPressExpense={() => {
-            router.push({
-              pathname: "/wallet/transaction-form",
-              params: { initialType: "expense" },
-            });
-          }}
-          onPressCategories={() => {
-            router.push("/wallet/categories");
-          }}
-          onPressSubscriptions={() => {
-            router.push("/wallet/subscriptions");
-          }}
-        />
-
         <View
           style={{
             flexDirection: "row",
             alignItems: "center",
-            backgroundColor: colors.surfaceHighlight,
+            backgroundColor: colors.background,
             borderRadius: BorderRadius.l,
             paddingHorizontal: Spacing.s,
             paddingVertical: Platform.OS === "ios" ? Spacing.xs : 0,
             marginBottom: Spacing.m,
-            borderWidth: 1,
+            borderWidth: 1.4,
             borderColor: colors.border,
           }}
         >
@@ -285,6 +264,47 @@ export default function WalletScreen() {
   return (
     <>
       <ThemedView collapsable={false} style={styles.container}>
+        {/* Removed Stack.Toolbar due to conflict with NativeTabs */}
+        <FloatingActionMenu
+          actions={[
+            {
+              id: "income",
+              label: "Nuevo Ingreso",
+              icon: "arrow.down.left",
+              color: colors.success,
+              onPress: () =>
+                router.push({
+                  pathname: "/wallet/transaction-form",
+                  params: { initialType: "income" },
+                }),
+            },
+            {
+              id: "expense",
+              label: "Nuevo Gasto",
+              icon: "arrow.up.right",
+              color: colors.error,
+              onPress: () =>
+                router.push({
+                  pathname: "/wallet/transaction-form",
+                  params: { initialType: "expense" },
+                }),
+            },
+            {
+              id: "categories",
+              label: "Categorías",
+              icon: "list.bullet",
+              color: colors.primary,
+              onPress: () => router.push("/wallet/categories"),
+            },
+            {
+              id: "subscriptions",
+              label: "Suscripciones",
+              icon: "arrow.triangle.2.circlepath",
+              color: "#FFCE56",
+              onPress: () => router.push("/wallet/subscriptions"),
+            },
+          ]}
+        />
         <View style={{ flex: 1 }}>
           <TransactionList
             transactions={filteredTransactions}

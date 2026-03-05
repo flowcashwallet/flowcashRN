@@ -50,7 +50,9 @@ export const WalletHeader: React.FC<WalletHeaderProps> = ({
         {
           padding: Spacing.l,
           borderRadius: BorderRadius.xl,
-          backgroundColor: colors.surfaceHighlight,
+          backgroundColor: colors.background,
+          borderWidth: 1.4,
+          borderColor: colors.border,
           ...(isDark
             ? Platform.select({
                 ios: {
@@ -137,34 +139,6 @@ export const WalletHeader: React.FC<WalletHeaderProps> = ({
             color={colors.textSecondary}
           />
         </TouchableOpacity>
-      </View>
-
-      {/* Progress Bar */}
-      <View
-        style={{
-          width: "100%",
-          height: 8,
-          backgroundColor: colors.surface,
-          borderRadius: 4,
-          overflow: "hidden",
-          flexDirection: "row",
-          marginBottom: Spacing.m,
-        }}
-      >
-        <View
-          style={{
-            width: `${incomePercentage}%`,
-            height: "100%",
-            backgroundColor: colors.success,
-          }}
-        />
-        <View
-          style={{
-            flex: 1,
-            height: "100%",
-            backgroundColor: colors.error,
-          }}
-        />
       </View>
 
       {/* Summary Row */}

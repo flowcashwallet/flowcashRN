@@ -26,7 +26,7 @@ const lightPalette = {
   error: "#DC2626", // Red 600
   warning: "#D97706", // Amber 600
   grey: "#94A3B8", // Slate 400
-  border: "#E2E8F0", // Slate 200
+  border: "#86898dff", // Slate 200
 
   gradients: {
     primary: ["#0D9488", "#115E59"] as const,
