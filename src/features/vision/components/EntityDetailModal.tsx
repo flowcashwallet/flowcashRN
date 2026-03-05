@@ -12,12 +12,12 @@ import { formatAmountInput, formatCurrency } from "@/utils/format";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
-  FlatList,
-  Modal,
-  Pressable,
-  StyleSheet,
-  TouchableOpacity,
-  View,
+    FlatList,
+    Modal,
+    Pressable,
+    StyleSheet,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 interface EntityDetailModalProps {
@@ -81,7 +81,7 @@ export const EntityDetailModal: React.FC<EntityDetailModalProps> = ({
   const onPressTransaction = (transaction: Transaction) => {
     onClose();
     router.push({
-      pathname: "/transaction-form",
+      pathname: "/wallet/transaction-form",
       params: { id: transaction.id },
     });
   };

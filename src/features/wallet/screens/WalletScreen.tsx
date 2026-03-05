@@ -8,11 +8,12 @@ import { endpoints } from "@/services/api";
 import { RootState } from "@/store/store";
 import { fetchWithAuth } from "@/utils/apiClient";
 import { useHeaderHeight } from "@react-navigation/elements";
-import { useRouter } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import {
   Alert,
   Platform,
+  Pressable,
   RefreshControl,
   StyleSheet,
   TextInput,
@@ -110,7 +111,7 @@ export default function WalletScreen() {
 
         // Redirect to Transaction Form with pre-filled data
         router.push({
-          pathname: "/transaction-form",
+          pathname: "/wallet/transaction-form",
           params: {
             amount: data.amount.toString(),
             description: data.description,
@@ -137,7 +138,7 @@ export default function WalletScreen() {
   const handleTransactionPress = useCallback(
     (transaction: Transaction) => {
       router.push({
-        pathname: "/transaction-form",
+        pathname: "/wallet/transaction-form",
         params: { id: transaction.id },
       });
     },
@@ -206,13 +207,13 @@ export default function WalletScreen() {
         <QuickActions
           onPressIncome={() => {
             router.push({
-              pathname: "/transaction-form",
+              pathname: "/wallet/transaction-form",
               params: { initialType: "income" },
             });
           }}
           onPressExpense={() => {
             router.push({
-              pathname: "/transaction-form",
+              pathname: "/wallet/transaction-form",
               params: { initialType: "expense" },
             });
           }}
@@ -286,69 +287,84 @@ export default function WalletScreen() {
   );
 
   return (
-    <ThemedView collapsable={false} style={styles.container}>
-      <View style={{ flex: 1 }}>
-        <TransactionList
-          transactions={filteredTransactions}
-          onDelete={deleteTransaction}
-          onTransactionPress={handleTransactionPress}
-          headerRight={headerRight}
-          listHeaderComponent={listHeader}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={colors.primary}
-              colors={[colors.primary]}
-            />
-          }
-          contentContainerStyle={{
-            paddingBottom: 150,
-            paddingHorizontal: Spacing.m,
-            paddingTop: headerHeight,
+    <>
+      <ThemedView collapsable={false} style={styles.container}>
+        <Stack.Screen
+          options={{
+            headerShown: true,
+            title: "",
+
+            headerTransparent: true,
+            headerRight: () => (
+              <Pressable>
+                <IconSymbol name="bell" size={24} color={colors.text} />
+              </Pressable>
+            ),
           }}
         />
+        <View style={{ flex: 1 }}>
+          <TransactionList
+            transactions={filteredTransactions}
+            onDelete={deleteTransaction}
+            onTransactionPress={handleTransactionPress}
+            headerRight={headerRight}
+            listHeaderComponent={listHeader}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor={colors.primary}
+                colors={[colors.primary]}
+              />
+            }
+            contentContainerStyle={{
+              paddingBottom: 150,
+              paddingHorizontal: Spacing.m,
+              paddingTop: headerHeight,
+            }}
+          />
 
-        <StreakCalendarModal
-          visible={calendarVisible}
-          onClose={() => setCalendarVisible(false)}
-          transactions={currentMonthTransactions}
-          repairedDays={repairedDays || []}
-        />
+          <StreakCalendarModal
+            visible={calendarVisible}
+            onClose={() => setCalendarVisible(false)}
+            transactions={currentMonthTransactions}
+            repairedDays={repairedDays || []}
+          />
 
-        <MonthYearPickerModal
-          visible={datePickerVisible}
-          onClose={() => setDatePickerVisible(false)}
-          selectedDate={selectedDate}
-          onSelect={setSelectedDate}
-        />
+          <MonthYearPickerModal
+            visible={datePickerVisible}
+            onClose={() => setDatePickerVisible(false)}
+            selectedDate={selectedDate}
+            onSelect={setSelectedDate}
+          />
 
-        <TransactionFilterModal
-          visible={filterVisible}
-          onClose={() => setFilterVisible(false)}
-          categories={categories}
-          entities={visionEntities}
-          currentFilters={filters}
-          onApply={setFilters}
-          onClear={() =>
-            setFilters({
-              category: null,
-              entityId: null,
-              type: null,
-              paymentType: null,
-            })
-          }
-        />
-        {isVoiceCommandEnabled && (
-          <View style={styles.fabContainer}>
-            <VoiceInputButton
-              onCommandDetected={handleVoiceCommand}
-              isLoading={processingVoice}
-            />
-          </View>
-        )}
-      </View>
-    </ThemedView>
+          <TransactionFilterModal
+            visible={filterVisible}
+            onClose={() => setFilterVisible(false)}
+            categories={categories}
+            entities={visionEntities}
+            currentFilters={filters}
+            onApply={setFilters}
+            onClear={() =>
+              setFilters({
+                category: null,
+                entityId: null,
+                type: null,
+                paymentType: null,
+              })
+            }
+          />
+          {isVoiceCommandEnabled && (
+            <View style={styles.fabContainer}>
+              <VoiceInputButton
+                onCommandDetected={handleVoiceCommand}
+                isLoading={processingVoice}
+              />
+            </View>
+          )}
+        </View>
+      </ThemedView>
+    </>
   );
 }
 

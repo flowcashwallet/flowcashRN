@@ -4,6 +4,7 @@ import { TouchableOpacity } from "react-native";
 import { HeaderButtonProps } from "./types";
 
 export const HeaderButton = ({
+  nameAndroid,
   imageProps,
   buttonProps,
   style,
@@ -18,7 +19,7 @@ export const HeaderButton = ({
       ]}
     >
       <Ionicons
-        name={imageProps?.name || "help-circle-outline"}
+        name={nameAndroid || imageProps?.name || "help-circle-outline"}
         size={imageProps?.size || 24}
         color={imageProps?.color || "#000000"}
       />

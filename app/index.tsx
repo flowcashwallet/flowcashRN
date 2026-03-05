@@ -8,7 +8,8 @@ export default function Index() {
   const { isAuthenticated } = useSelector((state: RootState) => state.auth);
 
   if (isAuthenticated) {
-    return <Redirect href="/" />;
+    // Redirect to the main app (wallet) if authenticated
+    return <Redirect href="/(tabs)/wallet" />;
   }
 
   if (Platform.OS === "web") {

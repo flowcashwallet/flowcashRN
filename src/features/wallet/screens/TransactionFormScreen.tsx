@@ -1,4 +1,3 @@
-import { NotificationSetupModal } from "@/components/NotificationSetupModal";
 import { Button } from "@/components/atoms/Button";
 import { Input } from "@/components/atoms/Input";
 import { Typography } from "@/components/atoms/Typography";
@@ -8,21 +7,21 @@ import { useTheme } from "@/contexts/ThemeContext";
 import STRINGS from "@/i18n/es.json";
 import { formatAmountInput } from "@/utils/format";
 import DateTimePicker, {
-    DateTimePickerEvent,
+  DateTimePickerEvent,
 } from "@react-native-community/datetimepicker";
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-    Keyboard,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    TouchableWithoutFeedback,
-    View,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
 } from "react-native";
 import { EntitySelectionModal } from "../components/EntitySelectionModal";
 import { useTransactionForm } from "../hooks/useTransactionForm";
@@ -88,30 +87,6 @@ export default function TransactionFormScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.headerButton}
-        >
-          <IconSymbol name="chevron.left" size={24} color={colors.text} />
-        </TouchableOpacity>
-        <Typography variant="h3" weight="bold">
-          {isEditing
-            ? "Editar Transacción"
-            : type === "income"
-              ? STRINGS.wallet.newIncome
-              : type === "transfer"
-                ? "Nueva Transferencia"
-                : STRINGS.wallet.newExpense}
-        </Typography>
-        <View style={styles.headerButton}>
-          {isEditing && (
-            <TouchableOpacity onPress={handleDelete}>
-              <IconSymbol name="trash" size={24} color={colors.error} />
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
 
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -743,23 +718,12 @@ export default function TransactionFormScreen() {
         visionEntities={entities}
         selectedEntityId={transferRelatedEntityId}
       />
-
-      <NotificationSetupModal
-        visible={isNotificationSetupVisible}
-        onClose={() => {
-          setIsNotificationSetupVisible(false);
-          router.back();
-        }}
-        onSave={() => {}}
-      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: {},
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -777,6 +741,7 @@ const styles = StyleSheet.create({
   content: {
     padding: Spacing.m,
     paddingBottom: 100,
+    paddingTop: 50,
   },
   dropdown: {
     borderRadius: BorderRadius.m,
