@@ -80,6 +80,7 @@ export const BudgetSetupWizard = ({
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <ScrollView
+          contentInsetAdjustmentBehavior="automatic"
           contentContainerStyle={{
             padding: Spacing.m,
             paddingBottom: 150 + insets.bottom,

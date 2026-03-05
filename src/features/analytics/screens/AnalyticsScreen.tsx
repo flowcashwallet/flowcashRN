@@ -98,6 +98,7 @@ export default function AnalyticsScreen() {
   return (
     <ThemedView style={styles.container}>
       <ScrollView
+        contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={[
           styles.content,
           { paddingBottom: 200 + insets.bottom },
