@@ -1,9 +1,8 @@
-import { Button } from "@/components/atoms/Button";
 import { Typography } from "@/components/atoms/Typography";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { BorderRadius, Colors, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { Modal, StyleSheet, TouchableOpacity, View } from "react-native";
 
 export type SortOption = "amount" | "name";
@@ -11,29 +10,21 @@ export type SortOption = "amount" | "name";
 interface VisionSortModalProps {
   visible: boolean;
   onClose: () => void;
-  currentSort: SortOption;
-  onApply: (sort: SortOption) => void;
+  selectedOption: SortOption;
+  onSelectOption: (option: SortOption) => void;
 }
 
 export const VisionSortModal: React.FC<VisionSortModalProps> = ({
   visible,
   onClose,
-  currentSort,
-  onApply,
+  selectedOption,
+  onSelectOption,
 }) => {
   const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  const colors = Colors[colorScheme === "dark" ? "dark" : "light"];
 
-  const [selectedSort, setSelectedSort] = useState<SortOption>(currentSort);
-
-  useEffect(() => {
-    if (visible) {
-      setSelectedSort(currentSort);
-    }
-  }, [visible, currentSort]);
-
-  const handleApply = () => {
-    onApply(selectedSort);
+  const handleSelect = (option: SortOption) => {
+    onSelectOption(option);
     onClose();
   };
 
@@ -74,23 +65,25 @@ export const VisionSortModal: React.FC<VisionSortModalProps> = ({
                   styles.optionRow,
                   {
                     backgroundColor:
-                      selectedSort === option.id
+                      selectedOption === option.id
                         ? colors.surfaceHighlight
                         : "transparent",
                     borderColor:
-                      selectedSort === option.id
+                      selectedOption === option.id
                         ? colors.primary
                         : colors.border,
                   },
                 ]}
-                onPress={() => setSelectedSort(option.id)}
+                onPress={() => handleSelect(option.id)}
               >
                 <View style={styles.optionContent}>
                   <IconSymbol
                     name={option.icon as any}
                     size={24}
                     color={
-                      selectedSort === option.id ? colors.primary : colors.text
+                      selectedOption === option.id
+                        ? colors.primary
+                        : colors.text
                     }
                   />
                   <Typography
@@ -99,13 +92,13 @@ export const VisionSortModal: React.FC<VisionSortModalProps> = ({
                       marginLeft: Spacing.m,
                       color: colors.text,
                       fontWeight:
-                        selectedSort === option.id ? "bold" : "normal",
+                        selectedOption === option.id ? "bold" : "normal",
                     }}
                   >
                     {option.label}
                   </Typography>
                 </View>
-                {selectedSort === option.id && (
+                {selectedOption === option.id && (
                   <IconSymbol
                     name="checkmark"
                     size={20}
@@ -114,15 +107,6 @@ export const VisionSortModal: React.FC<VisionSortModalProps> = ({
                 )}
               </TouchableOpacity>
             ))}
-          </View>
-
-          <View style={styles.footer}>
-            <Button
-              title="Aplicar"
-              onPress={handleApply}
-              variant="primary"
-              style={{ flex: 1 }}
-            />
           </View>
         </View>
       </View>

@@ -1,8 +1,8 @@
 import { Typography } from "@/components/atoms/Typography";
+import { FloatingActionMenu } from "@/components/molecules/FloatingActionMenu";
 import { ThemedView } from "@/components/themed-view";
-import { Spacing } from "@/constants/theme";
+import { BorderRadius, Spacing } from "@/constants/theme";
 import { AddEntityModal } from "@/features/vision/components/AddEntityModal";
-import { DebtPayoffPlanner } from "@/features/vision/components/DebtPayoffPlanner";
 import { EntityDetailModal } from "@/features/vision/components/EntityDetailModal";
 import { VisionEntityList } from "@/features/vision/components/VisionEntityList";
 import { VisionFilterModal } from "@/features/vision/components/VisionFilterModal";
@@ -13,24 +13,18 @@ import {
 } from "@/features/vision/components/VisionSortModal";
 import { VisionEntity } from "@/features/vision/data/visionSlice";
 import { useVisionData } from "@/features/vision/hooks/useVisionData";
-import {
-  AddEntityData,
-  useVisionOperations,
-} from "@/features/vision/hooks/useVisionOperations";
-import {
-  registerForPushNotificationsAsync,
-  scheduleCreditCardReminder,
-} from "@/services/notifications";
+import { useVisionOperations } from "@/features/vision/hooks/useVisionOperations";
+import { ExportButton } from "@/features/wallet/components/ExportTransactions";
+import STRINGS from "@/i18n/es.json";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Stack } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  Alert,
   RefreshControl,
   ScrollView,
-  StyleSheet,
   TouchableOpacity,
+  View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const VISION_SORT_PREF_KEY = "vision_sort_preference";
 
@@ -56,9 +50,7 @@ export default function VisionScreen() {
     handleUpdateCryptoPrice,
   } = useVisionOperations(user?.id?.toString());
 
-  const insets = useSafeAreaInsets();
   const [addModalVisible, setAddModalVisible] = useState(false);
-  const [debtPlannerVisible, setDebtPlannerVisible] = useState(false);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [activeTab, setActiveTab] = useState<"asset" | "liability">("asset");
   const [selectedType, setSelectedType] = useState<"asset" | "liability">(
@@ -131,199 +123,256 @@ export default function VisionScreen() {
     setDetailModalVisible(true);
   };
 
+  const handleDelete = () => {
+    if (selectedEntity) {
+      handleDeleteEntity(selectedEntity.id.toString());
+      setDetailModalVisible(false);
+      setSelectedEntity(null);
+    }
+  };
+
   const handleEditEntity = () => {
     if (selectedEntity) {
-      setSelectedType(selectedEntity.type);
       setDetailModalVisible(false);
+      setSelectedType(selectedEntity.type);
       setAddModalVisible(true);
     }
   };
 
-  const handleDelete = async () => {
-    if (selectedEntity) {
-      const deleted = await handleDeleteEntity(selectedEntity.id);
-      if (deleted) {
-        setDetailModalVisible(false);
-        setSelectedEntity(null);
-      }
-    }
-  };
-
-  const handleSaveEntity = async (
-    data: AddEntityData,
-    isEditing: boolean,
-    entity: VisionEntity | null,
-  ) => {
-    const result = await handleAddEntity(data, isEditing, entity);
-    if (result) {
-      setAddModalVisible(false);
-      // If editing, update selected entity so detail view updates if we came from there
-      // Logic: if we were editing, we might want to re-open detail view or just stay closed.
-      // The requirement usually implies updating the list.
-      // If we want to support updating the detail view LIVE, we would need to pass the updated entity back.
-      if (isEditing && typeof result !== "boolean") {
-        // If we were editing from the detail view, we closed it to open this modal.
-        // So we don't need to update selectedEntity for the detail view immediately unless we re-open it.
-        // But let's keep it simple.
-      }
-
-      // Logic for Credit Card Liability (New OR Edit)
-      // Check if we should prompt for reminder (applies to both new and edited entities)
-      if (
-        data.type === "liability" &&
-        data.isCreditCard &&
-        data.paymentDate &&
-        data.issuerBank
-      ) {
-        const promptTitle = isEditing
-          ? "Actualizar Recordatorio"
-          : "Recordatorio de Pago";
-        const promptMessage = isEditing
-          ? `¿Quieres actualizar o activar el recordatorio de pago para el día ${data.paymentDate}?`
-          : `¿Quieres que te enviemos un recordatorio mensual 2 días antes de tu fecha de pago (${data.paymentDate})?`;
-
-        Alert.alert(promptTitle, promptMessage, [
-          {
-            text: "No",
-            style: "cancel",
-          },
-          {
-            text: isEditing ? "Sí, actualizar" : "Sí, por favor",
-            onPress: async () => {
-              const hasPermission = await registerForPushNotificationsAsync();
-              if (hasPermission) {
-                await scheduleCreditCardReminder(
-                  data.issuerBank!,
-                  parseInt(data.paymentDate!),
-                );
-                Alert.alert(
-                  "Listo",
-                  "Te recordaremos 2 días antes de tu fecha de pago.",
-                );
-              } else {
-                Alert.alert(
-                  "Error",
-                  "No tenemos permisos para enviar notificaciones.",
-                );
-              }
-            },
-          },
-        ]);
-      }
-    }
-    return result;
-  };
-
   return (
-    <ThemedView
-      style={[
-        styles.container,
-        { paddingTop: Spacing.s, backgroundColor: colors.background },
-      ]}
-    >
+    <ThemedView style={{ flex: 1 }}>
+      <Stack.Screen
+        options={{
+          headerShown: true,
+          headerTransparent: true,
+          headerTitle: "Balance",
+          unstable_headerRightItems: () => [
+            {
+              type: "menu",
+              label: " ",
+              icon: {
+                type: "sfSymbol",
+                name: "ellipsis.circle",
+              },
+              tintColor: colors.primary,
+              menu: {
+                title: STRINGS.common.edit, // Using edit as a placeholder for Actions or add a new string
+                items: [
+                  {
+                    id: "add",
+                    type: "action",
+                    label: STRINGS.vision.addAsset, // Or a generic Add string if available
+                    title: STRINGS.vision.addAsset,
+                    icon: {
+                      type: "sfSymbol",
+                      name: "plus",
+                    },
+                    onPress: onAddPress,
+                  },
+                  {
+                    id: "filter",
+                    type: "action",
+                    label: "Filtrar", // Should add to strings if missing
+                    title: "Filtrar",
+                    icon: {
+                      type: "sfSymbol",
+                      name: filterCategory
+                        ? "line.3.horizontal.decrease.circle.fill"
+                        : "line.3.horizontal.decrease.circle",
+                    },
+                    onPress: () => setFilterVisible(true),
+                  },
+                  {
+                    id: "sort",
+                    type: "action",
+                    label: "Ordenar", // Should add to strings if missing
+                    title: "Ordenar",
+                    icon: {
+                      type: "sfSymbol",
+                      name: "arrow.up.arrow.down",
+                    },
+                    onPress: () => setSortVisible(true),
+                  },
+                ],
+              },
+            },
+          ],
+        }}
+      />
       <ScrollView
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+          />
         }
         contentContainerStyle={{
-          paddingBottom: 150 + insets.bottom,
-          padding: Spacing.m,
+          paddingHorizontal: Spacing.m,
+          paddingBottom: 100,
         }}
         contentInsetAdjustmentBehavior="automatic"
-        showsVerticalScrollIndicator={false}
       >
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "flex-end",
+            marginBottom: Spacing.m,
+          }}
+        >
+          <ExportButton type="vision" />
+        </View>
+
         <VisionHeader
           netWorth={netWorth}
           totalAssets={totalAssets}
           totalLiabilities={totalLiabilities}
         />
 
-        {activeTab === "liability" && totalLiabilities > 0 && (
+        {/* Tabs */}
+        <View
+          style={{
+            flexDirection: "row",
+            backgroundColor: "#2C2C2E",
+            borderRadius: BorderRadius.l,
+            padding: 4,
+            marginBottom: Spacing.m,
+          }}
+        >
           <TouchableOpacity
             style={{
-              backgroundColor: colors.primary,
-              marginHorizontal: Spacing.m,
-              marginBottom: Spacing.m,
-              padding: Spacing.m,
-              borderRadius: 12,
-              flexDirection: "row",
-              justifyContent: "center",
+              flex: 1,
+              paddingVertical: 8,
               alignItems: "center",
+              backgroundColor:
+                activeTab === "asset" ? "#3A3A3C" : "transparent",
+              borderRadius: BorderRadius.m,
             }}
-            onPress={() => setDebtPlannerVisible(true)}
+            onPress={() => handleTabChange("asset")}
           >
             <Typography
               variant="body"
               weight="bold"
-              style={{ color: colors.background, marginRight: 8 }}
+              style={{ color: activeTab === "asset" ? "#FFFFFF" : "#8E8E93" }}
             >
-              🚀 Planificador de Deudas
+              {STRINGS.vision.assets}
             </Typography>
           </TouchableOpacity>
-        )}
+          <TouchableOpacity
+            style={{
+              flex: 1,
+              paddingVertical: 8,
+              alignItems: "center",
+              backgroundColor:
+                activeTab === "liability" ? "#3A3A3C" : "transparent",
+              borderRadius: BorderRadius.m,
+            }}
+            onPress={() => handleTabChange("liability")}
+          >
+            <Typography
+              variant="body"
+              weight="bold"
+              style={{
+                color: activeTab === "liability" ? "#FFFFFF" : "#8E8E93",
+              }}
+            >
+              {STRINGS.vision.liabilities}
+            </Typography>
+          </TouchableOpacity>
+        </View>
 
+        {/* Entity List */}
         <VisionEntityList
-          activeTab={activeTab}
-          setActiveTab={handleTabChange}
-          assets={sortedAssets}
-          liabilities={sortedLiabilities}
-          onAddPress={onAddPress}
-          onEntityPress={onEntityPress}
-          onDeleteEntity={handleDeleteEntity}
-          onFilterPress={() => setFilterVisible(true)}
-          activeFilterCategory={filterCategory}
-          onSortPress={() => setSortVisible(true)}
+          data={activeTab === "asset" ? sortedAssets : sortedLiabilities}
+          type={activeTab}
+          onPress={onEntityPress}
+          onDelete={handleDeleteEntity}
         />
       </ScrollView>
 
-      <VisionFilterModal
-        visible={filterVisible}
-        onClose={() => setFilterVisible(false)}
-        activeTab={activeTab}
-        currentCategory={filterCategory}
-        onApply={setFilterCategory}
-        onClear={() => setFilterCategory(null)}
-      />
-
-      <VisionSortModal
-        visible={sortVisible}
-        onClose={() => setSortVisible(false)}
-        currentSort={sortBy}
-        onApply={handleSortChange}
-      />
+      {/* Floating Menu removed as we integrated add button in header/card */}
+      {/* Or we can keep it if prefered, but minimalist usually means cleaner UI */}
 
       <AddEntityModal
         visible={addModalVisible}
         onClose={() => setAddModalVisible(false)}
-        onSave={handleSaveEntity}
+        onSave={handleAddEntity}
         selectedType={selectedType}
         initialEntity={selectedEntity}
         isSaving={isSaving}
       />
 
-      <DebtPayoffPlanner
-        visible={debtPlannerVisible}
-        onClose={() => setDebtPlannerVisible(false)}
-      />
-
       <EntityDetailModal
         visible={detailModalVisible}
-        onClose={() => setDetailModalVisible(false)}
+        onClose={() => {
+          setDetailModalVisible(false);
+          setSelectedEntity(null);
+        }}
         entity={selectedEntity}
         transactions={transactions}
+        isSaving={isSaving}
         onEdit={handleEditEntity}
         onDelete={handleDelete}
-        onUpdateCryptoPrice={handleUpdateCryptoPrice}
         onAddTransaction={handleAddTransactionToEntity}
-        isSaving={isSaving}
+        onUpdateCryptoPrice={handleUpdateCryptoPrice}
+      />
+
+      <VisionFilterModal
+        visible={filterVisible}
+        onClose={() => setFilterVisible(false)}
+        categories={
+          activeTab === "asset"
+            ? Array.from(
+                new Set(
+                  assets.map((a) => a.category).filter((c): c is string => !!c),
+                ),
+              )
+            : Array.from(
+                new Set(
+                  liabilities
+                    .map((l) => l.category)
+                    .filter((c): c is string => !!c),
+                ),
+              )
+        }
+        selectedCategory={filterCategory}
+        onSelectCategory={setFilterCategory}
+      />
+
+      <VisionSortModal
+        visible={sortVisible}
+        onClose={() => setSortVisible(false)}
+        selectedOption={sortBy}
+        onSelectOption={handleSortChange}
+      />
+
+      <FloatingActionMenu
+        actions={[
+          {
+            id: "add",
+            label: "Agregar",
+            icon: "plus",
+            color: colors.primary,
+            onPress: onAddPress,
+          },
+          {
+            id: "filter",
+            label: "Filtrar",
+            icon: filterCategory
+              ? "line.3.horizontal.decrease.circle.fill"
+              : "line.3.horizontal.decrease.circle",
+            color: colors.primary,
+            onPress: () => setFilterVisible(true),
+          },
+          {
+            id: "sort",
+            label: "Ordenar",
+            icon: "arrow.up.arrow.down",
+            color: colors.primary,
+            onPress: () => setSortVisible(true),
+          },
+        ]}
       />
     </ThemedView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    width: "100%",
-  },
-});

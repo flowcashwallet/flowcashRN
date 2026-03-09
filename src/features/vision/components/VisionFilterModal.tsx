@@ -1,10 +1,8 @@
-import { Button } from "@/components/atoms/Button";
 import { Typography } from "@/components/atoms/Typography";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { BorderRadius, Colors, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import STRINGS from "@/i18n/es.json";
-import React, { useEffect, useState } from "react";
+import React from "react";
 import {
   Modal,
   ScrollView,
@@ -16,45 +14,23 @@ import {
 interface VisionFilterModalProps {
   visible: boolean;
   onClose: () => void;
-  activeTab: "asset" | "liability";
-  currentCategory: string | null;
-  onApply: (category: string | null) => void;
-  onClear: () => void;
+  categories: string[];
+  selectedCategory: string | null;
+  onSelectCategory: (category: string | null) => void;
 }
 
 export const VisionFilterModal: React.FC<VisionFilterModalProps> = ({
   visible,
   onClose,
-  activeTab,
-  currentCategory,
-  onApply,
-  onClear,
+  categories,
+  selectedCategory,
+  onSelectCategory,
 }) => {
   const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  const colors = Colors[colorScheme === "dark" ? "dark" : "light"];
 
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(
-    currentCategory
-  );
-
-  useEffect(() => {
-    if (visible) {
-      setSelectedCategory(currentCategory);
-    }
-  }, [visible, currentCategory]);
-
-  const categories =
-    activeTab === "asset"
-      ? STRINGS.vision.categories.asset
-      : STRINGS.vision.categories.liability;
-
-  const handleApply = () => {
-    onApply(selectedCategory);
-    onClose();
-  };
-
-  const handleClear = () => {
-    onClear();
+  const handleSelect = (category: string | null) => {
+    onSelectCategory(category);
     onClose();
   };
 
@@ -70,7 +46,11 @@ export const VisionFilterModal: React.FC<VisionFilterModalProps> = ({
           style={[styles.modalView, { backgroundColor: colors.background }]}
         >
           <View style={styles.header}>
-            <Typography variant="h3" weight="bold" style={{ color: colors.text }}>
+            <Typography
+              variant="h3"
+              weight="bold"
+              style={{ color: colors.text }}
+            >
               Filtrar por Categoría
             </Typography>
             <TouchableOpacity onPress={onClose}>
@@ -79,10 +59,36 @@ export const VisionFilterModal: React.FC<VisionFilterModalProps> = ({
           </View>
 
           <ScrollView style={styles.scrollView}>
-            <Typography variant="body" weight="bold" style={{ marginBottom: Spacing.s, color: colors.text }}>
+            <Typography
+              variant="body"
+              weight="bold"
+              style={{ marginBottom: Spacing.s, color: colors.text }}
+            >
               Categorías
             </Typography>
             <View style={styles.categoriesContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.categoryChip,
+                  {
+                    borderColor: colors.border,
+                    backgroundColor:
+                      selectedCategory === null
+                        ? colors.primary
+                        : "transparent",
+                  },
+                ]}
+                onPress={() => handleSelect(null)}
+              >
+                <Typography
+                  variant="caption"
+                  style={{
+                    color: selectedCategory === null ? "#FFF" : colors.text,
+                  }}
+                >
+                  Todas
+                </Typography>
+              </TouchableOpacity>
               {categories.map((cat) => (
                 <TouchableOpacity
                   key={cat}
@@ -96,15 +102,12 @@ export const VisionFilterModal: React.FC<VisionFilterModalProps> = ({
                           : "transparent",
                     },
                   ]}
-                  onPress={() => setSelectedCategory(cat === selectedCategory ? null : cat)}
+                  onPress={() => handleSelect(cat)}
                 >
                   <Typography
                     variant="caption"
                     style={{
-                      color:
-                        selectedCategory === cat
-                          ? "#FFF"
-                          : colors.text,
+                      color: selectedCategory === cat ? "#FFF" : colors.text,
                     }}
                   >
                     {cat}
@@ -113,21 +116,6 @@ export const VisionFilterModal: React.FC<VisionFilterModalProps> = ({
               ))}
             </View>
           </ScrollView>
-
-          <View style={styles.footer}>
-            <Button
-              title="Limpiar"
-              onPress={handleClear}
-              variant="outline"
-              style={{ flex: 1, marginRight: Spacing.s }}
-            />
-            <Button
-              title="Aplicar"
-              onPress={handleApply}
-              variant="primary"
-              style={{ flex: 1, marginLeft: Spacing.s }}
-            />
-          </View>
         </View>
       </View>
     </Modal>

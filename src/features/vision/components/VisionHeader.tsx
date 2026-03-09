@@ -1,12 +1,15 @@
 import { Typography } from "@/components/atoms/Typography";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { BorderRadius, Spacing } from "@/constants/theme";
-import { useTheme } from "@/contexts/ThemeContext";
-import { ExportButton } from "@/features/wallet/components/ExportTransactions";
 import STRINGS from "@/i18n/es.json";
 import { formatCurrency } from "@/utils/format";
-import React from "react";
-import { Platform, StyleSheet, View } from "react-native";
-import { PieChart } from "react-native-gifted-charts";
+import React, { useState } from "react";
+import { Platform, StyleSheet, TouchableOpacity, View } from "react-native";
+import Animated, {
+  FadeIn,
+  FadeOut,
+  LinearTransition,
+} from "react-native-reanimated";
 
 interface VisionHeaderProps {
   netWorth: number;
@@ -19,153 +22,177 @@ export const VisionHeader: React.FC<VisionHeaderProps> = ({
   totalAssets,
   totalLiabilities,
 }) => {
-  const { colors, theme } = useTheme();
-  const isDark = theme === "dark";
-
-  const pieData = [
-    { value: totalAssets || 1, color: colors.success },
-    { value: totalLiabilities || 0, color: colors.error },
-  ];
+  const [isExpanded, setIsExpanded] = useState(false); // Default collapsed
 
   return (
     <View
       style={[
-        styles.container,
+        styles.balanceCard,
         {
-          backgroundColor: colors.surfaceHighlight,
-          ...(isDark
-            ? Platform.select({
-                ios: {
-                  shadowColor: "#000",
-                  shadowOffset: { width: 0, height: 10 },
-                  shadowOpacity: 0.3,
-                  shadowRadius: 20,
-                },
-                android: { elevation: 10 },
-              })
-            : {}),
+          padding: Spacing.m,
+          borderRadius: BorderRadius.xl,
+          backgroundColor: "#2C2C2E", // Dark card background
+          borderWidth: 0,
+          ...Platform.select({
+            ios: {
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 10,
+            },
+            android: { elevation: 6 },
+          }),
         },
       ]}
     >
-      <View
+      {/* Header / Title Row */}
+      <TouchableOpacity
+        onPress={() => setIsExpanded(!isExpanded)}
+        activeOpacity={0.8}
         style={{
           flexDirection: "row",
           justifyContent: "space-between",
           alignItems: "center",
-          marginBottom: Spacing.xs,
+          marginBottom: isExpanded ? Spacing.m : 0,
         }}
       >
-        <Typography variant="h3" style={{ color: colors.textSecondary }}>
-          {STRINGS.vision.netWorth}
-        </Typography>
-        <ExportButton type="vision" />
-      </View>
-      <Typography
-        variant="h1"
-        weight="bold"
-        style={{
-          color: colors.text,
-          fontSize: 32,
-          marginBottom: Spacing.l,
-        }}
-      >
-        {formatCurrency(netWorth)}
-      </Typography>
-
-      <View style={{ alignItems: "center", marginBottom: Spacing.l }}>
-        <PieChart
-          data={pieData}
-          donut
-          radius={80}
-          innerRadius={60}
-          innerCircleColor={colors.surfaceHighlight}
-          centerLabelComponent={() => (
-            <View style={{ alignItems: "center" }}>
-              <Typography
-                variant="caption"
-                style={{ color: colors.textSecondary, fontSize: 10 }}
-              >
-                Balance
-              </Typography>
-            </View>
-          )}
-        />
-      </View>
-
-      <View style={styles.legendContainer}>
-        <View style={styles.legendItem}>
-          <View
-            style={[
-              styles.legendIndicator,
-              { backgroundColor: colors.success },
-            ]}
-          />
-          <View>
-            <Typography
-              variant="caption"
-              style={{ color: colors.textSecondary }}
-            >
-              {STRINGS.vision.assets}
-            </Typography>
-            <Typography
-              variant="body"
-              weight="bold"
-              style={{ color: colors.text }}
-            >
-              {formatCurrency(totalAssets)}
-            </Typography>
-          </View>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <Typography variant="h3" weight="bold" style={{ color: "#FFFFFF" }}>
+            {STRINGS.vision.netWorth}
+          </Typography>
         </View>
+        <IconSymbol
+          name={isExpanded ? "chevron.up" : "chevron.down"}
+          size={16}
+          color="#8E8E93"
+        />
+      </TouchableOpacity>
 
-        <View style={styles.legendItem}>
-          <View
-            style={[styles.legendIndicator, { backgroundColor: colors.error }]}
-          />
-          <View>
-            <Typography
-              variant="caption"
-              style={{ color: colors.textSecondary }}
+      {/* Expanded Content */}
+      {isExpanded ? (
+        <Animated.View
+          entering={FadeIn.duration(300)}
+          exiting={FadeOut.duration(200)}
+          layout={LinearTransition}
+        >
+          {/* Assets */}
+          <View style={styles.row}>
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
             >
+              <Typography style={{ color: "#D1D1D6", fontSize: 15 }}>
+                {STRINGS.vision.assets}
+              </Typography>
+              <IconSymbol name="info.circle" size={14} color="#8E8E93" />
+            </View>
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+            >
+              <Typography
+                weight="bold"
+                style={{ color: "#FFFFFF", fontSize: 16 }}
+              >
+                {formatCurrency(totalAssets)}
+              </Typography>
+              <View style={[styles.dot, { backgroundColor: "#30D158" }]} />
+            </View>
+          </View>
+
+          {/* Liabilities */}
+          <View style={styles.row}>
+            <Typography style={{ color: "#D1D1D6", fontSize: 15 }}>
               {STRINGS.vision.liabilities}
             </Typography>
-            <Typography
-              variant="body"
-              weight="bold"
-              style={{ color: colors.text }}
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
             >
-              {formatCurrency(totalLiabilities)}
+              <Typography
+                weight="bold"
+                style={{ color: "#FFFFFF", fontSize: 16 }}
+              >
+                -{formatCurrency(totalLiabilities)}
+              </Typography>
+              <View style={[styles.dot, { backgroundColor: "#FF453A" }]} />
+            </View>
+          </View>
+
+          {/* Divider */}
+          <View
+            style={{
+              height: 1,
+              backgroundColor: "#3A3A3C",
+              marginVertical: Spacing.s,
+            }}
+          />
+
+          {/* Net Worth */}
+          <View style={styles.row}>
+            <Typography style={{ color: "#D1D1D6", fontSize: 15 }}>
+              {STRINGS.wallet.balanceTotal}
+            </Typography>
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+            >
+              <Typography
+                weight="bold"
+                style={{ color: "#FFFFFF", fontSize: 16 }}
+              >
+                {formatCurrency(netWorth)}
+              </Typography>
+              <View
+                style={[
+                  styles.dot,
+                  { backgroundColor: netWorth >= 0 ? "#30D158" : "#FF453A" },
+                ]}
+              />
+            </View>
+          </View>
+        </Animated.View>
+      ) : (
+        /* Collapsed View - Just Balance */
+        <Animated.View
+          entering={FadeIn.duration(300)}
+          exiting={FadeOut.duration(200)}
+          layout={LinearTransition}
+          style={{ marginTop: 4 }}
+        >
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <Typography style={{ color: "#D1D1D6", fontSize: 15 }}>
+              {STRINGS.wallet.balanceTotal}
+            </Typography>
+            <Typography
+              weight="bold"
+              style={{ color: "#FFFFFF", fontSize: 16 }}
+            >
+              {formatCurrency(netWorth)}
             </Typography>
           </View>
-        </View>
-      </View>
+        </Animated.View>
+      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    marginHorizontal: Spacing.m,
-    marginBottom: Spacing.m,
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.l,
-    alignItems: "center",
+  balanceCard: {
+    marginBottom: Spacing.l,
+    overflow: "hidden",
   },
-  legendContainer: {
+  row: {
     flexDirection: "row",
     justifyContent: "space-between",
-    width: "100%",
-    paddingTop: Spacing.m,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.1)",
-  },
-  legendItem: {
-    flexDirection: "row",
     alignItems: "center",
+    marginBottom: 8,
   },
-  legendIndicator: {
+  dot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    marginRight: 8,
   },
 });
