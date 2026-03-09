@@ -1,7 +1,6 @@
-import { Colors } from "@/constants/theme";
 import { fetchVisionEntities } from "@/features/vision/data/visionSlice";
 import { fetchTransactions } from "@/features/wallet/data/walletSlice";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useTheme } from "@/contexts/ThemeContext";
 import { AppDispatch, RootState } from "@/store/store";
 import { useCallback, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
@@ -14,8 +13,7 @@ export const useVisionData = () => {
   );
   const { transactions } = useSelector((state: RootState) => state.wallet);
 
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  const { colors } = useTheme();
 
   const [refreshing, setRefreshing] = useState(false);
 

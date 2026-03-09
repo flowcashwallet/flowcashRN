@@ -3,10 +3,10 @@ import { Card } from "@/components/atoms/Card";
 import { Input } from "@/components/atoms/Input";
 import { Typography } from "@/components/atoms/Typography";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { BorderRadius, Colors, Spacing } from "@/constants/theme";
+import { BorderRadius, Spacing } from "@/constants/theme";
+import { useTheme } from "@/contexts/ThemeContext";
 import { useBudgetSetup } from "@/features/budget/hooks/useBudgetSetup";
 import { fetchCategories } from "@/features/wallet/data/categoriesSlice";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { AppDispatch, RootState } from "@/store/store";
 import { formatCurrency } from "@/utils/format";
 import React, { useEffect } from "react";
@@ -65,8 +65,7 @@ export const BudgetSetupWizard = ({
     }
   };
 
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  const { colors } = useTheme();
 
   useEffect(() => {
     if (user?.id && categories.length === 0) {
@@ -81,6 +80,7 @@ export const BudgetSetupWizard = ({
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <ScrollView
+          contentInsetAdjustmentBehavior="automatic"
           contentContainerStyle={{
             padding: Spacing.m,
             paddingBottom: 150 + insets.bottom,

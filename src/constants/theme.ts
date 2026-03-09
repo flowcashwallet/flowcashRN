@@ -7,7 +7,7 @@
 // --- LIGHT THEME (Glacial Breeze) ---
 const lightPalette = {
   // Backgrounds
-  background: "#F0FDFA", // Ice/Mint 50
+  background: "#fff", // Ice/Mint 50
   surface: "#FFFFFF", // Pure White
   surfaceHighlight: "#E0F2FE", // Sky 100
   surfaceActive: "#CCFBF1", // Teal 100
@@ -26,7 +26,7 @@ const lightPalette = {
   error: "#DC2626", // Red 600
   warning: "#D97706", // Amber 600
   grey: "#94A3B8", // Slate 400
-  border: "#E2E8F0", // Slate 200
+  border: "#86898dff", // Slate 200
 
   gradients: {
     primary: ["#0D9488", "#115E59"] as const,
@@ -108,6 +108,7 @@ export const Colors = {
     gradients: darkPalette.gradients,
   },
 };
+export type ThemeColors = typeof Colors.light | typeof Colors.dark;
 
 export const Spacing = {
   xs: 4,

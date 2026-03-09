@@ -1,7 +1,7 @@
 import { Typography } from "@/components/atoms/Typography";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { BorderRadius, Colors, Spacing } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { BorderRadius, Spacing } from "@/constants/theme";
+import { useTheme } from "@/contexts/ThemeContext";
 import STRINGS from "@/i18n/es.json";
 import React from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
@@ -19,8 +19,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
   onPressCategories,
   onPressSubscriptions,
 }) => {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  const { colors } = useTheme();
 
   const ActionButton = ({
     icon,

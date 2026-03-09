@@ -4,10 +4,12 @@ import { Platform } from "react-native";
 import { useSelector } from "react-redux";
 
 export default function Index() {
+  console.log("Rendering index screen");
   const { isAuthenticated } = useSelector((state: RootState) => state.auth);
 
   if (isAuthenticated) {
-    return <Redirect href="/(drawer)/(tabs)" />;
+    // Redirect to the main app (wallet) if authenticated
+    return <Redirect href="/(tabs)/wallet" />;
   }
 
   if (Platform.OS === "web") {

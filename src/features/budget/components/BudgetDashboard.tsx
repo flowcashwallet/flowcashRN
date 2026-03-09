@@ -35,6 +35,7 @@ export const BudgetDashboard = ({ onEdit }: BudgetDashboardProps) => {
 
   return (
     <ScrollView
+      contentInsetAdjustmentBehavior="automatic"
       contentContainerStyle={{
         padding: Spacing.m,
         paddingBottom: 200 + insets.bottom,

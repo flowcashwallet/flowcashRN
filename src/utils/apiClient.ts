@@ -1,12 +1,12 @@
-import { AppDispatch, RootState } from "@/store/store";
 import { logout, refreshToken } from "@/features/auth/authSlice";
 import { getAuthHeaders } from "@/services/api";
+import { AppDispatch, RootState } from "@/store/store";
 
 export const fetchWithAuth = async (
   url: string,
   options: RequestInit = {},
   dispatch: AppDispatch,
-  getState: () => RootState
+  getState: () => RootState,
 ): Promise<Response> => {
   let state = getState();
   let token = state.auth.token;
@@ -31,21 +31,23 @@ export const fetchWithAuth = async (
         dispatch(logout());
         throw new Error("No refresh token available");
       }
+      // print url
 
       console.log("Token expired, attempting refresh...");
+      console.log("url", url);
       const resultAction = await dispatch(refreshToken());
-      
+
       if (refreshToken.fulfilled.match(resultAction)) {
         // Refresh successful, get new token
         const newToken = resultAction.payload.access;
         console.log("Token refreshed successfully");
-        
+
         // Retry request with new token
         headers = {
-            ...options.headers,
-            ...getAuthHeaders(newToken),
+          ...options.headers,
+          ...getAuthHeaders(newToken),
         };
-        
+
         response = await fetch(url, { ...options, headers });
       } else {
         console.warn("Token refresh failed. Logging out.");
@@ -54,8 +56,8 @@ export const fetchWithAuth = async (
         throw new Error("Token refresh failed");
       }
     } catch (error) {
-       console.error("Error during token refresh:", error);
-       throw error;
+      console.error("Error during token refresh:", error);
+      throw error;
     }
   }
 

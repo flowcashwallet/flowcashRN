@@ -1,5 +1,5 @@
-import { BorderRadius, Colors, Spacing } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { BorderRadius, Spacing } from "@/constants/theme";
+import { useTheme } from "@/contexts/ThemeContext";
 import React from "react";
 import { StyleProp, StyleSheet, View, ViewStyle } from "react-native";
 
@@ -10,8 +10,7 @@ interface CardProps {
 }
 
 export function Card({ children, style, variant = "elevated" }: CardProps) {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  const { colors } = useTheme();
 
   const getStyle = (): ViewStyle => {
     switch (variant) {

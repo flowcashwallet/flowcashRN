@@ -1,17 +1,17 @@
 import { Typography } from "@/components/atoms/Typography";
-import { BorderRadius, Colors } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { BorderRadius } from "@/constants/theme";
+import { useTheme } from "@/contexts/ThemeContext";
 import React, { useEffect, useState } from "react";
 import {
-    LayoutChangeEvent,
-    StyleSheet,
-    TouchableOpacity,
-    View,
+  LayoutChangeEvent,
+  StyleSheet,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import Animated, {
-    useAnimatedStyle,
-    useSharedValue,
-    withSpring,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
 } from "react-native-reanimated";
 
 interface Tab {
@@ -30,8 +30,7 @@ export const SlidingTabSelector: React.FC<SlidingTabSelectorProps> = ({
   activeTab,
   onTabChange,
 }) => {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  const { colors } = useTheme();
   const [layout, setLayout] = useState({ width: 0, height: 0 });
 
   const activeIndex = tabs.findIndex((t) => t.key === activeTab);

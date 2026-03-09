@@ -1,15 +1,15 @@
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { BorderRadius, Colors, Spacing } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { BorderRadius, Spacing } from "@/constants/theme";
+import { useTheme } from "@/contexts/ThemeContext";
 import STRINGS from "@/i18n/es.json";
 import { formatCurrency } from "@/utils/format";
 import React from "react";
 import {
-    Alert,
-    Platform,
-    StyleSheet,
-    TouchableOpacity,
-    View,
+  Alert,
+  Platform,
+  StyleSheet,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import Swipeable from "react-native-gesture-handler/Swipeable";
 import { Typography } from "../atoms/Typography";
@@ -35,8 +35,7 @@ export function TransactionItem({
   onDelete,
   onPress,
 }: TransactionItemProps) {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  const { colors } = useTheme();
 
   const isIncome = type === "income";
   const isTransfer = type === "transfer";
@@ -98,17 +97,19 @@ export function TransactionItem({
         activeOpacity={0.7}
         delayLongPress={500}
         style={{
-          borderRadius: BorderRadius.m,
-          backgroundColor: colors.surface,
+          borderRadius: BorderRadius.xl, // More rounded
+          backgroundColor: "transparent",
+          padding: Spacing.s, // Internal padding for the "card" feel
+          // Subtle shadow
           ...Platform.select({
             ios: {
               shadowColor: "#000",
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.3,
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.05,
               shadowRadius: 8,
             },
             android: {
-              elevation: 4,
+              elevation: 2,
             },
           }),
         }}
@@ -116,71 +117,84 @@ export function TransactionItem({
         <View
           style={{
             flexDirection: "row",
-            overflow: "hidden",
-            borderRadius: BorderRadius.m,
+            alignItems: "center",
           }}
         >
-          {/* Side Indicator */}
-          <View
-            style={{
-              width: 6,
-              backgroundColor: isIncome
-                ? colors.success
-                : isTransfer
-                  ? colors.text
-                  : colors.error,
-            }}
-          />
-
+          {/* Icon Container - Larger and fully round */}
           <View
             style={[
-              styles.container,
+              styles.iconContainer,
               {
-                backgroundColor: colors.surface,
-                flex: 1,
-                borderBottomWidth: 0,
+                backgroundColor: isIncome
+                  ? "rgba(0, 242, 96, 0.1)"
+                  : isTransfer
+                    ? "rgba(128, 128, 128, 0.1)"
+                    : "rgba(255, 65, 108, 0.1)",
+                width: 42,
+                height: 42,
+                borderRadius: 21,
+                justifyContent: "center",
+                alignItems: "center",
+                marginRight: Spacing.m,
               },
             ]}
           >
-            <View
-              style={[
-                styles.iconContainer,
-                {
-                  backgroundColor: isIncome
-                    ? "rgba(0, 242, 96, 0.1)"
-                    : isTransfer
-                      ? "rgba(128, 128, 128, 0.1)"
-                      : "rgba(255, 65, 108, 0.1)",
-                },
-              ]}
+            {isTransfer ? (
+              <IconSymbol
+                name="arrow.right.arrow.left"
+                size={18}
+                color={iconColor}
+              />
+            ) : emoji ? (
+              <Typography style={{ fontSize: 20 }}>{emoji}</Typography>
+            ) : (
+              <IconSymbol
+                name={isIncome ? "arrow.down.left" : "arrow.up.right"}
+                size={20}
+                color={iconColor}
+              />
+            )}
+          </View>
+
+          {/* Content */}
+          <View style={{ flex: 1, justifyContent: "center" }}>
+            <Typography
+              variant="body"
+              weight="bold"
+              style={{
+                fontSize: 16,
+                marginBottom: 2,
+                color: colors.text,
+              }}
+              numberOfLines={1}
             >
-              {isTransfer ? (
-                <IconSymbol
-                  name="arrow.right.arrow.left"
-                  size={24}
-                  color={iconColor}
-                />
-              ) : emoji ? (
-                <Typography variant="h3">{emoji}</Typography>
-              ) : (
-                <IconSymbol
-                  name={isIncome ? "arrow.down.left" : "arrow.up.right"}
-                  size={24}
-                  color={iconColor}
-                />
-              )}
-            </View>
+              {description}
+            </Typography>
+            <Typography
+              variant="caption"
+              style={{
+                color: colors.textSecondary,
+                fontSize: 13,
+              }}
+            >
+              {category ? category.replace(emoji || "", "").trim() : "General"}
+            </Typography>
+          </View>
 
-            <View style={styles.content}>
-              <Typography variant="body" weight="medium">
-                {description}
-              </Typography>
-              <Typography variant="caption" style={{ color: colors.icon }}>
-                {category ? category : new Date(date).toLocaleDateString()}
-              </Typography>
-            </View>
-
-            <View style={styles.rightContainer}>
+          {/* Right Side - Amount Pill/Text */}
+          <View style={{ alignItems: "flex-end" }}>
+            <View
+              style={{
+                backgroundColor: isIncome
+                  ? "rgba(0, 242, 96, 0.15)" // Green pill for income
+                  : isTransfer
+                    ? "rgba(128, 128, 128, 0.15)" // Gray pill for transfer
+                    : "rgba(255, 65, 108, 0.15)", // Red pill for expense
+                paddingHorizontal: 10,
+                paddingVertical: 4,
+                borderRadius: 12,
+              }}
+            >
               <Typography
                 variant="body"
                 weight="bold"
@@ -190,10 +204,10 @@ export function TransactionItem({
                     : isTransfer
                       ? colors.text
                       : colors.error,
-                  marginBottom: 4,
+                  fontSize: 14,
                 }}
               >
-                {isIncome ? "+" : "-"}
+                {isIncome ? "+" : isTransfer ? "" : "-"}
                 {formatCurrency(amount)}
               </Typography>
             </View>
@@ -205,28 +219,8 @@ export function TransactionItem({
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: Spacing.m,
-    paddingHorizontal: Spacing.m, // Add horizontal padding since we are inside a card now
-    borderBottomWidth: 1,
-  },
+  // Removed old container styles as they are inline now for simplicity/overriding
   iconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: Spacing.m,
-  },
-  content: {
-    flex: 1,
-  },
-  rightContainer: {
-    alignItems: "flex-end",
-  },
-  deleteButton: {
-    padding: 4,
+    // Base styles handled inline
   },
 });

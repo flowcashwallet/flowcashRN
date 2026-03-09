@@ -1,7 +1,7 @@
 import { Typography } from "@/components/atoms/Typography";
-import { Colors, Spacing } from "@/constants/theme";
+import { Spacing } from "@/constants/theme";
+import { useTheme } from "@/contexts/ThemeContext";
 import { Transaction } from "@/features/wallet/data/walletSlice";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import STRINGS from "@/i18n/es.json";
 import React, { useCallback, useMemo } from "react";
 import {
@@ -54,8 +54,7 @@ export function TransactionList({
   refreshControl,
   scrollEnabled = true,
 }: TransactionListProps) {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  const { colors } = useTheme();
 
   const sections = useMemo(() => {
     if (!transactions) return [];
@@ -124,19 +123,6 @@ export function TransactionList({
     );
   }, [headerRight, listHeaderComponent]);
 
-  if (!transactions || transactions.length === 0) {
-    return (
-      <View>
-        {ListHeader}
-        <View style={styles.emptyContainer}>
-          <Typography variant="body" style={{ opacity: 0.6 }}>
-            {STRINGS.wallet.noRecentTransactions}
-          </Typography>
-        </View>
-      </View>
-    );
-  }
-
   return (
     <View style={styles.container}>
       <SectionList
@@ -167,6 +153,13 @@ export function TransactionList({
         scrollEnabled={scrollEnabled}
         ListHeaderComponent={ListHeader}
         refreshControl={refreshControl}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Typography variant="body" style={{ opacity: 0.6 }}>
+              {STRINGS.wallet.noRecentTransactions}
+            </Typography>
+          </View>
+        }
       />
     </View>
   );
@@ -188,7 +181,8 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.s,
   },
   sectionHeader: {
-    paddingVertical: Spacing.s,
-    marginBottom: Spacing.xs,
+    paddingVertical: Spacing.m,
+    marginBottom: Spacing.s,
+    paddingHorizontal: Spacing.s,
   },
 });

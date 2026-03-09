@@ -26,8 +26,8 @@ import { Typography } from "@/components/atoms/Typography";
 
 import { ThemedView } from "@/components/themed-view";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { Colors, Spacing } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { Spacing } from "@/constants/theme";
+import { useTheme } from "@/contexts/ThemeContext";
 import STRINGS from "@/i18n/es.json";
 import { endpoints } from "@/services/api";
 import { useRouter } from "expo-router";
@@ -38,8 +38,7 @@ export default function LoginScreen() {
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
   const { loading, error } = useSelector((state: RootState) => state.auth);
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  const { colors } = useTheme();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -123,7 +122,6 @@ export default function LoginScreen() {
       }
 
       // Navigation is handled by auth state listener or manual replace
-      router.replace("/(drawer)/(tabs)");
     } catch (err: any) {
       console.error("Login Error:", err);
       dispatch(setError(err.message || "Error al iniciar sesión"));

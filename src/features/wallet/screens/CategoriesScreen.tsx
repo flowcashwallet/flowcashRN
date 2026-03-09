@@ -4,14 +4,14 @@ import { Input } from "@/components/atoms/Input";
 import { Typography } from "@/components/atoms/Typography";
 import { ThemedView } from "@/components/themed-view";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { Colors, Spacing } from "@/constants/theme";
+import { Spacing } from "@/constants/theme";
+import { useTheme } from "@/contexts/ThemeContext";
 import {
   addCategory,
   deleteCategory,
   fetchCategories,
   updateCategory,
 } from "@/features/wallet/data/categoriesSlice";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { AppDispatch, RootState } from "@/store/store";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -38,8 +38,7 @@ export default function CategoriesScreen() {
   const { categories, loading } = useSelector(
     (state: RootState) => state.categories,
   );
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  const { colors } = useTheme();
 
   const [newCategoryName, setNewCategoryName] = useState("");
   const [editingCategory, setEditingCategory] = useState<{

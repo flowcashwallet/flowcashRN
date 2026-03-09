@@ -2,9 +2,9 @@ import { Button } from "@/components/atoms/Button";
 import { Card } from "@/components/atoms/Card";
 import { Input } from "@/components/atoms/Input";
 import { Typography } from "@/components/atoms/Typography";
-import { BorderRadius, Colors, Spacing } from "@/constants/theme";
+import { BorderRadius, Spacing } from "@/constants/theme";
+import { useTheme } from "@/contexts/ThemeContext";
 import { useDebtPlanner } from "@/features/vision/hooks/useDebtPlanner";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { formatAmountInput, formatCurrency } from "@/utils/format";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
@@ -25,8 +25,7 @@ export const DebtPayoffPlanner: React.FC<DebtPayoffPlannerProps> = ({
   visible,
   onClose,
 }) => {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  const { colors } = useTheme();
   const { loading, plans, fetchDebtPlans } = useDebtPlanner();
   const [extraPayment, setExtraPayment] = useState("");
 

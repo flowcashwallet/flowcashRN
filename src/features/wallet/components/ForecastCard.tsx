@@ -1,7 +1,7 @@
 import { Typography } from "@/components/atoms/Typography";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { BorderRadius, Colors, Spacing } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { BorderRadius, Spacing } from "@/constants/theme";
+import { useTheme } from "@/contexts/ThemeContext";
 import { formatCurrency } from "@/utils/format";
 import React from "react";
 import { StyleSheet, View } from "react-native";
@@ -12,8 +12,7 @@ interface ForecastCardProps {
 }
 
 export const ForecastCard: React.FC<ForecastCardProps> = ({ forecast }) => {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  const { colors } = useTheme();
 
   if (!forecast) return null;
 
@@ -43,26 +42,36 @@ export const ForecastCard: React.FC<ForecastCardProps> = ({ forecast }) => {
     }
   };
 
-  const forecastDate = forecast.forecast_date
-    ? new Date(forecast.forecast_date)
-    : new Date();
-  const startOfDay = new Date(
-    forecastDate.getFullYear(),
-    forecastDate.getMonth(),
-    forecastDate.getDate(),
-  );
-  const endOfMonth = new Date(
-    forecastDate.getFullYear(),
-    forecastDate.getMonth() + 1,
-    0,
-  );
-  const msPerDay = 24 * 60 * 60 * 1000;
-  const daysLeft = Math.max(
-    1,
-    Math.ceil((endOfMonth.getTime() - startOfDay.getTime()) / msPerDay) + 1,
-  );
   const remainingBudget = Math.max(0, forecast.remaining_budget);
-  const dailyAllowance = remainingBudget / daysLeft;
+  const daysLeftIncludingToday = Math.max(
+    1,
+    forecast.days_left_including_today ??
+      (() => {
+        const today = new Date();
+        const startOfDay = new Date(
+          today.getFullYear(),
+          today.getMonth(),
+          today.getDate(),
+        );
+        const endOfMonth = new Date(
+          today.getFullYear(),
+          today.getMonth() + 1,
+          0,
+        );
+        const msPerDay = 24 * 60 * 60 * 1000;
+        return (
+          Math.ceil((endOfMonth.getTime() - startOfDay.getTime()) / msPerDay) +
+          1
+        );
+      })(),
+  );
+  const todayExpenses = Math.max(0, forecast.today_expenses ?? 0);
+  const dailyAllowance = remainingBudget / daysLeftIncludingToday;
+  const todayIncome = Math.max(0, forecast.today_income ?? 0);
+  const remainingToday = Math.max(
+    0,
+    dailyAllowance + todayIncome - todayExpenses,
+  );
 
   return (
     <View
@@ -132,8 +141,17 @@ export const ForecastCard: React.FC<ForecastCardProps> = ({ forecast }) => {
         ]}
       >
         <Typography variant="caption" style={{ color: colors.textSecondary }}>
-          Hoy te quedarían {formatCurrency(dailyAllowance)} por gastar para
+          Hoy te quedarían {formatCurrency(remainingToday)} por gastar para
           llegar a fin de mes
+        </Typography>
+        <Typography variant="caption" style={{ color: colors.textSecondary }}>
+          Gastaste hoy: {formatCurrency(todayExpenses)}
+        </Typography>
+        <Typography variant="caption" style={{ color: colors.textSecondary }}>
+          Ingresos de hoy: {formatCurrency(todayIncome)}
+        </Typography>
+        <Typography variant="caption" style={{ color: colors.textSecondary }}>
+          Presupuesto diario sugerido: {formatCurrency(dailyAllowance)}
         </Typography>
       </View>
 

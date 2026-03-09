@@ -1,17 +1,11 @@
 import { Button } from "@/components/atoms/Button";
 import { Typography } from "@/components/atoms/Typography";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { BorderRadius, Colors, Spacing } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { BorderRadius, Spacing } from "@/constants/theme";
+import { useTheme } from "@/contexts/ThemeContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useEffect, useState } from "react";
-import {
-    Modal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    View
-} from "react-native";
+import { Modal, Platform, ScrollView, StyleSheet, View } from "react-native";
 
 interface OnboardingTutorialProps {
   visible: boolean;
@@ -65,8 +59,7 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({
   visible,
   onClose,
 }) => {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  const { colors } = useTheme();
   const [currentStep, setCurrentStep] = useState(0);
 
   // Reset step when opening

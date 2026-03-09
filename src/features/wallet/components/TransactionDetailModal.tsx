@@ -1,11 +1,11 @@
 import { Button } from "@/components/atoms/Button";
 import { Input } from "@/components/atoms/Input";
 import { Typography } from "@/components/atoms/Typography";
-import { BorderRadius, Colors, Spacing } from "@/constants/theme";
+import { BorderRadius, Spacing } from "@/constants/theme";
+import { useTheme } from "@/contexts/ThemeContext";
 import { VisionEntity } from "@/features/vision/data/visionSlice";
 import { fetchCategories } from "@/features/wallet/data/categoriesSlice";
 import { Transaction } from "@/features/wallet/data/walletSlice";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import STRINGS from "@/i18n/es.json";
 import { AppDispatch, RootState } from "@/store/store";
 import { formatAmountInput, formatCurrency } from "@/utils/format";
@@ -54,8 +54,7 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
   const dispatch = useDispatch<AppDispatch>();
   const { user } = useSelector((state: RootState) => state.auth);
   const { categories } = useSelector((state: RootState) => state.categories);
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  const { colors } = useTheme();
 
   const [isEditing, setIsEditing] = useState(false);
   const [editDescription, setEditDescription] = useState("");

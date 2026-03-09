@@ -1,7 +1,6 @@
 import { Typography } from "@/components/atoms/Typography";
-import { Colors } from "@/constants/theme";
 import { resetBudgetConfig } from "@/features/budget/budgetSlice";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useTheme } from "@/contexts/ThemeContext";
 import STRINGS from "@/i18n/es.json";
 import { AppDispatch, RootState } from "@/store/store";
 import { formatCurrency } from "@/utils/format";
@@ -15,8 +14,7 @@ export const useBudgetDashboard = () => {
     (state: RootState) => state.budget,
   );
   const { transactions } = useSelector((state: RootState) => state.wallet);
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  const { colors } = useTheme();
 
   const handleReset = () => {
     Alert.alert(

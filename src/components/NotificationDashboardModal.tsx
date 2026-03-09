@@ -1,8 +1,8 @@
 import { Button } from "@/components/atoms/Button";
 import { Typography } from "@/components/atoms/Typography";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { Colors, Spacing } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { Spacing } from "@/constants/theme";
+import { useTheme } from "@/contexts/ThemeContext";
 import {
     cancelScheduledNotification,
     getAllScheduledNotifications
@@ -27,8 +27,7 @@ interface NotificationDashboardModalProps {
 export const NotificationDashboardModal: React.FC<
   NotificationDashboardModalProps
 > = ({ visible, onClose }) => {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  const { colors } = useTheme();
   const [notifications, setNotifications] = useState<NotificationRequest[]>([]);
   const [loading, setLoading] = useState(false);
   const [setupVisible, setSetupVisible] = useState(false);

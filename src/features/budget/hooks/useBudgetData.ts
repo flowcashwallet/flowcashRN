@@ -4,8 +4,7 @@ import {
 } from "@/features/budget/budgetSlice";
 import { fetchTransactions } from "@/features/wallet/data/walletSlice";
 import { RootState } from "@/store/store";
-import { useColorScheme } from "@/hooks/use-color-scheme";
-import { Colors } from "@/constants/theme";
+import { useTheme } from "@/contexts/ThemeContext";
 import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch } from "@/store/store";
@@ -17,8 +16,7 @@ export const useBudgetData = () => {
   );
   const { user } = useSelector((state: RootState) => state.auth);
 
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  const { colors } = useTheme();
 
   useEffect(() => {
     if (user?.id) {

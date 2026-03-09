@@ -229,6 +229,7 @@ export default function VisionScreen() {
           paddingBottom: 150 + insets.bottom,
           padding: Spacing.m,
         }}
+        contentInsetAdjustmentBehavior="automatic"
         showsVerticalScrollIndicator={false}
       >
         <VisionHeader

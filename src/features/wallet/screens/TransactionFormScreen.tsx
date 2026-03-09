@@ -1,17 +1,17 @@
-import { NotificationSetupModal } from "@/components/NotificationSetupModal";
 import { Button } from "@/components/atoms/Button";
+import { HeaderButton } from "@/components/atoms/HeaderButton";
 import { Input } from "@/components/atoms/Input";
 import { Typography } from "@/components/atoms/Typography";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { BorderRadius, Colors, Spacing } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { BorderRadius, Spacing } from "@/constants/theme";
+import { useTheme } from "@/contexts/ThemeContext";
 import STRINGS from "@/i18n/es.json";
 import { formatAmountInput } from "@/utils/format";
 import DateTimePicker, {
   DateTimePickerEvent,
 } from "@react-native-community/datetimepicker";
 import * as Haptics from "expo-haptics";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   Keyboard,
@@ -19,6 +19,7 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
+  Switch,
   TextInput,
   TouchableOpacity,
   TouchableWithoutFeedback,
@@ -64,8 +65,10 @@ export default function TransactionFormScreen() {
     frequentEntities,
     categories,
     entities,
-    isNotificationSetupVisible,
-    setIsNotificationSetupVisible,
+    isRecurring,
+    setIsRecurring,
+    recurrenceFrequency,
+    setRecurrenceFrequency,
   } = useTransactionForm({
     id: id as string,
     initialType: initialType as "income" | "expense",
@@ -75,8 +78,7 @@ export default function TransactionFormScreen() {
     relatedEntityId: relatedEntityId as string,
   });
 
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  const { colors, theme } = useTheme();
 
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
@@ -88,31 +90,32 @@ export default function TransactionFormScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <Stack.Screen
+        options={{
+          headerShown: true,
+          headerTransparent: true,
+          headerTitle: isEditing ? "Editar" : "Agregar",
+          headerRight: () =>
+            isEditing ? (
+              <HeaderButton
+                imageProps={{
+                  systemName: "trash",
+                  name: "trash-outline",
+                  color: colors.error,
+                }}
+                buttonProps={{
+                  onPress: () => {
+                    Haptics.notificationAsync(
+                      Haptics.NotificationFeedbackType.Warning,
+                    );
+                    handleDelete();
+                  },
+                }}
+              />
+            ) : null,
+        }}
+      />
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.headerButton}
-        >
-          <IconSymbol name="chevron.left" size={24} color={colors.text} />
-        </TouchableOpacity>
-        <Typography variant="h3" weight="bold">
-          {isEditing
-            ? "Editar Transacción"
-            : type === "income"
-              ? STRINGS.wallet.newIncome
-              : type === "transfer"
-                ? "Nueva Transferencia"
-                : STRINGS.wallet.newExpense}
-        </Typography>
-        <View style={styles.headerButton}>
-          {isEditing && (
-            <TouchableOpacity onPress={handleDelete}>
-              <IconSymbol name="trash" size={24} color={colors.error} />
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
 
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -172,7 +175,6 @@ export default function TransactionFormScreen() {
                       minWidth: 100,
                       padding: 0,
                     }}
-                    autoFocus={!isEditing}
                   />
                 </View>
               </View>
@@ -314,7 +316,7 @@ export default function TransactionFormScreen() {
                     value={date}
                     mode="date"
                     display={Platform.OS === "ios" ? "inline" : "default"}
-                    themeVariant={colorScheme ?? "light"}
+                    themeVariant={theme}
                     onChange={(_: DateTimePickerEvent, selectedDate?: Date) => {
                       const currentDate = selectedDate || date;
                       setShowDatePicker(false);
@@ -704,6 +706,93 @@ export default function TransactionFormScreen() {
                 </View>
               )}
 
+              {/* Recurrence Option */}
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  marginBottom: Spacing.m,
+                  padding: Spacing.m,
+                  backgroundColor: colors.surface,
+                  borderRadius: BorderRadius.l,
+                }}
+              >
+                <View>
+                  <Typography
+                    variant="body"
+                    weight="bold"
+                    style={{ color: colors.text }}
+                  >
+                    ¿Es recurrente?
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    style={{ color: colors.textSecondary, marginTop: 4 }}
+                  >
+                    Se repetirá automáticamente
+                  </Typography>
+                </View>
+                <Switch
+                  value={isRecurring}
+                  onValueChange={setIsRecurring}
+                  trackColor={{ false: colors.border, true: colors.primary }}
+                  thumbColor={"#FFFFFF"}
+                />
+              </View>
+
+              {isRecurring && (
+                <View
+                  style={{
+                    flexDirection: "row",
+                    gap: Spacing.s,
+                    marginBottom: Spacing.l,
+                  }}
+                >
+                  {(["weekly", "monthly", "yearly"] as const).map((freq) => (
+                    <TouchableOpacity
+                      key={freq}
+                      onPress={() => setRecurrenceFrequency(freq)}
+                      style={{
+                        flex: 1,
+                        padding: Spacing.s,
+                        borderRadius: BorderRadius.m,
+                        backgroundColor:
+                          recurrenceFrequency === freq
+                            ? colors.primary
+                            : colors.surface,
+                        alignItems: "center",
+                        borderWidth: 1,
+                        borderColor:
+                          recurrenceFrequency === freq
+                            ? colors.primary
+                            : colors.border,
+                      }}
+                    >
+                      <Typography
+                        variant="body"
+                        weight={
+                          recurrenceFrequency === freq ? "bold" : "regular"
+                        }
+                        style={{
+                          color:
+                            recurrenceFrequency === freq
+                              ? "#FFFFFF"
+                              : colors.textSecondary,
+                          textTransform: "capitalize",
+                        }}
+                      >
+                        {freq === "weekly"
+                          ? "Semanal"
+                          : freq === "monthly"
+                            ? "Mensual"
+                            : "Anual"}
+                      </Typography>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+
               <View style={{ flexDirection: "row", gap: Spacing.m }}>
                 <View style={{ flex: 1 }}>
                   <Button
@@ -744,23 +833,12 @@ export default function TransactionFormScreen() {
         visionEntities={entities}
         selectedEntityId={transferRelatedEntityId}
       />
-
-      <NotificationSetupModal
-        visible={isNotificationSetupVisible}
-        onClose={() => {
-          setIsNotificationSetupVisible(false);
-          router.back();
-        }}
-        onSave={() => {}}
-      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: {},
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -778,6 +856,7 @@ const styles = StyleSheet.create({
   content: {
     padding: Spacing.m,
     paddingBottom: 100,
+    paddingTop: 50,
   },
   dropdown: {
     borderRadius: BorderRadius.m,

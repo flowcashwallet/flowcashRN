@@ -27,6 +27,8 @@ interface TransactionData {
     | "transfer"
     | "payroll"
     | null;
+  isRecurring?: boolean;
+  recurrenceFrequency?: "weekly" | "monthly" | "yearly";
 }
 
 interface UpdateTransactionData extends TransactionData {
@@ -62,6 +64,8 @@ export const useWalletTransactions = () => {
             : {}),
           date: data.date || Date.now(),
           paymentType: data.paymentType,
+          isRecurring: data.isRecurring,
+          recurrenceFrequency: data.recurrenceFrequency,
         }),
       ).unwrap();
 
@@ -95,6 +99,12 @@ export const useWalletTransactions = () => {
             ...(data.date ? { date: data.date } : {}),
             ...(data.paymentType !== undefined
               ? { paymentType: data.paymentType }
+              : {}),
+            ...(data.isRecurring !== undefined
+              ? { isRecurring: data.isRecurring }
+              : {}),
+            ...(data.recurrenceFrequency !== undefined
+              ? { recurrenceFrequency: data.recurrenceFrequency }
               : {}),
           },
         }),

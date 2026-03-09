@@ -1,10 +1,10 @@
 import { Button } from "@/components/atoms/Button";
 import { Typography } from "@/components/atoms/Typography";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { BorderRadius, Colors, Spacing } from "@/constants/theme";
+import { BorderRadius, Spacing } from "@/constants/theme";
+import { useTheme } from "@/contexts/ThemeContext";
 import { consumeStreakFreeze } from "@/features/wallet/data/gamificationSlice";
 import { Transaction } from "@/features/wallet/data/walletSlice";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import STRINGS from "@/i18n/es.json";
 import { AppDispatch, RootState } from "@/store/store";
 import React, { useMemo } from "react";
@@ -29,8 +29,7 @@ export const StreakCalendarModal: React.FC<StreakCalendarModalProps> = ({
   const { streakFreezes } = useSelector(
     (state: RootState) => state.gamification,
   );
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  const { colors } = useTheme();
 
   const activeDates = useMemo(() => {
     const dates = new Set<string>();

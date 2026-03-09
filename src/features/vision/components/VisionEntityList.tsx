@@ -1,9 +1,9 @@
 import { Typography } from "@/components/atoms/Typography";
 import { SlidingTabSelector } from "@/components/ui/SlidingTabSelector";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { BorderRadius, Colors, Spacing } from "@/constants/theme";
+import { BorderRadius, Spacing } from "@/constants/theme";
+import { useTheme } from "@/contexts/ThemeContext";
 import { VisionEntity } from "@/features/vision/data/visionSlice";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import STRINGS from "@/i18n/es.json";
 import { formatCurrency } from "@/utils/format";
 import React, { useState } from "react";
@@ -107,8 +107,8 @@ export const VisionEntityList: React.FC<VisionEntityListProps> = ({
   activeFilterCategory,
   onSortPress,
 }) => {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  const { colors, theme } = useTheme();
+  const isDark = theme === "dark";
 
   const renderEntityItem = ({ item }: { item: VisionEntity }) => {
     const isAsset = item.type === "asset";
@@ -143,7 +143,7 @@ export const VisionEntityList: React.FC<VisionEntityListProps> = ({
             styles.card,
             {
               backgroundColor: colors.surface,
-              ...(colorScheme === "dark"
+              ...(isDark
                 ? Platform.select({
                     ios: {
                       shadowColor: "#000",

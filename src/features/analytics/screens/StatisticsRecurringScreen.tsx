@@ -2,10 +2,10 @@ import { Card } from "@/components/atoms/Card";
 import { Typography } from "@/components/atoms/Typography";
 import { ThemedView } from "@/components/themed-view";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { Colors, Spacing } from "@/constants/theme";
+import { Spacing } from "@/constants/theme";
+import { useTheme } from "@/contexts/ThemeContext";
 import { calculateRecurringExpenses } from "@/features/analytics/utils/analyticsUtils";
 import { fetchTransactions } from "@/features/wallet/data/walletSlice";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import STRINGS from "@/i18n/es.json";
 import { AppDispatch, RootState } from "@/store/store";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
@@ -30,8 +30,7 @@ export default function StatisticsRecurringScreen() {
     year?: string;
   }>();
   const insets = useSafeAreaInsets();
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  const { colors } = useTheme();
 
   const [refreshing, setRefreshing] = useState(false);
 

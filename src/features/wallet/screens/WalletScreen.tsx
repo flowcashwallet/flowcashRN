@@ -1,4 +1,5 @@
 import { VoiceInputButton } from "@/components/atoms/VoiceInputButton";
+import { FloatingActionMenu } from "@/components/molecules/FloatingActionMenu";
 import { TransactionList } from "@/components/organisms/TransactionList";
 import { ThemedView } from "@/components/themed-view";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -7,6 +8,7 @@ import STRINGS from "@/i18n/es.json";
 import { endpoints } from "@/services/api";
 import { RootState } from "@/store/store";
 import { fetchWithAuth } from "@/utils/apiClient";
+import { useHeaderHeight } from "@react-navigation/elements";
 import { useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import {
@@ -18,14 +20,13 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useDispatch, useSelector, useStore } from "react-redux";
+import { ExportButton } from "../components/ExportTransactions";
+import { MonthSelector } from "../components/MonthSelector";
 import { MonthYearPickerModal } from "../components/MonthYearPickerModal";
-import { QuickActions } from "../components/QuickActions";
 import { StreakCalendarModal } from "../components/StreakCalendarModal";
 import { TransactionFilterModal } from "../components/TransactionFilterModal";
 import { WalletHeader } from "../components/WalletHeader";
-import { FinancialWeatherWidget } from "../components/molecules/FinancialWeatherWidget";
 import { Transaction } from "../data/walletSlice";
 import { useWalletData } from "../hooks/useWalletData";
 import { useWalletTransactions } from "../hooks/useWalletTransactions";
@@ -55,8 +56,8 @@ export default function WalletScreen() {
     forecast,
   } = useWalletData();
 
-  const insets = useSafeAreaInsets();
-
+  const headerHeight = useHeaderHeight();
+  console.log("headerHeight", headerHeight);
   const { deleteTransaction, deleteMonthlyTransactions } =
     useWalletTransactions();
 
@@ -110,7 +111,7 @@ export default function WalletScreen() {
 
         // Redirect to Transaction Form with pre-filled data
         router.push({
-          pathname: "/transaction-form",
+          pathname: "/wallet/transaction-form",
           params: {
             amount: data.amount.toString(),
             description: data.description,
@@ -137,7 +138,7 @@ export default function WalletScreen() {
   const handleTransactionPress = useCallback(
     (transaction: Transaction) => {
       router.push({
-        pathname: "/transaction-form",
+        pathname: "/wallet/transaction-form",
         params: { id: transaction.id },
       });
     },
@@ -188,6 +189,23 @@ export default function WalletScreen() {
   const listHeader = useMemo(
     () => (
       <>
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: Spacing.m,
+          }}
+        >
+          <MonthSelector
+            currentMonthName={currentMonthName}
+            year={selectedDate.getFullYear()}
+            showYear={selectedDate.getFullYear() !== new Date().getFullYear()}
+            onPress={() => setDatePickerVisible(true)}
+          />
+          <ExportButton />
+        </View>
+
         <WalletHeader
           balance={balance}
           currentMonthName={currentMonthName}
@@ -196,44 +214,21 @@ export default function WalletScreen() {
           onDeleteMonth={handleDeleteMonthly}
           streak={streak}
           onPressStreak={() => setCalendarVisible(true)}
-          onMonthPress={() => setDatePickerVisible(true)}
+          // onMonthPress={() => setDatePickerVisible(true)} // Removed from header
           showYear={selectedDate.getFullYear() !== new Date().getFullYear()}
           year={selectedDate.getFullYear()}
-        />
-
-        <FinancialWeatherWidget forecast={forecast} />
-
-        <QuickActions
-          onPressIncome={() => {
-            router.push({
-              pathname: "/transaction-form",
-              params: { initialType: "income" },
-            });
-          }}
-          onPressExpense={() => {
-            router.push({
-              pathname: "/transaction-form",
-              params: { initialType: "expense" },
-            });
-          }}
-          onPressCategories={() => {
-            router.push("/wallet/categories");
-          }}
-          onPressSubscriptions={() => {
-            router.push("/wallet/subscriptions");
-          }}
         />
 
         <View
           style={{
             flexDirection: "row",
             alignItems: "center",
-            backgroundColor: colors.surfaceHighlight,
+            backgroundColor: colors.background,
             borderRadius: BorderRadius.l,
             paddingHorizontal: Spacing.s,
             paddingVertical: Platform.OS === "ios" ? Spacing.xs : 0,
             marginBottom: Spacing.m,
-            borderWidth: 1,
+            borderWidth: 1.4,
             borderColor: colors.border,
           }}
         >
@@ -286,67 +281,104 @@ export default function WalletScreen() {
   );
 
   return (
-    <ThemedView style={styles.container}>
-      <TransactionList
-        transactions={filteredTransactions}
-        onDelete={deleteTransaction}
-        onTransactionPress={handleTransactionPress}
-        headerRight={headerRight}
-        listHeaderComponent={listHeader}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={colors.primary}
-            colors={[colors.primary]}
+    <>
+      <ThemedView collapsable={false} style={styles.container}>
+        {/* Removed Stack.Toolbar due to conflict with NativeTabs */}
+        <FloatingActionMenu
+          actions={[
+            {
+              id: "income",
+              label: "Nuevo Ingreso",
+              icon: "arrow.down.left",
+              color: colors.success,
+              onPress: () =>
+                router.push({
+                  pathname: "/wallet/transaction-form",
+                  params: { initialType: "income" },
+                }),
+            },
+            {
+              id: "expense",
+              label: "Nuevo Gasto",
+              icon: "arrow.up.right",
+              color: colors.error,
+              onPress: () =>
+                router.push({
+                  pathname: "/wallet/transaction-form",
+                  params: { initialType: "expense" },
+                }),
+            },
+            {
+              id: "categories",
+              label: "Categorías",
+              icon: "list.bullet",
+              color: colors.primary,
+              onPress: () => router.push("/wallet/categories"),
+            },
+          ]}
+        />
+        <View style={{ flex: 1 }}>
+          <TransactionList
+            transactions={filteredTransactions}
+            onDelete={deleteTransaction}
+            onTransactionPress={handleTransactionPress}
+            headerRight={headerRight}
+            listHeaderComponent={listHeader}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor={colors.primary}
+                colors={[colors.primary]}
+              />
+            }
+            contentContainerStyle={{
+              paddingBottom: 150,
+              paddingHorizontal: Spacing.m,
+            }}
           />
-        }
-        contentContainerStyle={{
-          paddingBottom: 150 + insets.bottom,
-          paddingHorizontal: Spacing.m,
-          paddingTop: 10,
-        }}
-      />
 
-      <StreakCalendarModal
-        visible={calendarVisible}
-        onClose={() => setCalendarVisible(false)}
-        transactions={currentMonthTransactions}
-        repairedDays={repairedDays || []}
-      />
-
-      <MonthYearPickerModal
-        visible={datePickerVisible}
-        onClose={() => setDatePickerVisible(false)}
-        selectedDate={selectedDate}
-        onSelect={setSelectedDate}
-      />
-
-      <TransactionFilterModal
-        visible={filterVisible}
-        onClose={() => setFilterVisible(false)}
-        categories={categories}
-        entities={visionEntities}
-        currentFilters={filters}
-        onApply={setFilters}
-        onClear={() =>
-          setFilters({
-            category: null,
-            entityId: null,
-            type: null,
-            paymentType: null,
-          })
-        }
-      />
-      {isVoiceCommandEnabled && (
-        <View style={styles.fabContainer}>
-          <VoiceInputButton
-            onCommandDetected={handleVoiceCommand}
-            isLoading={processingVoice}
+          <StreakCalendarModal
+            visible={calendarVisible}
+            onClose={() => setCalendarVisible(false)}
+            transactions={currentMonthTransactions}
+            repairedDays={repairedDays || []}
           />
+
+          <MonthYearPickerModal
+            visible={datePickerVisible}
+            onClose={() => setDatePickerVisible(false)}
+            selectedDate={selectedDate}
+            onSelect={setSelectedDate}
+          />
+
+          <TransactionFilterModal
+            visible={filterVisible}
+            onClose={() => setFilterVisible(false)}
+            categories={categories}
+            entities={visionEntities}
+            currentFilters={filters}
+            onApply={setFilters}
+            onClear={() =>
+              setFilters({
+                category: null,
+                entityId: null,
+                type: null,
+                paymentType: null,
+              })
+            }
+          />
+          {isVoiceCommandEnabled && (
+            <View style={styles.fabContainer}>
+              <VoiceInputButton
+                onCommandDetected={handleVoiceCommand}
+                isLoading={processingVoice}
+              />
+            </View>
+          )}
         </View>
-      )}
-    </ThemedView>
+      </ThemedView>
+    </>
   );
 }
 

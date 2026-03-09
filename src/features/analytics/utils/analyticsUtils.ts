@@ -157,17 +157,11 @@ export const generateFinancialTips = (
     );
   }
 
-  const subscriptionExpenses = expenses.filter(
-    (t) =>
-      t.description.toLowerCase().includes("netflix") ||
-      t.description.toLowerCase().includes("spotify") ||
-      t.description.toLowerCase().includes("suscrip") ||
-      t.description.toLowerCase().includes("premium"),
-  );
+  const highValueExpenses = expenses.filter((t) => t.amount > 2000);
 
-  if (subscriptionExpenses.length > 3) {
+  if (highValueExpenses.length > 0) {
     tips.push(
-      "📺 Tienes muchas suscripciones activas. Revisa si realmente las usas todas.",
+      "💎 Tienes gastos individuales altos. Podrías buscar alternativas más económicas para estos rubros.",
     );
   }
 

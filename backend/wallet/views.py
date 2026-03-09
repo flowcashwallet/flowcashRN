@@ -2,8 +2,8 @@ from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from decimal import Decimal
-from .models import Transaction, Budget, Category, Subscription, VisionEntity, GamificationStats
-from .serializers import TransactionSerializer, BudgetSerializer, CategorySerializer, SubscriptionSerializer, VisionEntitySerializer, GamificationStatsSerializer
+from .models import Transaction, Budget, Category, VisionEntity, GamificationStats
+from .serializers import TransactionSerializer, BudgetSerializer, CategorySerializer, VisionEntitySerializer, GamificationStatsSerializer
 from .ml import predict_category_for_user
 from .nlp import parse_voice_command
 from .analytics import predict_runway
@@ -62,13 +62,6 @@ class CategoryViewSet(viewsets.ModelViewSet):
             # We skip invalid ones or could raise error
             
         return Response(created_categories, status=status.HTTP_201_CREATED)
-
-class SubscriptionViewSet(viewsets.ModelViewSet):
-    serializer_class = SubscriptionSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        return Subscription.objects.filter(user=self.request.user).order_by('next_payment_date')
 
 class VisionEntityViewSet(viewsets.ModelViewSet):
     serializer_class = VisionEntitySerializer

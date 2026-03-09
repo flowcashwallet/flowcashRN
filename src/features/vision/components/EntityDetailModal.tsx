@@ -3,21 +3,21 @@ import { Card } from "@/components/atoms/Card";
 import { Input } from "@/components/atoms/Input";
 import { Typography } from "@/components/atoms/Typography";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { BorderRadius, Colors, Spacing } from "@/constants/theme";
+import { BorderRadius, Spacing } from "@/constants/theme";
+import { useTheme } from "@/contexts/ThemeContext";
 import { VisionEntity } from "@/features/vision/data/visionSlice";
 import { Transaction } from "@/features/wallet/data/walletSlice";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import STRINGS from "@/i18n/es.json";
 import { formatAmountInput, formatCurrency } from "@/utils/format";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
-  FlatList,
-  Modal,
-  Pressable,
-  StyleSheet,
-  TouchableOpacity,
-  View,
+    FlatList,
+    Modal,
+    Pressable,
+    StyleSheet,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 interface EntityDetailModalProps {
@@ -48,8 +48,7 @@ export const EntityDetailModal: React.FC<EntityDetailModalProps> = ({
   onAddTransaction,
   isSaving,
 }) => {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  const { colors } = useTheme();
 
   const [showAddTransaction, setShowAddTransaction] = useState(false);
   const [transactionAmount, setTransactionAmount] = useState("");
@@ -82,7 +81,7 @@ export const EntityDetailModal: React.FC<EntityDetailModalProps> = ({
   const onPressTransaction = (transaction: Transaction) => {
     onClose();
     router.push({
-      pathname: "/transaction-form",
+      pathname: "/wallet/transaction-form",
       params: { id: transaction.id },
     });
   };

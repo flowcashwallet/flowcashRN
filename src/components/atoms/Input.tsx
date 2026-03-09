@@ -1,5 +1,5 @@
-import { BorderRadius, Colors, Spacing } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { BorderRadius, Spacing } from "@/constants/theme";
+import { useTheme } from "@/contexts/ThemeContext";
 import React, { useState } from "react";
 import {
   Platform,
@@ -27,8 +27,7 @@ export function Input({
   onBlur,
   ...rest
 }: InputProps) {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  const { colors } = useTheme();
   const [isFocused, setIsFocused] = useState(false);
 
   return (

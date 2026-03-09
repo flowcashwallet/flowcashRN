@@ -1,6 +1,5 @@
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { Colors } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useTheme } from "@/contexts/ThemeContext";
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -37,8 +36,7 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
   onCommandDetected,
   isLoading = false,
 }) => {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  const { colors } = useTheme();
 
   const [isListening, setIsListening] = useState(false);
   const isUserHolding = useRef(false);
