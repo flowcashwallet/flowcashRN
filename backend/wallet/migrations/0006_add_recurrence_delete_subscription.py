@@ -10,8 +10,9 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.DeleteModel(
-            name='Subscription',
+        migrations.RunSQL(
+            sql="DROP TABLE IF EXISTS wallet_subscription CASCADE;",
+            reverse_sql=migrations.RunSQL.noop
         ),
         migrations.AddField(
             model_name='transaction',
