@@ -123,19 +123,6 @@ export function TransactionList({
     );
   }, [headerRight, listHeaderComponent]);
 
-  if (!transactions || transactions.length === 0) {
-    return (
-      <View>
-        {ListHeader}
-        <View style={styles.emptyContainer}>
-          <Typography variant="body" style={{ opacity: 0.6 }}>
-            {STRINGS.wallet.noRecentTransactions}
-          </Typography>
-        </View>
-      </View>
-    );
-  }
-
   return (
     <View style={styles.container}>
       <SectionList
@@ -166,6 +153,13 @@ export function TransactionList({
         scrollEnabled={scrollEnabled}
         ListHeaderComponent={ListHeader}
         refreshControl={refreshControl}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Typography variant="body" style={{ opacity: 0.6 }}>
+              {STRINGS.wallet.noRecentTransactions}
+            </Typography>
+          </View>
+        }
       />
     </View>
   );

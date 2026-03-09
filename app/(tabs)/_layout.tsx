@@ -29,7 +29,10 @@ export default function TabLayout() {
           <NativeTabs.Trigger.Label>Wallet</NativeTabs.Trigger.Label>
         </NativeTabs.Trigger>
         <NativeTabs.Trigger name="balance">
-          <NativeTabs.Trigger.Icon sf="bahtsign.bank.building" md="build" />
+          <NativeTabs.Trigger.Icon
+            sf="bahtsign.bank.building.fill"
+            md="build"
+          />
           <NativeTabs.Trigger.Label>Balance</NativeTabs.Trigger.Label>
         </NativeTabs.Trigger>
         <NativeTabs.Trigger name="budget">

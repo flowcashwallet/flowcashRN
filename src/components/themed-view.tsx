@@ -18,7 +18,7 @@ export function ThemedView({
   const backgroundColor = colors.background;
 
   return (
-    <View {...otherProps} style={[{ backgroundColor, flex: 1 }]}>
+    <View {...otherProps} style={[{ backgroundColor, flex: 1 }, style]}>
       {children}
     </View>
   );

@@ -342,7 +342,6 @@ export default function WalletScreen() {
             contentContainerStyle={{
               paddingBottom: 150,
               paddingHorizontal: Spacing.m,
-              paddingTop: headerHeight,
             }}
           />
 
