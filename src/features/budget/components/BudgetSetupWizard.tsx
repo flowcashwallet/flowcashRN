@@ -25,14 +25,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useDispatch, useSelector } from "react-redux";
 
 export interface BudgetSetupWizardProps {
-  onCancel?: () => void;
   onFinish?: () => void;
 }
 
-export const BudgetSetupWizard = ({
-  onCancel,
-  onFinish,
-}: BudgetSetupWizardProps) => {
+export const BudgetSetupWizard = ({ onFinish }: BudgetSetupWizardProps) => {
   const dispatch = useDispatch<AppDispatch>();
   const { user } = useSelector((state: RootState) => state.auth);
   const insets = useSafeAreaInsets();
@@ -115,11 +111,6 @@ export const BudgetSetupWizard = ({
                   Paso {step} de 3
                 </Typography>
               </View>
-              {onCancel && (
-                <TouchableOpacity onPress={onCancel} style={{ padding: 4 }}>
-                  <IconSymbol name="xmark" size={24} color={colors.text} />
-                </TouchableOpacity>
-              )}
             </View>
           </View>
 

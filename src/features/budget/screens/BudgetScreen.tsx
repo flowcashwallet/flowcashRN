@@ -2,6 +2,7 @@ import { ThemedView } from "@/components/themed-view";
 import { BudgetDashboard } from "@/features/budget/components/BudgetDashboard";
 import { BudgetSetupWizard } from "@/features/budget/components/BudgetSetupWizard";
 import { useBudgetData } from "@/features/budget/hooks/useBudgetData";
+import { Stack } from "expo-router";
 import React, { useState } from "react";
 import { ActivityIndicator, StyleSheet } from "react-native";
 
@@ -19,13 +20,44 @@ export default function BudgetScreen() {
 
   return (
     <ThemedView style={styles.container}>
+      <Stack.Screen
+        options={{
+          headerShown: true,
+          headerTransparent: true,
+          headerTitle: "Presupuesto",
+          unstable_headerRightItems: () =>
+            isSetup && !isEditing
+              ? [
+                  {
+                    type: "button",
+                    label: " ",
+                    icon: {
+                      type: "sfSymbol",
+                      name: "pencil",
+                    },
+                    tintColor: colors.primary,
+                    onPress: () => setIsEditing(true),
+                  },
+                ]
+              : [
+                  // cancel edit
+                  {
+                    type: "button",
+                    label: " ",
+                    icon: {
+                      type: "sfSymbol",
+                      name: "xmark",
+                    },
+                    tintColor: colors.primary,
+                    onPress: () => setIsEditing(false),
+                  },
+                ],
+        }}
+      />
       {isSetup && !isEditing ? (
-        <BudgetDashboard onEdit={() => setIsEditing(true)} />
+        <BudgetDashboard />
       ) : (
-        <BudgetSetupWizard
-          onCancel={isSetup ? () => setIsEditing(false) : undefined}
-          onFinish={() => setIsEditing(false)}
-        />
+        <BudgetSetupWizard onFinish={() => setIsEditing(false)} />
       )}
     </ThemedView>
   );
