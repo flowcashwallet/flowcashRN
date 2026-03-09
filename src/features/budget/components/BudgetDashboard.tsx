@@ -1,7 +1,7 @@
 import { Button } from "@/components/atoms/Button";
 import { Card } from "@/components/atoms/Card";
 import { Typography } from "@/components/atoms/Typography";
-import { BorderRadius, Spacing } from "@/constants/theme";
+import { Spacing } from "@/constants/theme";
 import { useBudgetDashboard } from "@/features/budget/hooks/useBudgetDashboard";
 import { formatCurrency } from "@/utils/format";
 import React from "react";
@@ -29,26 +29,17 @@ export const BudgetDashboard = () => {
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
       contentContainerStyle={{
-        padding: Spacing.m,
+        paddingHorizontal: Spacing.m,
         paddingBottom: 200 + insets.bottom,
       }}
     >
-      <View
-        style={{
-          flexDirection: "row",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: Spacing.l,
-        }}
-      >
-        <View>
-          <Typography variant="h2" weight="bold" style={{ color: colors.text }}>
-            Tu Presupuesto
-          </Typography>
-          <Typography style={{ color: colors.textSecondary }}>
-            {monthName} {currentYear}
-          </Typography>
-        </View>
+      <View style={{ marginVertical: Spacing.m }}>
+        <Typography variant="h2" weight="bold" style={{ color: colors.text }}>
+          Tu Presupuesto
+        </Typography>
+        <Typography style={{ color: colors.textSecondary }}>
+          {monthName} {currentYear}
+        </Typography>
       </View>
 
       <Card style={{ marginBottom: Spacing.l, paddingVertical: Spacing.l }}>
@@ -222,12 +213,6 @@ export const BudgetDashboard = () => {
 };
 
 const styles = StyleSheet.create({
-  headerGradient: {
-    padding: Spacing.l,
-    borderRadius: BorderRadius.l,
-    marginBottom: Spacing.l,
-    alignItems: "center",
-  },
   statsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",

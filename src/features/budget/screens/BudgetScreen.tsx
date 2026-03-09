@@ -39,19 +39,20 @@ export default function BudgetScreen() {
                     onPress: () => setIsEditing(true),
                   },
                 ]
-              : [
-                  // cancel edit
-                  {
-                    type: "button",
-                    label: " ",
-                    icon: {
-                      type: "sfSymbol",
-                      name: "xmark",
+              : isEditing
+                ? [
+                    {
+                      type: "button",
+                      label: " ",
+                      icon: {
+                        type: "sfSymbol",
+                        name: "xmark",
+                      },
+                      tintColor: colors.primary,
+                      onPress: () => setIsEditing(false),
                     },
-                    tintColor: colors.primary,
-                    onPress: () => setIsEditing(false),
-                  },
-                ],
+                  ]
+                : [],
         }}
       />
       {isSetup && !isEditing ? (

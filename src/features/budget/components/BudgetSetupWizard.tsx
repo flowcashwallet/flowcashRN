@@ -26,9 +26,13 @@ import { useDispatch, useSelector } from "react-redux";
 
 export interface BudgetSetupWizardProps {
   onFinish?: () => void;
+  onCancel?: () => void;
 }
 
-export const BudgetSetupWizard = ({ onFinish }: BudgetSetupWizardProps) => {
+export const BudgetSetupWizard = ({
+  onFinish,
+  onCancel,
+}: BudgetSetupWizardProps) => {
   const dispatch = useDispatch<AppDispatch>();
   const { user } = useSelector((state: RootState) => state.auth);
   const insets = useSafeAreaInsets();
@@ -78,40 +82,25 @@ export const BudgetSetupWizard = ({ onFinish }: BudgetSetupWizardProps) => {
         <ScrollView
           contentInsetAdjustmentBehavior="automatic"
           contentContainerStyle={{
-            padding: Spacing.m,
+            paddingHorizontal: Spacing.m,
             paddingBottom: 150 + insets.bottom,
           }}
         >
-          <View
-            style={[
-              styles.headerGradient,
-              { backgroundColor: colors.surfaceHighlight },
-            ]}
-          >
-            <View
-              style={{
-                flexDirection: "row",
-                justifyContent: "space-between",
-                alignItems: "flex-start",
-              }}
+          <View style={{ marginVertical: Spacing.m }}>
+            <Typography
+              variant="h2"
+              weight="bold"
+              style={{ color: colors.text }}
             >
-              <View>
-                <Typography
-                  variant="h2"
-                  weight="bold"
-                  style={{ color: colors.text }}
-                >
-                  {step === 1
-                    ? "Configura tu Presupuesto"
-                    : step === 2
-                      ? "Gastos Fijos"
-                      : "Resumen"}
-                </Typography>
-                <Typography style={{ color: colors.textSecondary }}>
-                  Paso {step} de 3
-                </Typography>
-              </View>
-            </View>
+              {step === 1
+                ? "Configura tu Presupuesto"
+                : step === 2
+                  ? "Gastos Fijos"
+                  : "Resumen"}
+            </Typography>
+            <Typography style={{ color: colors.textSecondary }}>
+              Paso {step} de 3
+            </Typography>
           </View>
 
           {step === 1 && (
@@ -393,12 +382,7 @@ export const BudgetSetupWizard = ({ onFinish }: BudgetSetupWizardProps) => {
 };
 
 const styles = StyleSheet.create({
-  headerGradient: {
-    padding: Spacing.l,
-    borderRadius: BorderRadius.l,
-    marginBottom: Spacing.l,
-  },
   stepContainer: {
-    flex: 1,
+    marginBottom: Spacing.xl,
   },
 });
