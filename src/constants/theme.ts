@@ -17,7 +17,7 @@ const lightPalette = {
   textSecondary: "#475569", // Slate 600
 
   // Brand
-  primary: "#0D9488", // Teal 600
+  primary: "#2d70d4ff", // Teal 600
   secondary: "#0284C7", // Sky 600
   accent: "#6366F1", // Indigo 500
 
@@ -38,7 +38,7 @@ const lightPalette = {
 // --- DARK THEME (Midnight Teal) ---
 const darkPalette = {
   // Backgrounds
-  background: "#0F172A", // Slate 900 - Deep Blue/Grey
+  background: "#050910ff", // Slate 900 - Deep Blue/Grey
   surface: "#1E293B", // Slate 800 - Lighter Blue/Grey
   surfaceHighlight: "#334155", // Slate 700
   surfaceActive: "#1E293B", // Slate 800
@@ -48,7 +48,7 @@ const darkPalette = {
   textSecondary: "#94A3B8", // Slate 400 - Light Grey
 
   // Brand (Adjusted for Dark Mode contrast)
-  primary: "#2DD4BF", // Teal 400 - Brighter/Lighter Teal
+  primary: "#2d70d4ff", // Teal 400 - Brighter/Lighter Teal
   secondary: "#38BDF8", // Sky 400 - Brighter Sky
   accent: "#818CF8", // Indigo 400
 

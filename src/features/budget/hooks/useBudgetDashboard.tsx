@@ -78,7 +78,7 @@ export const useBudgetDashboard = () => {
   const barData = [
     {
       value: monthlyIncome,
-      label: "Ingreso",
+      label: STRINGS.budget.expectedIncome,
       frontColor: colors.success,
       topLabelComponent: () => (
         <Typography
@@ -88,6 +88,7 @@ export const useBudgetDashboard = () => {
             width: 80,
             textAlign: "center",
             marginBottom: 6,
+            color: "#D1D1D6",
           }}
         >
           {formatCurrency(monthlyIncome)}
@@ -96,7 +97,7 @@ export const useBudgetDashboard = () => {
     },
     {
       value: totalActualExpense,
-      label: "Gasto",
+      label: STRINGS.budget.actualExpense,
       frontColor: colors.error,
       topLabelComponent: () => (
         <Typography
@@ -106,6 +107,7 @@ export const useBudgetDashboard = () => {
             width: 80,
             textAlign: "center",
             marginBottom: 6,
+            color: "#D1D1D6",
           }}
         >
           {formatCurrency(totalActualExpense)}
@@ -114,7 +116,7 @@ export const useBudgetDashboard = () => {
     },
     {
       value: Math.max(0, monthlyIncome - totalActualExpense),
-      label: "Restante",
+      label: STRINGS.budget.free,
       frontColor: colors.primary,
       topLabelComponent: () => (
         <Typography
@@ -124,6 +126,7 @@ export const useBudgetDashboard = () => {
             width: 80,
             textAlign: "center",
             marginBottom: 6,
+            color: "#D1D1D6",
           }}
         >
           {formatCurrency(Math.max(0, monthlyIncome - totalActualExpense))}

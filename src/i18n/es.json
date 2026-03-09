@@ -17,7 +17,21 @@
   },
   "budget": {
     "title": "Presupuesto",
-    "description": "Aquí podrás gestionar tus presupuestos."
+    "description": "Aquí podrás gestionar tus presupuestos.",
+    "yourBudget": "Tu Presupuesto",
+    "distribution": "Distribución",
+    "free": "Libre",
+    "fixed": "Fijos",
+    "monthlySummary": "Resumen Mensual",
+    "expectedIncome": "Ingreso Esperado",
+    "fixedExpenses": "Gastos Fijos",
+    "actualIncome": "Ingreso Real",
+    "actualExpense": "Gasto Real",
+    "analysis": "Análisis",
+    "resetBudget": "Reiniciar Presupuesto",
+    "analysisOverBudget": "⚠️ Has excedido tu presupuesto mensual. Revisa tus gastos variables.",
+    "analysisNearLimit": "👀 Estás cerca de tu límite de presupuesto (80%). Ten cuidado con gastos hormiga.",
+    "analysisHealthy": "✅ Tu comportamiento financiero es saludable. ¡Sigue así!"
   },
   "vision": {
     "title": "Balance",

@@ -1,12 +1,25 @@
 import { Button } from "@/components/atoms/Button";
-import { Card } from "@/components/atoms/Card";
 import { Typography } from "@/components/atoms/Typography";
-import { Spacing } from "@/constants/theme";
+import { IconSymbol } from "@/components/ui/icon-symbol";
+import { BorderRadius, Spacing } from "@/constants/theme";
 import { useBudgetDashboard } from "@/features/budget/hooks/useBudgetDashboard";
+import STRINGS from "@/i18n/es.json";
 import { formatCurrency } from "@/utils/format";
-import React from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { useState } from "react";
+import {
+  LayoutAnimation,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { BarChart, PieChart } from "react-native-gifted-charts";
+import Animated, {
+  FadeIn,
+  FadeOut,
+  LinearTransition,
+} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export const BudgetDashboard = () => {
@@ -25,6 +38,10 @@ export const BudgetDashboard = () => {
     totalFixedExpenses,
   } = useBudgetDashboard();
 
+  const [isPieExpanded, setIsPieExpanded] = useState(false);
+  const [isBarExpanded, setIsBarExpanded] = useState(false);
+  const [isStatsExpanded, setIsStatsExpanded] = useState(false);
+
   return (
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
@@ -35,174 +52,367 @@ export const BudgetDashboard = () => {
     >
       <View style={{ marginVertical: Spacing.m }}>
         <Typography variant="h2" weight="bold" style={{ color: colors.text }}>
-          Tu Presupuesto
+          {STRINGS.budget.yourBudget}
         </Typography>
         <Typography style={{ color: colors.textSecondary }}>
           {monthName} {currentYear}
         </Typography>
       </View>
 
-      <Card style={{ marginBottom: Spacing.l, paddingVertical: Spacing.l }}>
-        <Typography
-          variant="h3"
-          weight="bold"
-          style={{ marginBottom: Spacing.m, textAlign: "center" }}
+      {/* Distribution Card - Collapsible */}
+      <View
+        style={[
+          styles.card,
+          {
+            backgroundColor: "#2C2C2E",
+            ...Platform.select({
+              ios: {
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.3,
+                shadowRadius: 10,
+              },
+              android: { elevation: 6 },
+            }),
+          },
+        ]}
+      >
+        <TouchableOpacity
+          onPress={() => {
+            LayoutAnimation.configureNext(
+              LayoutAnimation.Presets.easeInEaseOut,
+            );
+            setIsPieExpanded(!isPieExpanded);
+          }}
+          activeOpacity={0.8}
+          style={styles.cardHeader}
         >
-          Distribución del Presupuesto
-        </Typography>
-        <View style={{ alignItems: "center" }}>
-          <PieChart
-            data={pieData}
-            donut
-            radius={80}
-            innerRadius={60}
-            centerLabelComponent={() => (
-              <View style={{ alignItems: "center" }}>
-                <Typography variant="caption">Libre</Typography>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <Typography variant="h3" weight="bold" style={{ color: "#FFFFFF" }}>
+              {STRINGS.budget.distribution}
+            </Typography>
+          </View>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            {!isPieExpanded && (
+              <Typography
+                weight="bold"
+                style={{ color: "#30D158", fontSize: 16 }}
+              >
+                {formatCurrency(remainingBudget)}
+              </Typography>
+            )}
+            <IconSymbol
+              name={isPieExpanded ? "chevron.up" : "chevron.down"}
+              size={16}
+              color="#8E8E93"
+            />
+          </View>
+        </TouchableOpacity>
+
+        {isPieExpanded && (
+          <Animated.View
+            entering={FadeIn.duration(300)}
+            exiting={FadeOut.duration(200)}
+            layout={LinearTransition}
+            style={{ marginTop: Spacing.m }}
+          >
+            <View style={{ alignItems: "center", marginBottom: Spacing.m }}>
+              <PieChart
+                data={pieData}
+                donut
+                radius={80}
+                innerRadius={60}
+                centerLabelComponent={() => (
+                  <View style={{ alignItems: "center" }}>
+                    <Typography variant="caption" style={{ color: "#D1D1D6" }}>
+                      {STRINGS.budget.free}
+                    </Typography>
+                    <Typography
+                      variant="h3"
+                      weight="bold"
+                      style={{ color: "#30D158" }}
+                    >
+                      {formatCurrency(remainingBudget)}
+                    </Typography>
+                  </View>
+                )}
+              />
+            </View>
+
+            {/* Fixed Expenses Row */}
+            <View style={styles.row}>
+              <Typography
+                variant="body"
+                style={{ color: "#D1D1D6", fontSize: 15 }}
+              >
+                {STRINGS.budget.fixed}
+              </Typography>
+              <View
+                style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+              >
                 <Typography
-                  variant="h3"
                   weight="bold"
-                  style={{ color: colors.success }}
+                  style={{ color: "#FFFFFF", fontSize: 16 }}
+                >
+                  {formatCurrency(totalFixedExpenses)}
+                </Typography>
+                <View style={[styles.dot, { backgroundColor: colors.error }]} />
+              </View>
+            </View>
+
+            <View
+              style={{
+                height: 1,
+                backgroundColor: "#3A3A3C",
+                marginVertical: Spacing.s,
+              }}
+            />
+
+            {/* Remaining Budget Row */}
+            <View style={styles.row}>
+              <Typography
+                variant="body"
+                style={{ color: "#D1D1D6", fontSize: 15 }}
+              >
+                {STRINGS.budget.free}
+              </Typography>
+              <View
+                style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+              >
+                <Typography
+                  weight="bold"
+                  style={{ color: "#FFFFFF", fontSize: 16 }}
                 >
                   {formatCurrency(remainingBudget)}
                 </Typography>
+                <View style={[styles.dot, { backgroundColor: "#30D158" }]} />
               </View>
-            )}
-          />
-        </View>
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "center",
-            marginTop: Spacing.m,
-            gap: Spacing.l,
-          }}
-        >
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-            <View
-              style={{
-                width: 12,
-                height: 12,
-                borderRadius: 6,
-                backgroundColor: colors.error,
-              }}
-            />
-            <Typography variant="caption">Fijos</Typography>
-          </View>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-            <View
-              style={{
-                width: 12,
-                height: 12,
-                borderRadius: 6,
-                backgroundColor: colors.success,
-              }}
-            />
-            <Typography variant="caption">Libre</Typography>
-          </View>
-        </View>
-      </Card>
-
-      <Card style={{ marginBottom: Spacing.l, paddingVertical: Spacing.l }}>
-        <Typography
-          variant="h3"
-          weight="bold"
-          style={{ marginBottom: Spacing.m, textAlign: "center" }}
-        >
-          Resumen Mensual (Real vs Presupuesto)
-        </Typography>
-        <View style={{ alignItems: "center" }}>
-          <BarChart
-            key={`${monthlyIncome}-${totalActualExpense}-${totalActualIncome}`}
-            data={barData}
-            barWidth={50}
-            spacing={40}
-            noOfSections={4}
-            barBorderRadius={4}
-            frontColor="lightgray"
-            yAxisThickness={0}
-            xAxisThickness={0}
-            yAxisLabelWidth={60}
-            height={200}
-            width={300}
-            isAnimated
-            hideRules
-            maxValue={
-              Math.max(
-                monthlyIncome,
-                totalActualExpense,
-                totalActualIncome,
-                100,
-              ) * 1.2
-            }
-            yAxisTextStyle={{ color: colors.text, fontSize: 10 }}
-            xAxisLabelTextStyle={{ color: colors.text, fontSize: 10 }}
-          />
-        </View>
-      </Card>
-
-      <View style={styles.statsGrid}>
-        <Card style={styles.statCard}>
-          <Typography variant="caption">Ingreso Esperado</Typography>
-          <Typography
-            variant="h3"
-            weight="bold"
-            style={{ color: colors.success }}
-          >
-            {formatCurrency(monthlyIncome)}
-          </Typography>
-        </Card>
-        <Card style={styles.statCard}>
-          <Typography variant="caption">Gastos Fijos</Typography>
-          <Typography
-            variant="h3"
-            weight="bold"
-            style={{ color: colors.error }}
-          >
-            {formatCurrency(totalFixedExpenses)}
-          </Typography>
-        </Card>
-        <Card style={styles.statCard}>
-          <Typography variant="caption">Ingreso Real</Typography>
-          <Typography
-            variant="h3"
-            weight="bold"
-            style={{ color: colors.success }}
-          >
-            {formatCurrency(totalActualIncome)}
-          </Typography>
-        </Card>
-        <Card style={styles.statCard}>
-          <Typography variant="caption">Gasto Real</Typography>
-          <Typography
-            variant="h3"
-            weight="bold"
-            style={{ color: colors.error }}
-          >
-            {formatCurrency(totalActualExpense)}
-          </Typography>
-        </Card>
+            </View>
+          </Animated.View>
+        )}
       </View>
 
-      <Card variant="outlined" style={{ marginTop: Spacing.m }}>
-        <Typography
-          variant="h3"
-          weight="bold"
-          style={{ marginBottom: Spacing.s }}
+      {/* Summary Chart Card - Collapsible */}
+      <View
+        style={[
+          styles.card,
+          {
+            backgroundColor: "#2C2C2E",
+            ...Platform.select({
+              ios: {
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.3,
+                shadowRadius: 10,
+              },
+              android: { elevation: 6 },
+            }),
+          },
+        ]}
+      >
+        <TouchableOpacity
+          onPress={() => {
+            LayoutAnimation.configureNext(
+              LayoutAnimation.Presets.easeInEaseOut,
+            );
+            setIsBarExpanded(!isBarExpanded);
+          }}
+          activeOpacity={0.8}
+          style={styles.cardHeader}
         >
-          Análisis
-        </Typography>
-        <Typography variant="body">
-          {totalActualExpense > monthlyIncome
-            ? "⚠️ Has excedido tu presupuesto mensual. Revisa tus gastos variables."
-            : totalActualExpense > monthlyIncome * 0.8
-              ? "👀 Estás cerca de tu límite de presupuesto (80%). Ten cuidado con gastos hormiga."
-              : "✅ Tu comportamiento financiero es saludable. ¡Sigue así!"}
-        </Typography>
-      </Card>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <Typography variant="h3" weight="bold" style={{ color: "#FFFFFF" }}>
+              {STRINGS.budget.monthlySummary}
+            </Typography>
+          </View>
+          <IconSymbol
+            name={isBarExpanded ? "chevron.up" : "chevron.down"}
+            size={16}
+            color="#8E8E93"
+          />
+        </TouchableOpacity>
+
+        {isBarExpanded && (
+          <Animated.View
+            entering={FadeIn.duration(300)}
+            exiting={FadeOut.duration(200)}
+            layout={LinearTransition}
+            style={{ marginTop: Spacing.m, alignItems: "center" }}
+          >
+            <BarChart
+              key={`${monthlyIncome}-${totalActualExpense}-${totalActualIncome}`}
+              data={barData}
+              barWidth={50}
+              spacing={40}
+              noOfSections={4}
+              barBorderRadius={4}
+              frontColor="lightgray"
+              yAxisThickness={0}
+              xAxisThickness={0}
+              yAxisLabelWidth={60}
+              height={200}
+              width={300}
+              isAnimated
+              hideRules
+              maxValue={
+                Math.max(
+                  monthlyIncome,
+                  totalActualExpense,
+                  totalActualIncome,
+                  100,
+                ) * 1.2
+              }
+              yAxisTextStyle={{ color: "#D1D1D6", fontSize: 10 }}
+              xAxisLabelTextStyle={{ color: "#D1D1D6", fontSize: 10 }}
+            />
+          </Animated.View>
+        )}
+      </View>
+
+      {/* Stats Grid Card - Collapsible */}
+      <View
+        style={[
+          styles.card,
+          {
+            backgroundColor: "#2C2C2E",
+            ...Platform.select({
+              ios: {
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.3,
+                shadowRadius: 10,
+              },
+              android: { elevation: 6 },
+            }),
+          },
+        ]}
+      >
+        <TouchableOpacity
+          onPress={() => {
+            LayoutAnimation.configureNext(
+              LayoutAnimation.Presets.easeInEaseOut,
+            );
+            setIsStatsExpanded(!isStatsExpanded);
+          }}
+          activeOpacity={0.8}
+          style={styles.cardHeader}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <Typography variant="h3" weight="bold" style={{ color: "#FFFFFF" }}>
+              Detalles
+            </Typography>
+          </View>
+          <IconSymbol
+            name={isStatsExpanded ? "chevron.up" : "chevron.down"}
+            size={16}
+            color="#8E8E93"
+          />
+        </TouchableOpacity>
+
+        {isStatsExpanded && (
+          <Animated.View
+            entering={FadeIn.duration(300)}
+            exiting={FadeOut.duration(200)}
+            layout={LinearTransition}
+            style={{ marginTop: Spacing.m }}
+          >
+            {/* Expected Income */}
+            <View style={styles.row}>
+              <Typography
+                variant="body"
+                style={{ color: "#D1D1D6", fontSize: 15 }}
+              >
+                {STRINGS.budget.expectedIncome}
+              </Typography>
+              <View
+                style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+              >
+                <Typography
+                  weight="bold"
+                  style={{ color: "#FFFFFF", fontSize: 16 }}
+                >
+                  {formatCurrency(monthlyIncome)}
+                </Typography>
+                <View style={[styles.dot, { backgroundColor: "#30D158" }]} />
+              </View>
+            </View>
+
+            {/* Fixed Expenses */}
+            <View style={styles.row}>
+              <Typography
+                variant="body"
+                style={{ color: "#D1D1D6", fontSize: 15 }}
+              >
+                {STRINGS.budget.fixedExpenses}
+              </Typography>
+              <View
+                style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+              >
+                <Typography
+                  weight="bold"
+                  style={{ color: "#FFFFFF", fontSize: 16 }}
+                >
+                  -{formatCurrency(totalFixedExpenses)}
+                </Typography>
+                <View style={[styles.dot, { backgroundColor: "#FF453A" }]} />
+              </View>
+            </View>
+
+            <View
+              style={{
+                height: 1,
+                backgroundColor: "#3A3A3C",
+                marginVertical: Spacing.s,
+              }}
+            />
+
+            {/* Actual Income */}
+            <View style={styles.row}>
+              <Typography
+                variant="body"
+                style={{ color: "#D1D1D6", fontSize: 15 }}
+              >
+                {STRINGS.budget.actualIncome}
+              </Typography>
+              <View
+                style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+              >
+                <Typography
+                  weight="bold"
+                  style={{ color: "#FFFFFF", fontSize: 16 }}
+                >
+                  {formatCurrency(totalActualIncome)}
+                </Typography>
+                <View style={[styles.dot, { backgroundColor: "#30D158" }]} />
+              </View>
+            </View>
+
+            {/* Actual Expenses */}
+            <View style={styles.row}>
+              <Typography
+                variant="body"
+                style={{ color: "#D1D1D6", fontSize: 15 }}
+              >
+                {STRINGS.budget.actualExpense}
+              </Typography>
+              <View
+                style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+              >
+                <Typography
+                  weight="bold"
+                  style={{ color: "#FFFFFF", fontSize: 16 }}
+                >
+                  -{formatCurrency(totalActualExpense)}
+                </Typography>
+                <View style={[styles.dot, { backgroundColor: "#FF453A" }]} />
+              </View>
+            </View>
+          </Animated.View>
+        )}
+      </View>
 
       <Button
-        title="Reiniciar Presupuesto"
+        title={STRINGS.budget.resetBudget}
         variant="outline"
         onPress={handleReset}
         style={{ marginTop: Spacing.xl, borderColor: colors.error }}
@@ -213,14 +423,26 @@ export const BudgetDashboard = () => {
 };
 
 const styles = StyleSheet.create({
-  statsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: Spacing.m,
-  },
-  statCard: {
-    width: "47%",
-    alignItems: "center",
+  card: {
+    marginBottom: Spacing.l,
+    borderRadius: BorderRadius.xl,
     padding: Spacing.m,
+    overflow: "hidden",
+  },
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  row: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
 });
