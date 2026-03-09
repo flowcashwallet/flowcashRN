@@ -315,13 +315,6 @@ export default function WalletScreen() {
               color: colors.primary,
               onPress: () => router.push("/wallet/categories"),
             },
-            {
-              id: "subscriptions",
-              label: "Suscripciones",
-              icon: "arrow.triangle.2.circlepath",
-              color: "#FFCE56",
-              onPress: () => router.push("/wallet/subscriptions"),
-            },
           ]}
         />
         <View style={{ flex: 1 }}>

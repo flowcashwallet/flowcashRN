@@ -26,6 +26,16 @@ class Transaction(models.Model):
     date = models.DateTimeField()
     payment_type = models.CharField(max_length=20, choices=PAYMENT_TYPES, null=True, blank=True)
     
+    # Recurrence
+    is_recurring = models.BooleanField(default=False)
+    recurrence_frequency = models.CharField(
+        max_length=10, 
+        choices=[('weekly', 'Weekly'), ('monthly', 'Monthly'), ('yearly', 'Yearly')],
+        null=True, 
+        blank=True
+    )
+    last_recurrence_date = models.DateTimeField(null=True, blank=True, help_text="Last time a recurring transaction was generated from this one")
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -63,30 +73,6 @@ class Category(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.user.username})"
-
-class Subscription(models.Model):
-    FREQUENCY_CHOICES = [
-        ('weekly', 'Weekly'),
-        ('monthly', 'Monthly'),
-        ('yearly', 'Yearly'),
-    ]
-
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='subscriptions')
-    name = models.CharField(max_length=255)
-    amount = models.DecimalField(max_digits=12, decimal_places=2)
-    category = models.CharField(max_length=100)
-    frequency = models.CharField(max_length=10, choices=FREQUENCY_CHOICES)
-    next_payment_date = models.DateTimeField()
-    related_entity_id = models.CharField(max_length=255, null=True, blank=True)
-    reminder_enabled = models.BooleanField(default=False)
-    description = models.CharField(max_length=255, null=True, blank=True)
-    icon = models.CharField(max_length=255, null=True, blank=True)
-    
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return f"{self.name} - {self.amount}"
 
 class VisionEntity(models.Model):
     ENTITY_TYPES = [

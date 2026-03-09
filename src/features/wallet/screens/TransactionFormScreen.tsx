@@ -19,6 +19,7 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
+  Switch,
   TextInput,
   TouchableOpacity,
   TouchableWithoutFeedback,
@@ -64,8 +65,10 @@ export default function TransactionFormScreen() {
     frequentEntities,
     categories,
     entities,
-    isNotificationSetupVisible,
-    setIsNotificationSetupVisible,
+    isRecurring,
+    setIsRecurring,
+    recurrenceFrequency,
+    setRecurrenceFrequency,
   } = useTransactionForm({
     id: id as string,
     initialType: initialType as "income" | "expense",
@@ -700,6 +703,93 @@ export default function TransactionFormScreen() {
                       />
                     </View>
                   </TouchableOpacity>
+                </View>
+              )}
+
+              {/* Recurrence Option */}
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  marginBottom: Spacing.m,
+                  padding: Spacing.m,
+                  backgroundColor: colors.surface,
+                  borderRadius: BorderRadius.l,
+                }}
+              >
+                <View>
+                  <Typography
+                    variant="body"
+                    weight="bold"
+                    style={{ color: colors.text }}
+                  >
+                    ¿Es recurrente?
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    style={{ color: colors.textSecondary, marginTop: 4 }}
+                  >
+                    Se repetirá automáticamente
+                  </Typography>
+                </View>
+                <Switch
+                  value={isRecurring}
+                  onValueChange={setIsRecurring}
+                  trackColor={{ false: colors.border, true: colors.primary }}
+                  thumbColor={"#FFFFFF"}
+                />
+              </View>
+
+              {isRecurring && (
+                <View
+                  style={{
+                    flexDirection: "row",
+                    gap: Spacing.s,
+                    marginBottom: Spacing.l,
+                  }}
+                >
+                  {(["weekly", "monthly", "yearly"] as const).map((freq) => (
+                    <TouchableOpacity
+                      key={freq}
+                      onPress={() => setRecurrenceFrequency(freq)}
+                      style={{
+                        flex: 1,
+                        padding: Spacing.s,
+                        borderRadius: BorderRadius.m,
+                        backgroundColor:
+                          recurrenceFrequency === freq
+                            ? colors.primary
+                            : colors.surface,
+                        alignItems: "center",
+                        borderWidth: 1,
+                        borderColor:
+                          recurrenceFrequency === freq
+                            ? colors.primary
+                            : colors.border,
+                      }}
+                    >
+                      <Typography
+                        variant="body"
+                        weight={
+                          recurrenceFrequency === freq ? "bold" : "regular"
+                        }
+                        style={{
+                          color:
+                            recurrenceFrequency === freq
+                              ? "#FFFFFF"
+                              : colors.textSecondary,
+                          textTransform: "capitalize",
+                        }}
+                      >
+                        {freq === "weekly"
+                          ? "Semanal"
+                          : freq === "monthly"
+                            ? "Mensual"
+                            : "Anual"}
+                      </Typography>
+                    </TouchableOpacity>
+                  ))}
                 </View>
               )}
 

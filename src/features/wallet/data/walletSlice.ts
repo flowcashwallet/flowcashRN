@@ -20,6 +20,8 @@ export interface Transaction {
     | "transfer"
     | "payroll"
     | null;
+  isRecurring?: boolean;
+  recurrenceFrequency?: "weekly" | "monthly" | "yearly";
 }
 
 export interface Forecast {
@@ -86,6 +88,8 @@ export const fetchTransactions = createAsyncThunk(
         transferRelatedEntityId: tx.transfer_related_entity_id,
         date: new Date(tx.date).getTime(),
         paymentType: tx.payment_type,
+        isRecurring: tx.is_recurring,
+        recurrenceFrequency: tx.recurrence_frequency,
       }));
 
       // Sort desc by date (already sorted by backend but good to ensure)
@@ -142,6 +146,8 @@ export const addTransaction = createAsyncThunk(
         transfer_related_entity_id: transaction.transferRelatedEntityId,
         date: new Date(transaction.date).toISOString(),
         payment_type: transaction.paymentType,
+        is_recurring: transaction.isRecurring,
+        recurrence_frequency: transaction.recurrenceFrequency,
       };
 
       const response = await fetchWithAuth(
@@ -176,6 +182,8 @@ export const addTransaction = createAsyncThunk(
         transferRelatedEntityId: tx.transfer_related_entity_id,
         date: new Date(tx.date).getTime(),
         paymentType: tx.payment_type,
+        isRecurring: tx.is_recurring,
+        recurrenceFrequency: tx.recurrence_frequency,
       };
     } catch (error: any) {
       console.error("Error adding transaction:", error);

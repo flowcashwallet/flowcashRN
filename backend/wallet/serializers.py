@@ -1,21 +1,11 @@
 from rest_framework import serializers
-from .models import Transaction, Budget, FixedExpense, Category, Subscription, VisionEntity, GamificationStats
+from .models import Transaction, Budget, FixedExpense, Category, VisionEntity, GamificationStats
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
         fields = ['id', 'name', 'created_at']
         read_only_fields = ('user', 'created_at')
-
-    def create(self, validated_data):
-        validated_data['user'] = self.context['request'].user
-        return super().create(validated_data)
-
-class SubscriptionSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Subscription
-        fields = '__all__'
-        read_only_fields = ('user', 'created_at', 'updated_at')
 
     def create(self, validated_data):
         validated_data['user'] = self.context['request'].user

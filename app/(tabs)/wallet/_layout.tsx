@@ -125,12 +125,6 @@ export default function WalletLayout() {
           }}
         />
         <Stack.Screen
-          name="subscriptions"
-          options={{
-            headerShown: false,
-          }}
-        />
-        <Stack.Screen
           name="transaction-form"
           options={{
             headerShown: true,

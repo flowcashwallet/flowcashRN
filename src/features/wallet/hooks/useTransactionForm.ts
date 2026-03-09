@@ -94,6 +94,12 @@ export const useTransactionForm = ({
   const [isNotificationSetupVisible, setIsNotificationSetupVisible] =
     useState(false);
 
+  // Recurrence State
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurrenceFrequency, setRecurrenceFrequency] = useState<
+    "weekly" | "monthly" | "yearly"
+  >("monthly");
+
   // Load categories if needed
   useEffect(() => {
     if (user?.id && categories.length === 0) {
@@ -264,6 +270,8 @@ export const useTransactionForm = ({
               existingTransaction.transferRelatedEntityId,
             date: date.getTime(),
             paymentType: selectedPaymentType,
+            isRecurring,
+            recurrenceFrequency: isRecurring ? recurrenceFrequency : undefined,
           })) || false;
       } else {
         success =
@@ -276,6 +284,8 @@ export const useTransactionForm = ({
             transferRelatedEntityId: transferRelatedEntityId || null,
             date: date.getTime(),
             paymentType: selectedPaymentType,
+            isRecurring,
+            recurrenceFrequency: isRecurring ? recurrenceFrequency : undefined,
           })) || false;
       }
 
@@ -358,5 +368,9 @@ export const useTransactionForm = ({
     entities,
     isNotificationSetupVisible,
     setIsNotificationSetupVisible,
+    isRecurring,
+    setIsRecurring,
+    recurrenceFrequency,
+    setRecurrenceFrequency,
   };
 };

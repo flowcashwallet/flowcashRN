@@ -14,7 +14,6 @@ export const endpoints = {
     budget: `${API_BASE_URL}/wallet/budget/current/`,
     categories: `${API_BASE_URL}/wallet/categories/`,
     predictCategory: `${API_BASE_URL}/wallet/categories/predict/`,
-    subscriptions: `${API_BASE_URL}/wallet/subscriptions/`,
     vision: `${API_BASE_URL}/wallet/vision/`,
     exportVisionExcel: `${API_BASE_URL}/wallet/vision/export/excel/`,
     exportVisionPdf: `${API_BASE_URL}/wallet/vision/export/pdf/`,

@@ -46,7 +46,6 @@ El núcleo de la aplicación financiera. Contiene toda la lógica de transaccion
   - `Category`: Categorías personalizadas por usuario.
   - `Budget`: Presupuesto mensual (ingresos vs gastos fijos).
   - `FixedExpense`: Gastos recurrentes asociados al presupuesto.
-  - `Subscription`: Suscripciones recurrentes.
   - `VisionEntity`: Metas financieras (Ahorros, Deudas).
   - `GamificationStats`: Estadísticas de usuario (rachas).
 - **`serializers.py`**: Transformación de datos y validaciones complejas.

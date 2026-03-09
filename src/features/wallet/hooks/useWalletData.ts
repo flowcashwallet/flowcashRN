@@ -1,15 +1,11 @@
-import { fetchVisionEntities } from "@/features/vision/data/visionSlice";
 import { useTheme } from "@/contexts/ThemeContext";
+import { fetchVisionEntities } from "@/features/vision/data/visionSlice";
 import STRINGS from "@/i18n/es.json";
 import { AppDispatch, RootState } from "@/store/store";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchCategories } from "../data/categoriesSlice";
 import { fetchGamificationData } from "../data/gamificationSlice";
-import {
-  fetchSubscriptions,
-  processDueSubscriptions,
-} from "../data/subscriptionSlice";
 import { fetchForecast, fetchTransactions } from "../data/walletSlice";
 import { useStreak } from "./useStreak";
 
@@ -40,9 +36,6 @@ export const useWalletData = () => {
       dispatch(fetchVisionEntities());
       dispatch(fetchGamificationData());
       dispatch(fetchCategories(user.id.toString()));
-      dispatch(fetchSubscriptions(user.id.toString())).then(() => {
-        dispatch(processDueSubscriptions());
-      });
     }
   }, [dispatch, user]);
 
