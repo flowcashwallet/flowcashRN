@@ -1,6 +1,6 @@
 from django.contrib import admin
 from admin_auto_filters.filters import AutocompleteFilter
-from .models import Transaction, Budget, FixedExpense, Category, Subscription, VisionEntity, GamificationStats
+from .models import Transaction, Budget, FixedExpense, Category, VisionEntity, GamificationStats
 
 class UserFilter(AutocompleteFilter):
     title = 'User'
@@ -19,13 +19,6 @@ class CategoryAdmin(admin.ModelAdmin):
     list_display = ('name', 'user', 'created_at')
     search_fields = ('name', 'user__username')
     list_filter = ('created_at', UserFilter)
-    autocomplete_fields = ['user']
-
-@admin.register(Subscription)
-class SubscriptionAdmin(admin.ModelAdmin):
-    list_display = ('name', 'amount', 'frequency', 'next_payment_date', 'user')
-    list_filter = ('frequency', 'next_payment_date', UserFilter)
-    search_fields = ('name', 'user__username')
     autocomplete_fields = ['user']
 
 class FixedExpenseInline(admin.TabularInline):
