@@ -10,6 +10,7 @@ from .analytics import predict_runway
 from django.utils import timezone
 from dateutil.relativedelta import relativedelta
 from django.conf import settings
+import os
 
 class CronViewSet(viewsets.ViewSet):
     permission_classes = [permissions.AllowAny] # Secured by header check manually
@@ -18,7 +19,8 @@ class CronViewSet(viewsets.ViewSet):
     def process_recurring(self, request):
         # Verify Vercel Cron Secret (or general shared secret)
         auth_header = request.headers.get('Authorization')
-        cron_secret = getattr(settings, 'CRON_SECRET', 'my_dev_secret_123')
+        # Prioritize env var directly, fallback to settings, then default
+        cron_secret = os.environ.get('CRON_SECRET') or getattr(settings, 'CRON_SECRET', 'my_dev_secret_123')
         
         if auth_header != f'Bearer {cron_secret}':
             return Response({"error": "Unauthorized"}, status=status.HTTP_401_UNAUTHORIZED)
