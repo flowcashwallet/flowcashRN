@@ -7,6 +7,63 @@ from .serializers import TransactionSerializer, BudgetSerializer, CategorySerial
 from .ml import predict_category_for_user
 from .nlp import parse_voice_command
 from .analytics import predict_runway
+from django.utils import timezone
+from dateutil.relativedelta import relativedelta
+from django.conf import settings
+
+class CronViewSet(viewsets.ViewSet):
+    permission_classes = [permissions.AllowAny] # Secured by header check manually
+
+    @action(detail=False, methods=['get'])
+    def process_recurring(self, request):
+        # Verify Vercel Cron Secret (or general shared secret)
+        auth_header = request.headers.get('Authorization')
+        cron_secret = getattr(settings, 'CRON_SECRET', 'my_dev_secret_123')
+        
+        if auth_header != f'Bearer {cron_secret}':
+            return Response({"error": "Unauthorized"}, status=status.HTTP_401_UNAUTHORIZED)
+
+        now = timezone.now()
+        recurring_transactions = Transaction.objects.filter(is_recurring=True)
+        count = 0
+        
+        for tx in recurring_transactions:
+            # Determine the last processed date (or original date if never processed)
+            base_date = tx.last_recurrence_date if tx.last_recurrence_date else tx.date
+            
+            # Calculate next occurrence
+            if tx.recurrence_frequency == 'weekly':
+                next_date = base_date + relativedelta(weeks=1)
+            elif tx.recurrence_frequency == 'monthly':
+                next_date = base_date + relativedelta(months=1)
+            elif tx.recurrence_frequency == 'yearly':
+                next_date = base_date + relativedelta(years=1)
+            else:
+                continue
+
+            # Check if it's due
+            if next_date <= now:
+                # Create new transaction
+                Transaction.objects.create(
+                    user=tx.user,
+                    amount=tx.amount,
+                    type=tx.type,
+                    description=tx.description,
+                    category=tx.category,
+                    related_entity_id=tx.related_entity_id,
+                    transfer_related_entity_id=tx.transfer_related_entity_id,
+                    date=next_date,
+                    payment_type=tx.payment_type,
+                    is_recurring=False, 
+                    recurrence_frequency=None
+                )
+                
+                # Update parent
+                tx.last_recurrence_date = next_date
+                tx.save()
+                count += 1
+
+        return Response({"status": "success", "processed": count})
 
 class AnalyticsViewSet(viewsets.ViewSet):
     permission_classes = [permissions.IsAuthenticated]
