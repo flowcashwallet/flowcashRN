@@ -99,6 +99,28 @@ export default function WalletLayout() {
                           params: { initialType: "transfer" },
                         }),
                     },
+                    {
+                      id: "categories",
+                      type: "action",
+                      label: "Categorías",
+                      title: "Categorías",
+                      icon: {
+                        type: "sfSymbol",
+                        name: "list.bullet",
+                      },
+                      onPress: () => router.push("/wallet/categories"),
+                    },
+                    {
+                      id: "recurring",
+                      type: "action",
+                      label: "Recurrentes",
+                      title: "Recurrentes",
+                      icon: {
+                        type: "sfSymbol",
+                        name: "arrow.triangle.2.circlepath",
+                      },
+                      onPress: () => router.push("/wallet/recurring"),
+                    },
                   ],
                 },
               },
@@ -125,13 +147,22 @@ export default function WalletLayout() {
           }}
         />
         <Stack.Screen
+          name="recurring"
+          options={{
+            headerShown: true,
+            headerTitle: "Recurrentes",
+            headerLargeTitle: false,
+            headerTransparent: true,
+            headerBackButtonDisplayMode: "minimal",
+          }}
+        />
+        <Stack.Screen
           name="transaction-form"
           options={{
             headerShown: true,
             presentation: "formSheet",
             headerTransparent: true,
             headerTitle: "Transacción",
-            headerBlurEffect: "regular",
             sheetAllowedDetents: [0.9],
             contentStyle: {
               backgroundColor: "transparent",

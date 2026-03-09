@@ -309,11 +309,25 @@ export default function WalletScreen() {
                 }),
             },
             {
+              id: "transfer",
+              label: "Transferencia",
+              icon: "arrow.right.arrow.left",
+              color: colors.primary,
+              onPress: () => router.push("/wallet/transaction-form"),
+            },
+            {
               id: "categories",
               label: "Categorías",
               icon: "list.bullet",
               color: colors.primary,
               onPress: () => router.push("/wallet/categories"),
+            },
+            {
+              id: "recurring",
+              label: "Recurrentes",
+              icon: "arrow.triangle.2.circlepath",
+              color: "#FF9500", // Orange
+              onPress: () => router.push("/wallet/recurring"),
             },
           ]}
         />
