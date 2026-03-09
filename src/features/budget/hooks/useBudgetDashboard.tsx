@@ -1,6 +1,6 @@
 import { Typography } from "@/components/atoms/Typography";
-import { resetBudgetConfig } from "@/features/budget/budgetSlice";
 import { useTheme } from "@/contexts/ThemeContext";
+import { resetBudgetConfig } from "@/features/budget/budgetSlice";
 import STRINGS from "@/i18n/es.json";
 import { AppDispatch, RootState } from "@/store/store";
 import { formatCurrency } from "@/utils/format";
@@ -64,13 +64,15 @@ export const useBudgetDashboard = () => {
   const pieData = [
     {
       value: totalFixedExpenses,
-      color: colors.error,
-      text: `${((totalFixedExpenses / monthlyIncome) * 100).toFixed(0)}%`,
+      color: "#FF5252", // Neon Red
+      gradientCenterColor: "#FF8A80",
+      focused: false,
     },
     {
       value: remainingBudget,
-      color: colors.success,
-      text: `${((remainingBudget / monthlyIncome) * 100).toFixed(0)}%`,
+      color: "#00E676", // Neon Green
+      gradientCenterColor: "#69F0AE",
+      focused: false,
     },
   ];
 
@@ -79,7 +81,9 @@ export const useBudgetDashboard = () => {
     {
       value: monthlyIncome,
       label: STRINGS.budget.expectedIncome,
-      frontColor: colors.success,
+      frontColor: "#2979FF", // Neon Blue
+      gradientColor: "#448AFF",
+      showGradient: true,
       topLabelComponent: () => (
         <Typography
           variant="caption"
@@ -98,7 +102,9 @@ export const useBudgetDashboard = () => {
     {
       value: totalActualExpense,
       label: STRINGS.budget.actualExpense,
-      frontColor: colors.error,
+      frontColor: "#FF5252", // Neon Red
+      gradientColor: "#FF8A80",
+      showGradient: true,
       topLabelComponent: () => (
         <Typography
           variant="caption"
@@ -117,7 +123,9 @@ export const useBudgetDashboard = () => {
     {
       value: Math.max(0, monthlyIncome - totalActualExpense),
       label: STRINGS.budget.free,
-      frontColor: colors.primary,
+      frontColor: "#00E676", // Neon Green
+      gradientColor: "#69F0AE",
+      showGradient: true,
       topLabelComponent: () => (
         <Typography
           variant="caption"

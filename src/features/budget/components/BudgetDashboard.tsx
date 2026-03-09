@@ -14,7 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { BarChart, PieChart } from "react-native-gifted-charts";
+import { BarChart } from "react-native-gifted-charts";
 import Animated, {
   FadeIn,
   FadeOut,
@@ -27,7 +27,6 @@ export const BudgetDashboard = () => {
   const {
     colors,
     handleReset,
-    pieData,
     barData,
     monthName,
     currentYear,
@@ -116,29 +115,6 @@ export const BudgetDashboard = () => {
             layout={LinearTransition}
             style={{ marginTop: Spacing.m }}
           >
-            <View style={{ alignItems: "center", marginBottom: Spacing.m }}>
-              <PieChart
-                data={pieData}
-                donut
-                radius={80}
-                innerRadius={60}
-                centerLabelComponent={() => (
-                  <View style={{ alignItems: "center" }}>
-                    <Typography variant="caption" style={{ color: "#D1D1D6" }}>
-                      {STRINGS.budget.free}
-                    </Typography>
-                    <Typography
-                      variant="h3"
-                      weight="bold"
-                      style={{ color: "#30D158" }}
-                    >
-                      {formatCurrency(remainingBudget)}
-                    </Typography>
-                  </View>
-                )}
-              />
-            </View>
-
             {/* Fixed Expenses Row */}
             <View style={styles.row}>
               <Typography
@@ -156,7 +132,7 @@ export const BudgetDashboard = () => {
                 >
                   {formatCurrency(totalFixedExpenses)}
                 </Typography>
-                <View style={[styles.dot, { backgroundColor: colors.error }]} />
+                <View style={[styles.dot, { backgroundColor: "#FF5252" }]} />
               </View>
             </View>
 
@@ -185,7 +161,7 @@ export const BudgetDashboard = () => {
                 >
                   {formatCurrency(remainingBudget)}
                 </Typography>
-                <View style={[styles.dot, { backgroundColor: "#30D158" }]} />
+                <View style={[styles.dot, { backgroundColor: "#00E676" }]} />
               </View>
             </View>
           </Animated.View>
