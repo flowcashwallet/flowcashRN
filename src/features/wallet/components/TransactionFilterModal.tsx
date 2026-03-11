@@ -58,7 +58,7 @@ export const TransactionFilterModal: React.FC<TransactionFilterModalProps> = ({
   onClear,
 }) => {
   const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  const colors = Colors[colorScheme === "dark" ? "dark" : "light"];
 
   const [selectedCategory, setSelectedCategory] = useState<string | null>(
     currentFilters.category,

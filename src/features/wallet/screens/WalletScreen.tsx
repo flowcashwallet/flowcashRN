@@ -313,7 +313,11 @@ export default function WalletScreen() {
               label: "Transferencia",
               icon: "arrow.right.arrow.left",
               color: colors.primary,
-              onPress: () => router.push("/wallet/transaction-form"),
+              onPress: () =>
+                router.push({
+                  pathname: "/wallet/transaction-form",
+                  params: { initialType: "transfer" },
+                }),
             },
             {
               id: "categories",

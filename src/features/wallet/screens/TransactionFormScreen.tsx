@@ -71,7 +71,7 @@ export default function TransactionFormScreen() {
     setRecurrenceFrequency,
   } = useTransactionForm({
     id: id as string,
-    initialType: initialType as "income" | "expense",
+    initialType: initialType as "income" | "expense" | "transfer",
     initialAmount: paramAmount as string,
     initialDescription: paramDescription as string,
     initialCategory: paramCategory as string,

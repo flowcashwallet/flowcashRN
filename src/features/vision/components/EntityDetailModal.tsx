@@ -12,12 +12,12 @@ import { formatAmountInput, formatCurrency } from "@/utils/format";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
-    FlatList,
-    Modal,
-    Pressable,
-    StyleSheet,
-    TouchableOpacity,
-    View,
+  FlatList,
+  Modal,
+  Pressable,
+  StyleSheet,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 interface EntityDetailModalProps {
@@ -74,7 +74,11 @@ export const EntityDetailModal: React.FC<EntityDetailModalProps> = ({
   };
 
   const entityTransactions = entity
-    ? transactions.filter((t) => t.relatedEntityId === entity.id)
+    ? transactions.filter(
+        (t) =>
+          t.relatedEntityId === entity.id ||
+          t.transferRelatedEntityId === entity.id,
+      )
     : [];
 
   if (!entity) return null;
@@ -283,13 +287,22 @@ export const EntityDetailModal: React.FC<EntityDetailModalProps> = ({
                           variant="body"
                           weight="bold"
                           style={{
-                            color:
-                              item.type === "income"
-                                ? colors.success
-                                : colors.error,
+                            color: (() => {
+                              const isIncoming =
+                                item.type === "income" ||
+                                (item.type === "transfer" &&
+                                  item.transferRelatedEntityId === entity.id);
+                              return isIncoming ? colors.success : colors.error;
+                            })(),
                           }}
                         >
-                          {item.type === "income" ? "+" : "-"}{" "}
+                          {(() => {
+                            const isIncoming =
+                              item.type === "income" ||
+                              (item.type === "transfer" &&
+                                item.transferRelatedEntityId === entity.id);
+                            return isIncoming ? "+" : "-";
+                          })()}{" "}
                           {formatCurrency(item.amount)}
                         </Typography>
                       </View>

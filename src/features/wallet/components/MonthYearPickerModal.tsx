@@ -20,7 +20,7 @@ export const MonthYearPickerModal: React.FC<MonthYearPickerModalProps> = ({
   onSelect,
 }) => {
   const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  const colors = Colors[colorScheme === "dark" ? "dark" : "light"];
   
   const [year, setYear] = useState(selectedDate.getFullYear());
 

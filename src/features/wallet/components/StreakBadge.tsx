@@ -1,9 +1,8 @@
 import { Typography } from "@/components/atoms/Typography";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { Colors, Spacing } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { Spacing } from "@/constants/theme";
 import React from "react";
-import { Pressable, View } from "react-native";
+import { Pressable } from "react-native";
 import { StreakInfo } from "../hooks/useStreak";
 
 interface StreakBadgeProps {
@@ -12,9 +11,6 @@ interface StreakBadgeProps {
 }
 
 export const StreakBadge: React.FC<StreakBadgeProps> = ({ streak, onPress }) => {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
-
   const iconColor = streak.status === "hot" ? "#FF9500" : streak.status === "cold" ? "#5AC8FA" : "#8E8E93";
 
   return (
