@@ -138,7 +138,7 @@ export default function WalletScreen() {
   const handleTransactionPress = useCallback(
     (transaction: Transaction) => {
       router.push({
-        pathname: "/wallet/transaction-form",
+        pathname: "/wallet/transaction-details",
         params: { id: transaction.id },
       });
     },
