@@ -6,14 +6,19 @@ import { VisionEntity } from "@/features/vision/data/visionSlice";
 import { Category } from "@/features/wallet/data/categoriesSlice";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import STRINGS from "@/i18n/es.json";
+import DateTimePicker, {
+    DateTimePickerEvent,
+} from "@react-native-community/datetimepicker";
 import React, { useEffect, useState } from "react";
 import {
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  View,
+    Modal,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+  TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 interface TransactionFilterModalProps {
@@ -32,6 +37,10 @@ interface TransactionFilterModalProps {
       | "transfer"
       | "payroll"
       | null;
+    dateMode: "none" | "single" | "range";
+    date: number | null;
+    dateFrom: number | null;
+    dateTo: number | null;
   };
   onApply: (filters: {
     category: string | null;
@@ -44,6 +53,10 @@ interface TransactionFilterModalProps {
       | "transfer"
       | "payroll"
       | null;
+    dateMode: "none" | "single" | "range";
+    date: number | null;
+    dateFrom: number | null;
+    dateTo: number | null;
   }) => void;
   onClear: () => void;
 }
@@ -73,10 +86,27 @@ export const TransactionFilterModal: React.FC<TransactionFilterModalProps> = ({
     "credit_card" | "debit_card" | "cash" | "transfer" | "payroll" | null
   >(currentFilters.paymentType);
 
+  const [dateMode, setDateMode] = useState<"none" | "single" | "range">(
+    currentFilters.dateMode,
+  );
+  const [selectedDate, setSelectedDate] = useState<number | null>(
+    currentFilters.date,
+  );
+  const [selectedFromDate, setSelectedFromDate] = useState<number | null>(
+    currentFilters.dateFrom,
+  );
+  const [selectedToDate, setSelectedToDate] = useState<number | null>(
+    currentFilters.dateTo,
+  );
+  const [activeDatePicker, setActiveDatePicker] = useState<
+    "single" | "from" | "to" | null
+  >(null);
+
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
   const [isEntityDropdownOpen, setIsEntityDropdownOpen] = useState(false);
   const [isPaymentTypeDropdownOpen, setIsPaymentTypeDropdownOpen] =
     useState(false);
+  const [categorySearchQuery, setCategorySearchQuery] = useState("");
 
   useEffect(() => {
     if (visible) {
@@ -84,18 +114,35 @@ export const TransactionFilterModal: React.FC<TransactionFilterModalProps> = ({
       setSelectedEntityId(currentFilters.entityId);
       setSelectedType(currentFilters.type);
       setSelectedPaymentType(currentFilters.paymentType);
+      setDateMode(currentFilters.dateMode);
+      setSelectedDate(currentFilters.date);
+      setSelectedFromDate(currentFilters.dateFrom);
+      setSelectedToDate(currentFilters.dateTo);
+      setActiveDatePicker(null);
       setIsCategoryDropdownOpen(false);
       setIsEntityDropdownOpen(false);
       setIsPaymentTypeDropdownOpen(false);
+      setCategorySearchQuery("");
     }
   }, [visible, currentFilters]);
 
   const handleApply = () => {
+    const normalizedDateMode =
+      dateMode === "single" && !selectedDate
+        ? "none"
+        : dateMode === "range" && !selectedFromDate && !selectedToDate
+          ? "none"
+          : dateMode;
+
     onApply({
       category: selectedCategory,
       entityId: selectedEntityId,
       type: selectedType,
       paymentType: selectedPaymentType,
+      dateMode: normalizedDateMode,
+      date: normalizedDateMode === "single" ? selectedDate : null,
+      dateFrom: normalizedDateMode === "range" ? selectedFromDate : null,
+      dateTo: normalizedDateMode === "range" ? selectedToDate : null,
     });
     onClose();
   };
@@ -105,6 +152,11 @@ export const TransactionFilterModal: React.FC<TransactionFilterModalProps> = ({
     setSelectedEntityId(null);
     setSelectedType(null);
     setSelectedPaymentType(null);
+    setDateMode("none");
+    setSelectedDate(null);
+    setSelectedFromDate(null);
+    setSelectedToDate(null);
+    setActiveDatePicker(null);
     onClear();
     onClose();
   };
@@ -137,6 +189,76 @@ export const TransactionFilterModal: React.FC<TransactionFilterModalProps> = ({
       </Typography>
     </Pressable>
   );
+
+  const DateRow = ({
+    label,
+    value,
+    onPress,
+  }: {
+    label: string;
+    value: number | null;
+    onPress: () => void;
+  }) => (
+    <TouchableOpacity
+      onPress={onPress}
+      style={[
+        styles.dateRow,
+        {
+          backgroundColor: colors.surfaceHighlight,
+          borderColor: colors.border,
+        },
+      ]}
+    >
+      <Typography variant="caption" style={{ color: colors.textSecondary }}>
+        {label}
+      </Typography>
+      <Typography variant="body" style={{ color: colors.text }}>
+        {value
+          ? new Date(value).toLocaleDateString()
+          : ((STRINGS.wallet as any).selectDate ?? "Seleccionar fecha")}
+      </Typography>
+    </TouchableOpacity>
+  );
+
+  const RadioRow = ({
+    label,
+    selected,
+    onPress,
+  }: {
+    label: string;
+    selected: boolean;
+    onPress: () => void;
+  }) => (
+    <Pressable onPress={onPress} style={styles.radioRow}>
+      <View
+        style={[
+          styles.radioOuter,
+          { borderColor: selected ? colors.primary : colors.border },
+        ]}
+      >
+        {selected && (
+          <View
+            style={[styles.radioInner, { backgroundColor: colors.primary }]}
+          />
+        )}
+      </View>
+      <Typography variant="body" style={{ color: colors.text }}>
+        {label}
+      </Typography>
+    </Pressable>
+  );
+
+  const handleDateChange = (
+    target: "single" | "from" | "to",
+    _: DateTimePickerEvent,
+    selected?: Date,
+  ) => {
+    const next = selected?.getTime();
+    if (target === "single") setSelectedDate(next ?? null);
+    if (target === "from") setSelectedFromDate(next ?? null);
+    if (target === "to") setSelectedToDate(next ?? null);
+    setActiveDatePicker(null);
+  };
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
@@ -189,6 +311,114 @@ export const TransactionFilterModal: React.FC<TransactionFilterModalProps> = ({
                   }
                 />
               </View>
+            </View>
+
+            {/* Date Filter */}
+            <View style={styles.section}>
+              <Typography
+                variant="body"
+                weight="bold"
+                style={{ marginBottom: Spacing.s, color: colors.text }}
+              >
+                {(STRINGS.wallet as any).dateFilter ?? "Fecha"}
+              </Typography>
+
+              <RadioRow
+                label={(STRINGS.wallet as any).noDateFilter ?? "Sin filtro"}
+                selected={dateMode === "none"}
+                onPress={() => {
+                  setDateMode("none");
+                  setSelectedDate(null);
+                  setSelectedFromDate(null);
+                  setSelectedToDate(null);
+                  setActiveDatePicker(null);
+                }}
+              />
+              <RadioRow
+                label={(STRINGS.wallet as any).singleDate ?? "Fecha específica"}
+                selected={dateMode === "single"}
+                onPress={() => {
+                  setDateMode("single");
+                  setSelectedFromDate(null);
+                  setSelectedToDate(null);
+                  setActiveDatePicker(null);
+                }}
+              />
+              {dateMode === "single" && (
+                <>
+                  <DateRow
+                    label={STRINGS.wallet.date}
+                    value={selectedDate}
+                    onPress={() => setActiveDatePicker("single")}
+                  />
+                  {activeDatePicker === "single" && (
+                    <DateTimePicker
+                      value={new Date(selectedDate ?? Date.now())}
+                      mode="date"
+                      display={Platform.OS === "ios" ? "inline" : "default"}
+                      onChange={(e, d) => handleDateChange("single", e, d)}
+                      maximumDate={new Date()}
+                      style={
+                        Platform.OS === "ios"
+                          ? { backgroundColor: colors.surfaceHighlight }
+                          : undefined
+                      }
+                    />
+                  )}
+                </>
+              )}
+
+              <RadioRow
+                label={(STRINGS.wallet as any).dateRange ?? "Rango de fechas"}
+                selected={dateMode === "range"}
+                onPress={() => {
+                  setDateMode("range");
+                  setSelectedDate(null);
+                  setActiveDatePicker(null);
+                }}
+              />
+              {dateMode === "range" && (
+                <>
+                  <DateRow
+                    label={(STRINGS.wallet as any).from ?? "Desde"}
+                    value={selectedFromDate}
+                    onPress={() => setActiveDatePicker("from")}
+                  />
+                  {activeDatePicker === "from" && (
+                    <DateTimePicker
+                      value={new Date(selectedFromDate ?? Date.now())}
+                      mode="date"
+                      display={Platform.OS === "ios" ? "inline" : "default"}
+                      onChange={(e, d) => handleDateChange("from", e, d)}
+                      maximumDate={new Date()}
+                      style={
+                        Platform.OS === "ios"
+                          ? { backgroundColor: colors.surfaceHighlight }
+                          : undefined
+                      }
+                    />
+                  )}
+                  <DateRow
+                    label={(STRINGS.wallet as any).to ?? "Hasta"}
+                    value={selectedToDate}
+                    onPress={() => setActiveDatePicker("to")}
+                  />
+                  {activeDatePicker === "to" && (
+                    <DateTimePicker
+                      value={new Date(selectedToDate ?? Date.now())}
+                      mode="date"
+                      display={Platform.OS === "ios" ? "inline" : "default"}
+                      onChange={(e, d) => handleDateChange("to", e, d)}
+                      maximumDate={new Date()}
+                      style={
+                        Platform.OS === "ios"
+                          ? { backgroundColor: colors.surfaceHighlight }
+                          : undefined
+                      }
+                    />
+                  )}
+                </>
+              )}
             </View>
 
             {/* Payment Type Filter */}
@@ -474,6 +704,23 @@ export const TransactionFilterModal: React.FC<TransactionFilterModalProps> = ({
                       },
                     ]}
                   >
+                    <View
+                      style={[
+                        styles.searchContainer,
+                        { borderBottomColor: colors.border },
+                      ]}
+                    >
+                      <TextInput
+                        value={categorySearchQuery}
+                        onChangeText={setCategorySearchQuery}
+                        placeholder={STRINGS.common.search}
+                        placeholderTextColor={colors.textSecondary}
+                        style={[styles.searchInput, { color: colors.text }]}
+                        autoCorrect={false}
+                        autoCapitalize="none"
+                        clearButtonMode="while-editing"
+                      />
+                    </View>
                     <ScrollView nestedScrollEnabled style={{ maxHeight: 200 }}>
                       <TouchableOpacity
                         onPress={() => {
@@ -492,7 +739,13 @@ export const TransactionFilterModal: React.FC<TransactionFilterModalProps> = ({
                           Todas
                         </Typography>
                       </TouchableOpacity>
-                      {categories.map((cat, index) => (
+                      {categories
+                        .filter((cat) => {
+                          if (!categorySearchQuery.trim()) return true;
+                          const q = categorySearchQuery.trim().toLowerCase();
+                          return cat.name.toLowerCase().includes(q);
+                        })
+                        .map((cat, index) => (
                         <TouchableOpacity
                           key={cat.id || cat.name}
                           onPress={() => {
@@ -596,5 +849,40 @@ const styles = StyleSheet.create({
   footer: {
     flexDirection: "row",
     marginTop: Spacing.m,
+  },
+  searchContainer: {
+    paddingHorizontal: Spacing.m,
+    paddingVertical: Spacing.s,
+    borderBottomWidth: 1,
+  },
+  searchInput: {
+    paddingVertical: Spacing.s,
+    paddingHorizontal: Spacing.s,
+    borderRadius: BorderRadius.m,
+  },
+  radioRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 10,
+    gap: Spacing.s,
+  },
+  radioOuter: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  radioInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  dateRow: {
+    padding: Spacing.m,
+    borderRadius: BorderRadius.m,
+    borderWidth: 1,
+    marginBottom: Spacing.s,
   },
 });

@@ -82,6 +82,7 @@ export default function TransactionFormScreen() {
 
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
+  const [categorySearchQuery, setCategorySearchQuery] = useState("");
   const [isPaymentTypeDropdownOpen, setIsPaymentTypeDropdownOpen] =
     useState(false);
   const [isEntityModalVisible, setIsEntityModalVisible] = useState(false);
@@ -477,7 +478,11 @@ export default function TransactionFormScreen() {
 
                   <TouchableOpacity
                     onPress={() =>
-                      setIsCategoryDropdownOpen(!isCategoryDropdownOpen)
+                      setIsCategoryDropdownOpen((prev) => {
+                        const next = !prev;
+                        if (next) setCategorySearchQuery("");
+                        return next;
+                      })
                     }
                     style={[
                       styles.dropdown,
@@ -516,26 +521,56 @@ export default function TransactionFormScreen() {
                         },
                       ]}
                     >
+                      <View
+                        style={{
+                          padding: Spacing.s,
+                          borderBottomWidth: 1,
+                          borderBottomColor: colors.border,
+                        }}
+                      >
+                        <TextInput
+                          value={categorySearchQuery}
+                          onChangeText={setCategorySearchQuery}
+                          placeholder={STRINGS.common.search}
+                          placeholderTextColor={colors.textSecondary}
+                          style={{
+                            backgroundColor: colors.surfaceHighlight,
+                            color: colors.text,
+                            paddingVertical: Spacing.s,
+                            paddingHorizontal: Spacing.s,
+                            borderRadius: BorderRadius.m,
+                          }}
+                          autoCorrect={false}
+                          autoCapitalize="none"
+                          clearButtonMode="while-editing"
+                        />
+                      </View>
                       <ScrollView
                         nestedScrollEnabled
                         style={{ maxHeight: 200 }}
                       >
-                        {categories.map((cat, index) => (
-                          <TouchableOpacity
-                            key={cat.id}
-                            onPress={() => {
-                              setSelectedCategory(cat.name);
-                              setIsCategoryDropdownOpen(false);
-                            }}
-                            style={{
-                              padding: Spacing.m,
-                              borderTopWidth: index > 0 ? 1 : 0,
-                              borderTopColor: colors.border,
-                            }}
-                          >
-                            <Typography variant="body">{cat.name}</Typography>
-                          </TouchableOpacity>
-                        ))}
+                        {categories
+                          .filter((cat) => {
+                            if (!categorySearchQuery.trim()) return true;
+                            const q = categorySearchQuery.trim().toLowerCase();
+                            return cat.name.toLowerCase().includes(q);
+                          })
+                          .map((cat, index) => (
+                            <TouchableOpacity
+                              key={cat.id}
+                              onPress={() => {
+                                setSelectedCategory(cat.name);
+                                setIsCategoryDropdownOpen(false);
+                              }}
+                              style={{
+                                padding: Spacing.m,
+                                borderTopWidth: index > 0 ? 1 : 0,
+                                borderTopColor: colors.border,
+                              }}
+                            >
+                              <Typography variant="body">{cat.name}</Typography>
+                            </TouchableOpacity>
+                          ))}
                         <TouchableOpacity
                           onPress={() => {
                             router.push("/wallet/categories");

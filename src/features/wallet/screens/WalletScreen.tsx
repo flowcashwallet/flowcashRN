@@ -76,12 +76,38 @@ export default function WalletScreen() {
       | "transfer"
       | "payroll"
       | null;
+    dateMode: "none" | "single" | "range";
+    date: number | null;
+    dateFrom: number | null;
+    dateTo: number | null;
   }>({
     category: null,
     entityId: null,
     type: null,
     paymentType: null,
+    dateMode: "none",
+    date: null,
+    dateFrom: null,
+    dateTo: null,
   });
+
+  const toDayStart = (timestamp: number) => {
+    const d = new Date(timestamp);
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  };
+
+  const toDayEnd = (timestamp: number) => {
+    const d = new Date(timestamp);
+    return new Date(
+      d.getFullYear(),
+      d.getMonth(),
+      d.getDate(),
+      23,
+      59,
+      59,
+      999,
+    ).getTime();
+  };
 
   const [processingVoice, setProcessingVoice] = useState(false);
 
@@ -153,6 +179,34 @@ export default function WalletScreen() {
       if (filters.type && t.type !== filters.type) return false;
       if (filters.paymentType && t.paymentType !== filters.paymentType)
         return false;
+      if (filters.dateMode === "single" && filters.date) {
+        const start = toDayStart(filters.date);
+        const end = toDayEnd(filters.date);
+        if (t.date < start || t.date > end) return false;
+      }
+      if (
+        filters.dateMode === "range" &&
+        (filters.dateFrom || filters.dateTo)
+      ) {
+        const startCandidate = filters.dateFrom
+          ? toDayStart(filters.dateFrom)
+          : undefined;
+        const endCandidate = filters.dateTo
+          ? toDayEnd(filters.dateTo)
+          : undefined;
+
+        const start =
+          startCandidate !== undefined && endCandidate !== undefined
+            ? Math.min(startCandidate, toDayStart(filters.dateTo as number))
+            : startCandidate;
+        const end =
+          startCandidate !== undefined && endCandidate !== undefined
+            ? Math.max(toDayEnd(filters.dateFrom as number), endCandidate)
+            : endCandidate;
+
+        if (start !== undefined && t.date < start) return false;
+        if (end !== undefined && t.date > end) return false;
+      }
 
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
@@ -167,7 +221,11 @@ export default function WalletScreen() {
   }, [currentMonthTransactions, filters, searchQuery]);
 
   const hasActiveFilters =
-    filters.category || filters.entityId || filters.type || filters.paymentType;
+    filters.category ||
+    filters.entityId ||
+    filters.type ||
+    filters.paymentType ||
+    filters.dateMode !== "none";
 
   const headerRight = useMemo(
     () => (
@@ -383,6 +441,10 @@ export default function WalletScreen() {
                 entityId: null,
                 type: null,
                 paymentType: null,
+                dateMode: "none",
+                date: null,
+                dateFrom: null,
+                dateTo: null,
               })
             }
           />
