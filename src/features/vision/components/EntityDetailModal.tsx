@@ -114,6 +114,24 @@ export const EntityDetailModal: React.FC<EntityDetailModalProps> = ({
               </TouchableOpacity>
 
               <View style={{ flexDirection: "row", alignItems: "center" }}>
+                {entity.type === "liability" && (
+                  <TouchableOpacity
+                    onPress={() => {
+                      onClose();
+                      router.push({
+                        pathname: "/balance/liability-payments",
+                        params: { id: entity.id },
+                      });
+                    }}
+                    style={{ marginRight: Spacing.m }}
+                  >
+                    <IconSymbol
+                      name="calendar.badge.checkmark"
+                      size={24}
+                      color={colors.primary}
+                    />
+                  </TouchableOpacity>
+                )}
                 <TouchableOpacity
                   onPress={onEdit}
                   style={{ marginRight: Spacing.m }}
