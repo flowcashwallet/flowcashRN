@@ -6,9 +6,11 @@ import { VisionEntity } from "@/features/vision/data/visionSlice";
 import { Category } from "@/features/wallet/data/categoriesSlice";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import STRINGS from "@/i18n/es.json";
+import { RootState } from "@/store/store";
 import DateTimePicker, {
     DateTimePickerEvent,
 } from "@react-native-community/datetimepicker";
+import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
     Modal,
@@ -16,10 +18,11 @@ import {
     Pressable,
     ScrollView,
     StyleSheet,
-  TextInput,
     TouchableOpacity,
     View,
 } from "react-native";
+import { useDispatch, useSelector } from "react-redux";
+import { clearCategoryPickerSelection } from "../data/walletUiSlice";
 
 interface TransactionFilterModalProps {
   visible: boolean;
@@ -70,6 +73,8 @@ export const TransactionFilterModal: React.FC<TransactionFilterModalProps> = ({
   onApply,
   onClear,
 }) => {
+  const router = useRouter();
+  const dispatch = useDispatch();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme === "dark" ? "dark" : "light"];
 
@@ -102,11 +107,12 @@ export const TransactionFilterModal: React.FC<TransactionFilterModalProps> = ({
     "single" | "from" | "to" | null
   >(null);
 
-  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
   const [isEntityDropdownOpen, setIsEntityDropdownOpen] = useState(false);
   const [isPaymentTypeDropdownOpen, setIsPaymentTypeDropdownOpen] =
     useState(false);
-  const [categorySearchQuery, setCategorySearchQuery] = useState("");
+  const categoryPickerSelection = useSelector(
+    (state: RootState) => state.walletUi.categoryPickerSelection,
+  );
 
   useEffect(() => {
     if (visible) {
@@ -119,12 +125,18 @@ export const TransactionFilterModal: React.FC<TransactionFilterModalProps> = ({
       setSelectedFromDate(currentFilters.dateFrom);
       setSelectedToDate(currentFilters.dateTo);
       setActiveDatePicker(null);
-      setIsCategoryDropdownOpen(false);
       setIsEntityDropdownOpen(false);
       setIsPaymentTypeDropdownOpen(false);
-      setCategorySearchQuery("");
     }
   }, [visible, currentFilters]);
+
+  useEffect(() => {
+    if (!visible) return;
+    if (!categoryPickerSelection) return;
+    if (categoryPickerSelection.target !== "transactionFilter") return;
+    setSelectedCategory(categoryPickerSelection.value);
+    dispatch(clearCategoryPickerSelection());
+  }, [categoryPickerSelection, dispatch, visible]);
 
   const handleApply = () => {
     const normalizedDateMode =
@@ -507,7 +519,7 @@ export const TransactionFilterModal: React.FC<TransactionFilterModalProps> = ({
                       { id: "cash", label: "Efectivo" },
                       { id: "transfer", label: "Transferencia" },
                       { id: "payroll", label: "Nómina" },
-                    ].map((pt, index) => (
+                    ].map((pt) => (
                       <TouchableOpacity
                         key={pt.id}
                         onPress={() => {
@@ -613,7 +625,7 @@ export const TransactionFilterModal: React.FC<TransactionFilterModalProps> = ({
                           Todos
                         </Typography>
                       </TouchableOpacity>
-                      {entities.map((entity, index) => (
+                      {entities.map((entity) => (
                         <TouchableOpacity
                           key={entity.id}
                           onPress={() => {
@@ -659,20 +671,21 @@ export const TransactionFilterModal: React.FC<TransactionFilterModalProps> = ({
                 </Typography>
                 <TouchableOpacity
                   onPress={() =>
-                    setIsCategoryDropdownOpen(!isCategoryDropdownOpen)
+                    router.push({
+                      pathname: "/wallet/category-picker",
+                      params: {
+                        target: "transactionFilter",
+                        includeAll: "1",
+                        selected: selectedCategory || "",
+                      },
+                    })
                   }
                   style={[
                     styles.dropdown,
                     {
                       backgroundColor: colors.surfaceHighlight,
                       borderColor: colors.border,
-                      marginBottom: isCategoryDropdownOpen ? 0 : Spacing.m,
-                      borderBottomLeftRadius: isCategoryDropdownOpen
-                        ? 0
-                        : BorderRadius.m,
-                      borderBottomRightRadius: isCategoryDropdownOpen
-                        ? 0
-                        : BorderRadius.m,
+                      marginBottom: Spacing.m,
                     },
                   ]}
                 >
@@ -680,100 +693,19 @@ export const TransactionFilterModal: React.FC<TransactionFilterModalProps> = ({
                     <Typography
                       variant="body"
                       style={{
-                        color: selectedCategory
-                          ? colors.text
-                          : colors.textSecondary,
+                        color: colors.text,
                         flex: 1,
                       }}
                     >
-                      {selectedCategory || "Seleccionar Categoría"}
+                      {selectedCategory || "Todas"}
                     </Typography>
-                    <Typography variant="body" style={{ color: colors.text }}>
-                      {isCategoryDropdownOpen ? "▲" : "▼"}
-                    </Typography>
+                    <IconSymbol
+                      name="chevron.right"
+                      size={16}
+                      color={colors.text}
+                    />
                   </View>
                 </TouchableOpacity>
-
-                {isCategoryDropdownOpen && (
-                  <View
-                    style={[
-                      styles.dropdownList,
-                      {
-                        borderColor: colors.border,
-                        backgroundColor: colors.surfaceHighlight,
-                      },
-                    ]}
-                  >
-                    <View
-                      style={[
-                        styles.searchContainer,
-                        { borderBottomColor: colors.border },
-                      ]}
-                    >
-                      <TextInput
-                        value={categorySearchQuery}
-                        onChangeText={setCategorySearchQuery}
-                        placeholder={STRINGS.common.search}
-                        placeholderTextColor={colors.textSecondary}
-                        style={[styles.searchInput, { color: colors.text }]}
-                        autoCorrect={false}
-                        autoCapitalize="none"
-                        clearButtonMode="while-editing"
-                      />
-                    </View>
-                    <ScrollView nestedScrollEnabled style={{ maxHeight: 200 }}>
-                      <TouchableOpacity
-                        onPress={() => {
-                          setSelectedCategory(null);
-                          setIsCategoryDropdownOpen(false);
-                        }}
-                        style={[
-                          styles.dropdownItem,
-                          { borderBottomColor: colors.border },
-                        ]}
-                      >
-                        <Typography
-                          variant="body"
-                          style={{ color: colors.text }}
-                        >
-                          Todas
-                        </Typography>
-                      </TouchableOpacity>
-                      {categories
-                        .filter((cat) => {
-                          if (!categorySearchQuery.trim()) return true;
-                          const q = categorySearchQuery.trim().toLowerCase();
-                          return cat.name.toLowerCase().includes(q);
-                        })
-                        .map((cat, index) => (
-                        <TouchableOpacity
-                          key={cat.id || cat.name}
-                          onPress={() => {
-                            setSelectedCategory(cat.name);
-                            setIsCategoryDropdownOpen(false);
-                          }}
-                          style={[
-                            styles.dropdownItem,
-                            {
-                              borderTopWidth: 1,
-                              borderTopColor: colors.border,
-                            },
-                          ]}
-                        >
-                          <Typography
-                            variant="body"
-                            weight={
-                              selectedCategory === cat.name ? "bold" : "regular"
-                            }
-                            style={{ color: colors.text }}
-                          >
-                            {cat.name}
-                          </Typography>
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
-                  </View>
-                )}
               </View>
             )}
           </ScrollView>
