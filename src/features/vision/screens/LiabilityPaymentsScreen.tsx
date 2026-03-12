@@ -7,8 +7,9 @@ import { VisionEntity } from "@/features/vision/data/visionSlice";
 import { Transaction } from "@/features/wallet/data/walletSlice";
 import { RootState } from "@/store/store";
 import { formatCurrency } from "@/utils/format";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams } from "expo-router";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { FlatList, TouchableOpacity, View } from "react-native";
 import { useSelector } from "react-redux";
 
@@ -19,6 +20,13 @@ type MonthPayment = {
   isPaid: boolean;
   meetsMinimum: boolean | null;
 };
+
+type ManualOverrides = Record<string, Record<string, boolean>>;
+
+const MANUAL_OVERRIDES_KEY = "liability_payment_overrides_v1";
+
+const toMonthKey = (year: number, monthIndex: number) =>
+  `${year}-${String(monthIndex + 1).padStart(2, "0")}`;
 
 const getMonthLabel = (year: number, monthIndex: number) => {
   const date = new Date(year, monthIndex, 1);
@@ -48,6 +56,17 @@ export default function LiabilityPaymentsScreen() {
   }, [entities, id]);
 
   const [year, setYear] = useState(() => new Date().getFullYear());
+  const [manualOverrides, setManualOverrides] = useState<ManualOverrides>({});
+
+  useEffect(() => {
+    AsyncStorage.getItem(MANUAL_OVERRIDES_KEY)
+      .then((value) => {
+        if (!value) return;
+        const parsed = JSON.parse(value) as ManualOverrides;
+        setManualOverrides(parsed || {});
+      })
+      .catch(() => {});
+  }, []);
 
   const relevantTransfers = useMemo<Transaction[]>(() => {
     if (!entity) return [];
@@ -80,6 +99,43 @@ export default function LiabilityPaymentsScreen() {
     });
   }, [entity, relevantTransfers, year]);
 
+  const monthStatuses = useMemo(() => {
+    if (!entity) return {};
+    const noPaymentRequired = entity.amount === 0 || entity.minimumPayment === 0;
+    const map: Record<number, { showCheck: boolean; statusLabel: string }> = {};
+
+    for (const m of months) {
+      const manual = manualOverrides[entity.id]?.[toMonthKey(year, m.monthIndex)];
+      const showCheck = noPaymentRequired
+        ? true
+        : manual !== undefined
+          ? manual
+          : m.meetsMinimum === null
+            ? m.isPaid
+            : m.meetsMinimum;
+
+      const statusLabel = noPaymentRequired
+        ? "Sin pago requerido"
+        : manual !== undefined
+          ? manual
+            ? "Pagado (manual)"
+            : "No pagado (manual)"
+          : m.meetsMinimum === null
+            ? m.isPaid
+              ? "Pagado"
+              : "Sin pago"
+            : m.meetsMinimum
+              ? "Pagado"
+              : m.isPaid
+                ? "Pago parcial"
+                : "Sin pago";
+
+      map[m.monthIndex] = { showCheck, statusLabel };
+    }
+
+    return map;
+  }, [entity, manualOverrides, months, year]);
+
   const yearTotalPaid = useMemo(() => {
     return months.reduce((sum, m) => sum + m.amountPaid, 0);
   }, [months]);
@@ -88,6 +144,10 @@ export default function LiabilityPaymentsScreen() {
   const thisMonth = useMemo(() => {
     return months.find((m) => m.monthIndex === currentMonthIndex) ?? null;
   }, [months, currentMonthIndex]);
+
+  const thisMonthStatus = useMemo(() => {
+    return monthStatuses[currentMonthIndex] ?? null;
+  }, [currentMonthIndex, monthStatuses]);
 
   if (!entity) {
     return (
@@ -128,7 +188,7 @@ export default function LiabilityPaymentsScreen() {
               style={{ color: colors.textSecondary }}
             >
               {thisMonth.monthLabel}: {formatCurrency(thisMonth.amountPaid)}{" "}
-              {thisMonth.isPaid ? "✓" : ""}
+              {thisMonthStatus?.showCheck ? "✓" : ""}
             </Typography>
           )}
         </View>
@@ -197,18 +257,9 @@ export default function LiabilityPaymentsScreen() {
           backgroundColor: colors.background,
         }}
         renderItem={({ item }) => {
-          const showCheck =
-            item.meetsMinimum === null ? item.isPaid : item.meetsMinimum;
-          const statusLabel =
-            item.meetsMinimum === null
-              ? item.isPaid
-                ? "Pagado"
-                : "Sin pago"
-              : item.meetsMinimum
-                ? "Pagado"
-                : item.isPaid
-                  ? "Pago parcial"
-                  : "Sin pago";
+          const status = monthStatuses[item.monthIndex];
+          const showCheck = status?.showCheck ?? false;
+          const statusLabel = status?.statusLabel ?? "Sin pago";
 
           return (
             <Card style={{ marginBottom: Spacing.s }}>

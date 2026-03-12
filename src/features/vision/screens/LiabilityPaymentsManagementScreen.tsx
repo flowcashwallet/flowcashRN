@@ -7,9 +7,16 @@ import { VisionEntity } from "@/features/vision/data/visionSlice";
 import { Transaction } from "@/features/wallet/data/walletSlice";
 import { RootState } from "@/store/store";
 import { formatCurrency } from "@/utils/format";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import React, { useMemo, useState } from "react";
-import { FlatList, TouchableOpacity, View } from "react-native";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  Alert,
+  FlatList,
+  Pressable,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { useSelector } from "react-redux";
 
 const getMonthStart = (year: number, monthIndex: number) =>
@@ -46,6 +53,13 @@ type LiabilityRow = {
   meetsMinimum: boolean | null;
 };
 
+type ManualOverrides = Record<string, Record<string, boolean>>;
+
+const MANUAL_OVERRIDES_KEY = "liability_payment_overrides_v1";
+
+const toMonthKey = (year: number, monthIndex: number) =>
+  `${year}-${String(monthIndex + 1).padStart(2, "0")}`;
+
 export default function LiabilityPaymentsManagementScreen() {
   const router = useRouter();
   const { colors } = useTheme();
@@ -64,12 +78,35 @@ export default function LiabilityPaymentsManagementScreen() {
     return { year: now.getFullYear(), monthIndex: now.getMonth() };
   });
 
+  const [manualOverrides, setManualOverrides] = useState<ManualOverrides>({});
+
+  useEffect(() => {
+    AsyncStorage.getItem(MANUAL_OVERRIDES_KEY)
+      .then((value) => {
+        if (!value) return;
+        const parsed = JSON.parse(value) as ManualOverrides;
+        setManualOverrides(parsed || {});
+      })
+      .catch(() => {});
+  }, []);
+
+  const persistOverrides = useCallback((next: ManualOverrides) => {
+    AsyncStorage.setItem(MANUAL_OVERRIDES_KEY, JSON.stringify(next)).catch(
+      () => {},
+    );
+  }, []);
+
   const { monthStart, monthEnd, monthLabel } = useMemo(() => {
     const monthStart = getMonthStart(monthCursor.year, monthCursor.monthIndex);
     const monthEnd = getMonthEnd(monthCursor.year, monthCursor.monthIndex);
     const monthLabel = getMonthLabel(monthCursor.year, monthCursor.monthIndex);
     return { monthStart, monthEnd, monthLabel };
   }, [monthCursor.monthIndex, monthCursor.year]);
+
+  const monthKey = useMemo(
+    () => toMonthKey(monthCursor.year, monthCursor.monthIndex),
+    [monthCursor.monthIndex, monthCursor.year],
+  );
 
   const transfersToLiabilities = useMemo<Transaction[]>(() => {
     const liabilityIds = new Set(liabilities.map((l) => l.id));
@@ -124,12 +161,43 @@ export default function LiabilityPaymentsManagementScreen() {
     const paidCount = rows.filter((r) => {
       const noPaymentRequired = r.entityAmount === 0 || r.minimumPayment === 0;
       if (noPaymentRequired) return true;
+      const manual = manualOverrides[r.id]?.[monthKey];
+      if (manual !== undefined) return manual;
       return r.meetsMinimum === null ? r.isPaid : r.meetsMinimum;
     }).length;
     const total = rows.length;
     const totalPaid = rows.reduce((sum, r) => sum + r.amountPaid, 0);
     return { paidCount, total, totalPaid };
-  }, [rows]);
+  }, [manualOverrides, monthKey, rows]);
+
+  const toggleManual = useCallback(
+    (liabilityId: string) => {
+      setManualOverrides((prev) => {
+        const current = prev[liabilityId]?.[monthKey];
+        const nextValue =
+          current === undefined ? true : current === true ? false : undefined;
+
+        const next: ManualOverrides = { ...prev };
+        const perLiability = { ...(next[liabilityId] || {}) };
+
+        if (nextValue === undefined) {
+          delete perLiability[monthKey];
+        } else {
+          perLiability[monthKey] = nextValue;
+        }
+
+        if (Object.keys(perLiability).length === 0) {
+          delete next[liabilityId];
+        } else {
+          next[liabilityId] = perLiability;
+        }
+
+        persistOverrides(next);
+        return next;
+      });
+    },
+    [monthKey, persistOverrides],
+  );
 
   const goPrevMonth = () => {
     setMonthCursor((c) => {
@@ -220,29 +288,39 @@ export default function LiabilityPaymentsManagementScreen() {
           renderItem={({ item }) => {
             const noPaymentRequired =
               item.entityAmount === 0 || item.minimumPayment === 0;
+            const manual = manualOverrides[item.id]?.[monthKey];
+
             const showPaid = noPaymentRequired
               ? true
-              : item.meetsMinimum === null
-                ? item.isPaid
-                : item.meetsMinimum;
+              : manual !== undefined
+                ? manual
+                : item.meetsMinimum === null
+                  ? item.isPaid
+                  : item.meetsMinimum;
+
             const statusIcon = showPaid
               ? "checkmark.circle.fill"
               : "xmark.circle.fill";
             const statusColor = showPaid ? colors.success : colors.error;
+
             const statusText = noPaymentRequired
               ? "Sin pago requerido"
-              : item.meetsMinimum === null
-                ? item.isPaid
-                  ? "Pagado"
-                  : "No pagado"
-                : item.meetsMinimum
-                  ? "Pagado"
-                  : item.isPaid
-                    ? "Pago parcial"
-                    : "No pagado";
+              : manual !== undefined
+                ? manual
+                  ? "Pagado (manual)"
+                  : "No pagado (manual)"
+                : item.meetsMinimum === null
+                  ? item.isPaid
+                    ? "Pagado"
+                    : "No pagado"
+                  : item.meetsMinimum
+                    ? "Pagado"
+                    : item.isPaid
+                      ? "Pago parcial"
+                      : "No pagado";
 
             return (
-              <TouchableOpacity
+              <Pressable
                 onPress={() =>
                   router.push({
                     pathname: "/balance/liability-payments",
@@ -297,14 +375,43 @@ export default function LiabilityPaymentsManagementScreen() {
                         </Typography>
                       )}
                     </View>
-                    <IconSymbol
-                      name={statusIcon}
-                      size={20}
-                      color={statusColor}
-                    />
+                    <Pressable
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        if (noPaymentRequired) return;
+                        const action =
+                          manual === undefined
+                            ? "marcarlo como pagado"
+                            : manual === true
+                              ? "marcarlo como no pagado"
+                              : "quitar la marca manual (usar transferencias)";
+                        Alert.alert(
+                          "Confirmar cambio",
+                          `¿Seguro que quieres ${action} para ${item.name} (${monthLabel})?`,
+                          [
+                            { text: "Cancelar", style: "cancel" },
+                            {
+                              text: "Confirmar",
+                              style: "default",
+                              onPress: () => toggleManual(item.id),
+                            },
+                          ],
+                        );
+                      }}
+                      style={{
+                        paddingVertical: Spacing.s,
+                        paddingLeft: Spacing.m,
+                      }}
+                    >
+                      <IconSymbol
+                        name={statusIcon}
+                        size={20}
+                        color={statusColor}
+                      />
+                    </Pressable>
                   </View>
                 </Card>
-              </TouchableOpacity>
+              </Pressable>
             );
           }}
           ListEmptyComponent={
