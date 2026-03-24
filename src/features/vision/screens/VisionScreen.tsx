@@ -141,7 +141,11 @@ export default function VisionScreen() {
   };
 
   return (
-    <ThemedView lightColor="transparent" darkColor="transparent" style={{ flex: 1 }}>
+    <ThemedView
+      lightColor="transparent"
+      darkColor="transparent"
+      style={{ flex: 1 }}
+    >
       <Stack.Screen
         options={{
           headerShown: true,
@@ -234,7 +238,7 @@ export default function VisionScreen() {
         <View
           style={{
             flexDirection: "row",
-            backgroundColor: "#2C2C2E",
+            backgroundColor: colors.glass.cardBg,
             borderRadius: BorderRadius.l,
             padding: 4,
             marginBottom: Spacing.m,
@@ -246,7 +250,7 @@ export default function VisionScreen() {
               paddingVertical: 8,
               alignItems: "center",
               backgroundColor:
-                activeTab === "asset" ? "#3A3A3C" : "transparent",
+                activeTab === "asset" ? colors.success : "transparent",
               borderRadius: BorderRadius.m,
             }}
             onPress={() => handleTabChange("asset")}
@@ -265,7 +269,7 @@ export default function VisionScreen() {
               paddingVertical: 8,
               alignItems: "center",
               backgroundColor:
-                activeTab === "liability" ? "#3A3A3C" : "transparent",
+                activeTab === "liability" ? colors.error : "transparent",
               borderRadius: BorderRadius.m,
             }}
             onPress={() => handleTabChange("liability")}
@@ -291,7 +295,9 @@ export default function VisionScreen() {
             }}
           >
             <TouchableOpacity
-              onPress={() => router.push("/balance/liability-payments-management")}
+              onPress={() =>
+                router.push("/balance/liability-payments-management")
+              }
               style={{
                 flexDirection: "row",
                 alignItems: "center",
@@ -301,10 +307,14 @@ export default function VisionScreen() {
                 borderRadius: BorderRadius.l,
                 borderWidth: 1,
                 borderColor: colors.border,
-                backgroundColor: colors.surface,
+                backgroundColor: colors.glass.cardBg,
               }}
             >
-              <Typography variant="body" weight="bold" style={{ color: colors.text }}>
+              <Typography
+                variant="body"
+                weight="bold"
+                style={{ color: colors.text }}
+              >
                 Gestión de pagos
               </Typography>
             </TouchableOpacity>

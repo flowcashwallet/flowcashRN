@@ -65,6 +65,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   content: {
-    padding: 20,
+    flex: 1,
   },
 });
