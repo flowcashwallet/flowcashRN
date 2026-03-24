@@ -29,6 +29,7 @@ const lightPalette = {
   border: "#86898dff", // Slate 200
 
   gradients: {
+    background: ["#8EC5FC", "#ddf2d3ff"] as const,
     primary: ["#0D9488", "#115E59"] as const,
     success: ["#34D399", "#10B981"] as const,
     error: ["#F87171", "#EF4444"] as const,
@@ -60,6 +61,7 @@ const darkPalette = {
   border: "#334155", // Slate 700
 
   gradients: {
+    background: ["#0F2027", "#203A43", "#2C5364"] as const,
     primary: ["#2DD4BF", "#0D9488"] as const, // Lighter to Darker Teal
     success: ["#34D399", "#10B981"] as const,
     error: ["#F87171", "#EF4444"] as const,

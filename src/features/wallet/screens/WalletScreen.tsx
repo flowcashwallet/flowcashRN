@@ -348,19 +348,13 @@ export default function WalletScreen() {
     <>
       <LinearGradient
         collapsable={false}
-        colors={
-          colors.background.toLowerCase() === "#ffffff" || colors.background.toLowerCase() === "#fff" || colors.background === "#f2f2f7"
-            ? ["#8EC5FC", "#E0C3FC"]
-            : ["#0F2027", "#203A43", "#2C5364"]
-        }
+        colors={colors.gradients.background}
         style={styles.container}
       >
         <BlurView
           intensity={80}
           tint={
-            colors.background.toLowerCase() === "#ffffff" || colors.background.toLowerCase() === "#fff" || colors.background === "#f2f2f7"
-              ? "light"
-              : "dark"
+            colors.background.toLowerCase() === "#fff" ? "light" : "dark"
           }
           style={StyleSheet.absoluteFill}
         />
