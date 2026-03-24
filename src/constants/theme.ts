@@ -34,6 +34,11 @@ const lightPalette = {
     success: ["#34D399", "#10B981"] as const,
     error: ["#F87171", "#EF4444"] as const,
   },
+  glass: {
+    cardBg: "rgba(255,255,255,0.35)",
+    cardBorder: "rgba(0,0,0,0.08)",
+    specularTop: "rgba(255,255,255,0.35)",
+  },
 };
 
 // --- DARK THEME (Midnight Teal) ---
@@ -66,6 +71,11 @@ const darkPalette = {
     success: ["#34D399", "#10B981"] as const,
     error: ["#F87171", "#EF4444"] as const,
   },
+  glass: {
+    cardBg: "rgba(255,255,255,0.08)",
+    cardBorder: "rgba(255,255,255,0.10)",
+    specularTop: "rgba(255,255,255,0.25)",
+  },
 };
 
 export const Colors = {
@@ -88,6 +98,7 @@ export const Colors = {
     warning: lightPalette.warning,
     success: lightPalette.success,
     gradients: lightPalette.gradients,
+    glass: lightPalette.glass,
   },
   dark: {
     text: darkPalette.text,
@@ -108,6 +119,7 @@ export const Colors = {
     warning: darkPalette.warning,
     success: darkPalette.success,
     gradients: darkPalette.gradients,
+    glass: darkPalette.glass,
   },
 };
 export type ThemeColors = typeof Colors.light | typeof Colors.dark;

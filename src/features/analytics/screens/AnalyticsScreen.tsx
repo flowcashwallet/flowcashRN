@@ -96,7 +96,7 @@ export default function AnalyticsScreen() {
   };
 
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView lightColor="transparent" darkColor="transparent" style={styles.container}>
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={[

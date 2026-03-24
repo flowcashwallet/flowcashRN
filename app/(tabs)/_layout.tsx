@@ -28,6 +28,10 @@ export default function TabLayout() {
           <NativeTabs.Trigger.Icon sf="wallet.bifold.fill" md="wallet" />
           <NativeTabs.Trigger.Label>Wallet</NativeTabs.Trigger.Label>
         </NativeTabs.Trigger>
+        <NativeTabs.Trigger name="dashboard">
+          <NativeTabs.Trigger.Icon sf="squareshape.split.2x2" md="dashboard" />
+          <NativeTabs.Trigger.Label>Dashboard</NativeTabs.Trigger.Label>
+        </NativeTabs.Trigger>
         <NativeTabs.Trigger name="balance">
           <NativeTabs.Trigger.Icon
             sf="bahtsign.bank.building.fill"
@@ -42,10 +46,6 @@ export default function TabLayout() {
         <NativeTabs.Trigger name="statistics">
           <NativeTabs.Trigger.Icon sf="chart.pie.fill" md="pie_chart" />
           <NativeTabs.Trigger.Label>Statistics</NativeTabs.Trigger.Label>
-        </NativeTabs.Trigger>
-        <NativeTabs.Trigger name="dashboard">
-          <NativeTabs.Trigger.Icon sf="squareshape.split.2x2" md="dashboard" />
-          <NativeTabs.Trigger.Label>Dashboard</NativeTabs.Trigger.Label>
         </NativeTabs.Trigger>
       </NativeTabs>
       <OnboardingTutorial

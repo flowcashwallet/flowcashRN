@@ -141,7 +141,7 @@ export default function VisionScreen() {
   };
 
   return (
-    <ThemedView style={{ flex: 1 }}>
+    <ThemedView lightColor="transparent" darkColor="transparent" style={{ flex: 1 }}>
       <Stack.Screen
         options={{
           headerShown: true,

@@ -27,7 +27,6 @@ import { MonthSelector } from "../components/MonthSelector";
 import { MonthYearPickerModal } from "../components/MonthYearPickerModal";
 import { StreakCalendarModal } from "../components/StreakCalendarModal";
 import { TransactionFilterModal } from "../components/TransactionFilterModal";
-import { WalletHeader } from "../components/WalletHeader";
 import { Transaction } from "../data/walletSlice";
 import { useWalletData } from "../hooks/useWalletData";
 import { useWalletTransactions } from "../hooks/useWalletTransactions";
@@ -71,12 +70,12 @@ export default function WalletScreen() {
     entityId: string | null;
     type: "income" | "expense" | null;
     paymentType:
-    | "credit_card"
-    | "debit_card"
-    | "cash"
-    | "transfer"
-    | "payroll"
-    | null;
+      | "credit_card"
+      | "debit_card"
+      | "cash"
+      | "transfer"
+      | "payroll"
+      | null;
     dateMode: "none" | "single" | "range";
     date: number | null;
     dateFrom: number | null;
@@ -265,7 +264,7 @@ export default function WalletScreen() {
           <ExportButton />
         </View>
 
-        <WalletHeader
+        {/* <WalletHeader
           balance={balance}
           currentMonthName={currentMonthName}
           income={income}
@@ -276,7 +275,7 @@ export default function WalletScreen() {
           // onMonthPress={() => setDatePickerVisible(true)} // Removed from header
           showYear={selectedDate.getFullYear() !== new Date().getFullYear()}
           year={selectedDate.getFullYear()}
-        />
+        /> */}
 
         <View
           style={{
@@ -353,9 +352,7 @@ export default function WalletScreen() {
       >
         <BlurView
           intensity={80}
-          tint={
-            colors.background.toLowerCase() === "#fff" ? "light" : "dark"
-          }
+          tint={colors.background.toLowerCase() === "#fff" ? "light" : "dark"}
           style={StyleSheet.absoluteFill}
         />
         {/* Removed Stack.Toolbar due to conflict with NativeTabs */}

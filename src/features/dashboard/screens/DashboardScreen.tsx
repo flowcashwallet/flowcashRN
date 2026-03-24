@@ -1,3 +1,4 @@
+import { GlassCard } from "@/components/atoms/GlassCard";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { BorderRadius, Spacing } from "@/constants/theme";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -45,16 +46,36 @@ export default function DashboardScreen() {
     "#34D399",
   ];
 
-  const pieData = useMemo(() => {
+  const categoryColor = useMemo(() => {
+    const hash = (s: string) => {
+      let h = 0;
+      for (let i = 0; i < s.length; i++) {
+        h = (h * 31 + s.charCodeAt(i)) >>> 0;
+      }
+      return h;
+    };
+    return (category: string) => piePalette[hash(category) % piePalette.length];
+  }, [piePalette]);
+
+  const allocationBreakdown = useMemo(() => {
     const entries = Array.from(categoryTotals.entries())
       .sort((a, b) => b[1] - a[1])
       .slice(0, 8);
     const total = entries.reduce((sum, [, v]) => sum + v, 0) || 1;
-    return entries.map(([_, v], idx) => ({
-      value: Math.round((v / total) * 100),
-      color: piePalette[idx % piePalette.length],
+    return entries.map(([category, amount]) => ({
+      category,
+      amount,
+      percent: amount / total,
+      color: categoryColor(category),
     }));
-  }, [categoryTotals]);
+  }, [categoryColor, categoryTotals]);
+
+  const pieData = useMemo(() => {
+    return allocationBreakdown.map((c) => ({
+      value: c.amount,
+      color: c.color,
+    }));
+  }, [allocationBreakdown]);
 
   return (
     <LinearGradient
@@ -101,22 +122,19 @@ export default function DashboardScreen() {
           <IconSymbol name="bell.fill" size={18} color={colors.textSecondary} />
         </View>
 
-        <View
-          style={[
-            styles.card,
-            {
-              backgroundColor: colors.surface,
-              borderColor: colors.border,
-            },
-          ]}
-        >
+        <GlassCard style={styles.card}>
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
             TOTAL
           </Text>
-          <Text style={[styles.bigAmount, { color: colors.success }]}>
+          <Text
+            style={[
+              styles.bigAmount,
+              { color: balance >= 0 ? colors.success : colors.error },
+            ]}
+          >
             {formatCurrency(balance)}
           </Text>
-        </View>
+        </GlassCard>
 
         <View style={{ gap: 12, marginBottom: Spacing.m }}>
           <View
@@ -124,7 +142,6 @@ export default function DashboardScreen() {
               styles.pill,
               {
                 borderLeftColor: colors.success,
-                backgroundColor: colors.surface,
                 borderColor: colors.border,
               },
             ]}
@@ -134,7 +151,6 @@ export default function DashboardScreen() {
                 styles.pillIcon,
                 {
                   borderColor: colors.success,
-                  backgroundColor: colors.surface,
                 },
               ]}
             >
@@ -159,17 +175,11 @@ export default function DashboardScreen() {
               styles.pill,
               {
                 borderLeftColor: colors.error,
-                backgroundColor: colors.surface,
                 borderColor: colors.border,
               },
             ]}
           >
-            <View
-              style={[
-                styles.pillIcon,
-                { borderColor: colors.error, backgroundColor: colors.surface },
-              ]}
-            >
+            <View style={[styles.pillIcon, { borderColor: colors.error }]}>
               <IconSymbol
                 name="arrow.up.right"
                 size={16}
@@ -191,7 +201,6 @@ export default function DashboardScreen() {
               styles.pill,
               {
                 borderLeftColor: colors.primary,
-                backgroundColor: colors.surface,
                 borderColor: colors.border,
               },
             ]}
@@ -201,7 +210,6 @@ export default function DashboardScreen() {
                 styles.pillIcon,
                 {
                   borderColor: colors.primary,
-                  backgroundColor: colors.surface,
                 },
               ]}
             >
@@ -222,15 +230,7 @@ export default function DashboardScreen() {
           </View>
         </View>
 
-        <View
-          style={[
-            styles.card,
-            {
-              backgroundColor: colors.surface,
-              borderColor: colors.border,
-            },
-          ]}
-        >
+        <GlassCard style={styles.card}>
           <Text style={[styles.cardTitle, { color: colors.text }]}>
             Monthly Allocation
           </Text>
@@ -244,46 +244,86 @@ export default function DashboardScreen() {
                   ? pieData
                   : [{ value: 100, color: colors.border }]
               }
-              centerLabelComponent={() => {
-                return (
-                  <View
-                    style={{ justifyContent: "center", alignItems: "center" }}
+              centerLabelComponent={() => (
+                <View
+                  style={{ justifyContent: "center", alignItems: "center" }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      color: colors.textSecondary,
+                      fontWeight: "bold",
+                    }}
                   >
-                    <Text
-                      style={{
-                        fontSize: 12,
-                        color: colors.textSecondary,
-                        fontWeight: "bold",
-                      }}
-                    >
-                      TOTAL
-                    </Text>
-                    <Text
-                      style={{
-                        fontSize: 20,
-                        color: colors.text,
-                        fontWeight: "bold",
-                      }}
-                    >
-                      {formatCurrency(expense)}
-                    </Text>
-                  </View>
-                );
-              }}
+                    TOTAL
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 20,
+                      color: colors.text,
+                      fontWeight: "bold",
+                    }}
+                  >
+                    {formatCurrency(expense)}
+                  </Text>
+                </View>
+              )}
             />
           </View>
-        </View>
+          {allocationBreakdown.length > 0 ? (
+            <View style={{ gap: 12 }}>
+              {allocationBreakdown.map((c) => (
+                <View
+                  key={c.category}
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      flex: 1,
+                    }}
+                  >
+                    <View
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: 4,
+                        marginRight: 12,
+                        backgroundColor: c.color,
+                      }}
+                    />
+                    <Text
+                      style={{ color: colors.textSecondary, fontSize: 14 }}
+                      numberOfLines={1}
+                    >
+                      {c.category}
+                    </Text>
+                  </View>
+                  <Text
+                    style={{
+                      color: colors.text,
+                      fontSize: 14,
+                      fontWeight: "600",
+                    }}
+                  >
+                    {Math.round(c.percent * 100)}%
+                  </Text>
+                </View>
+              ))}
+            </View>
+          ) : (
+            <Text style={{ color: colors.textSecondary, fontSize: 14 }}>
+              No hay gastos en este mes.
+            </Text>
+          )}
+        </GlassCard>
 
-        <View
-          style={[
-            styles.card,
-            {
-              backgroundColor: colors.surface,
-              borderColor: colors.border,
-              paddingBottom: 8,
-            },
-          ]}
-        >
+        <GlassCard style={[styles.card, { paddingBottom: 8 }]}>
           <View
             style={{
               flexDirection: "row",
@@ -361,7 +401,7 @@ export default function DashboardScreen() {
               </View>
             );
           })}
-        </View>
+        </GlassCard>
       </ScrollView>
     </LinearGradient>
   );
@@ -396,6 +436,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderLeftWidth: 2,
     borderWidth: 1,
+    backgroundColor: "rgba(255,255,255,0.2)",
   },
   pillIcon: {
     width: 40,
