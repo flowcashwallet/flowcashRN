@@ -167,5 +167,13 @@
     "availableRestores": "Restauraciones disponibles",
     "last30Days": "Últimos 30 días",
     "restoreAction": "Restaurar Racha"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "total": "TOTAL",
+    "monthlyIncome": "INGRESOS DEL MES",
+    "monthlyOutflow": "GASTOS DEL MES",
+    "projectedSavings": "AHORRO PROYECTADO",
+    "monthlyAllocation": "Asignación mensual"
   }
 }

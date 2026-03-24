@@ -3,6 +3,7 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { BorderRadius, Spacing } from "@/constants/theme";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useWalletData } from "@/features/wallet/hooks/useWalletData";
+import STRINGS from "@/i18n/es.json";
 import { formatCurrency } from "@/utils/format";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
@@ -117,14 +118,14 @@ export default function DashboardScreen() {
             <IconSymbol name="person.fill" size={18} color={colors.primary} />
           </View>
           <Text style={{ color: colors.primary, fontWeight: "bold" }}>
-            Dashboard
+            {STRINGS.dashboard.title}
           </Text>
           <IconSymbol name="bell.fill" size={18} color={colors.textSecondary} />
         </View>
 
         <GlassCard style={styles.card}>
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-            TOTAL
+            {STRINGS.dashboard.total}
           </Text>
           <Text
             style={[
@@ -162,7 +163,7 @@ export default function DashboardScreen() {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[styles.label, { color: colors.textSecondary }]}>
-                INGRESOS DEL MES
+                {STRINGS.dashboard.monthlyIncome}
               </Text>
               <Text style={[styles.value, { color: colors.text }]}>
                 {formatCurrency(income)}
@@ -188,7 +189,7 @@ export default function DashboardScreen() {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[styles.label, { color: colors.textSecondary }]}>
-                GASTOS DEL MES
+                {STRINGS.dashboard.monthlyOutflow}
               </Text>
               <Text style={[styles.value, { color: colors.text }]}>
                 {formatCurrency(expense)}
@@ -221,7 +222,7 @@ export default function DashboardScreen() {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[styles.label, { color: colors.textSecondary }]}>
-                AHORRO PROYECTADO
+                {STRINGS.dashboard.projectedSavings}
               </Text>
               <Text style={[styles.value, { color: colors.text }]}>
                 {formatCurrency(savings)}
@@ -232,7 +233,7 @@ export default function DashboardScreen() {
 
         <GlassCard style={styles.card}>
           <Text style={[styles.cardTitle, { color: colors.text }]}>
-            Monthly Allocation
+            {STRINGS.dashboard.monthlyAllocation}
           </Text>
           <View style={{ alignItems: "center", marginBottom: 20 }}>
             <PieChart
@@ -255,7 +256,7 @@ export default function DashboardScreen() {
                       fontWeight: "bold",
                     }}
                   >
-                    TOTAL
+                    {STRINGS.dashboard.total}
                   </Text>
                   <Text
                     style={{
