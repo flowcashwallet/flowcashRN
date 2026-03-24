@@ -17,7 +17,7 @@ const lightPalette = {
   textSecondary: "#475569", // Slate 600
 
   // Brand
-  primary: "#2d70d4ff", // Teal 600
+  primary: "#8EC5FC", // Teal 600
   secondary: "#0284C7", // Sky 600
   accent: "#6366F1", // Indigo 500
 
@@ -54,7 +54,7 @@ const darkPalette = {
   textSecondary: "#94A3B8", // Slate 400 - Light Grey
 
   // Brand (Adjusted for Dark Mode contrast)
-  primary: "#2d70d4ff", // Teal 400 - Brighter/Lighter Teal
+  primary: "#0D9488", // Teal 400 - Brighter/Lighter Teal
   secondary: "#38BDF8", // Sky 400 - Brighter Sky
   accent: "#818CF8", // Indigo 400
 
