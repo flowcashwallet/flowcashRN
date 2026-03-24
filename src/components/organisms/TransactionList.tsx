@@ -126,6 +126,7 @@ export function TransactionList({
   return (
     <View style={styles.container}>
       <SectionList
+        contentInsetAdjustmentBehavior="automatic"
         sections={sections}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
@@ -133,7 +134,7 @@ export function TransactionList({
           <View
             style={[
               styles.sectionHeader,
-              { backgroundColor: colors.background },
+              { backgroundColor: "transparent" },
             ]}
           >
             <Typography

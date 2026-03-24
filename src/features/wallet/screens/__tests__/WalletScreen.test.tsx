@@ -7,10 +7,50 @@ import { useWalletTransactions } from "../../hooks/useWalletTransactions";
 import WalletScreen from "../WalletScreen";
 
 // Mock Hooks
+jest.mock("react-redux", () => ({
+  useDispatch: () => jest.fn(),
+  useSelector: jest.fn((fn) => fn({ settings: { isVoiceCommandEnabled: false } })),
+  useStore: () => ({ getState: jest.fn() })
+}));
 jest.mock("../../hooks/useWalletData");
 jest.mock("../../hooks/useWalletTransactions");
 jest.mock("expo-router", () => ({
   useRouter: jest.fn(),
+}));
+jest.mock("@/contexts/ThemeContext", () => ({
+  useTheme: () => ({ colors: { background: "#ffffff", text: "#000000" } }),
+}));
+jest.mock("@react-navigation/elements", () => ({
+  useHeaderHeight: () => 100,
+}));
+jest.mock("expo-linear-gradient", () => ({ LinearGradient: "LinearGradient" }));
+jest.mock("expo-blur", () => ({ BlurView: "BlurView" }));
+jest.mock("@/components/molecules/FloatingActionMenu", () => ({
+  FloatingActionMenu: () => "FloatingActionMenu",
+}));
+jest.mock("react-native-worklets", () => ({
+  default: {},
+  makeShareable: jest.fn(),
+}));
+jest.mock("@/features/wallet/components/WalletHeader", () => ({
+  WalletHeader: (props: any) => {
+    const { Text, View } = require("react-native");
+    return (
+      <View>
+        <Text>{props.currentMonthName}</Text>
+        <Text>Balance Total</Text>
+      </View>
+    );
+  }
+}));
+jest.mock("@/components/atoms/Typography", () => ({
+  Typography: ({ children }: any) => {
+    const { Text } = require("react-native");
+    return <Text>{children}</Text>;
+  }
+}));
+jest.mock("@/components/atoms/VoiceInputButton", () => ({
+  VoiceInputButton: () => "VoiceInputButton",
 }));
 
 // Mock only complex components or those with native dependencies that break tests

@@ -1,7 +1,6 @@
 import { VoiceInputButton } from "@/components/atoms/VoiceInputButton";
 import { FloatingActionMenu } from "@/components/molecules/FloatingActionMenu";
 import { TransactionList } from "@/components/organisms/TransactionList";
-import { ThemedView } from "@/components/themed-view";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { BorderRadius, Spacing } from "@/constants/theme";
 import STRINGS from "@/i18n/es.json";
@@ -9,6 +8,8 @@ import { endpoints } from "@/services/api";
 import { RootState } from "@/store/store";
 import { fetchWithAuth } from "@/utils/apiClient";
 import { useHeaderHeight } from "@react-navigation/elements";
+import { BlurView } from "expo-blur";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import {
@@ -70,12 +71,12 @@ export default function WalletScreen() {
     entityId: string | null;
     type: "income" | "expense" | null;
     paymentType:
-      | "credit_card"
-      | "debit_card"
-      | "cash"
-      | "transfer"
-      | "payroll"
-      | null;
+    | "credit_card"
+    | "debit_card"
+    | "cash"
+    | "transfer"
+    | "payroll"
+    | null;
     dateMode: "none" | "single" | "range";
     date: number | null;
     dateFrom: number | null;
@@ -281,13 +282,18 @@ export default function WalletScreen() {
           style={{
             flexDirection: "row",
             alignItems: "center",
-            backgroundColor: colors.background,
+            backgroundColor: "rgba(255, 255, 255, 0.15)",
             borderRadius: BorderRadius.l,
             paddingHorizontal: Spacing.s,
-            paddingVertical: Platform.OS === "ios" ? Spacing.xs : 0,
+            paddingVertical: Platform.OS === "ios" ? Spacing.xs : 10,
             marginBottom: Spacing.m,
-            borderWidth: 1.4,
-            borderColor: colors.border,
+            borderWidth: 1,
+            borderColor: "rgba(255, 255, 255, 0.3)",
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.1,
+            shadowRadius: 10,
+            elevation: 5,
           }}
         >
           <IconSymbol
@@ -340,7 +346,24 @@ export default function WalletScreen() {
 
   return (
     <>
-      <ThemedView collapsable={false} style={styles.container}>
+      <LinearGradient
+        collapsable={false}
+        colors={
+          colors.background.toLowerCase() === "#ffffff" || colors.background.toLowerCase() === "#fff" || colors.background === "#f2f2f7"
+            ? ["#8EC5FC", "#E0C3FC"]
+            : ["#0F2027", "#203A43", "#2C5364"]
+        }
+        style={styles.container}
+      >
+        <BlurView
+          intensity={80}
+          tint={
+            colors.background.toLowerCase() === "#ffffff" || colors.background.toLowerCase() === "#fff" || colors.background === "#f2f2f7"
+              ? "light"
+              : "dark"
+          }
+          style={StyleSheet.absoluteFill}
+        />
         {/* Removed Stack.Toolbar due to conflict with NativeTabs */}
         <FloatingActionMenu
           actions={[
@@ -457,7 +480,7 @@ export default function WalletScreen() {
             </View>
           )}
         </View>
-      </ThemedView>
+      </LinearGradient>
     </>
   );
 }

@@ -43,6 +43,10 @@ export default function TabLayout() {
           <NativeTabs.Trigger.Icon sf="chart.pie.fill" md="pie_chart" />
           <NativeTabs.Trigger.Label>Statistics</NativeTabs.Trigger.Label>
         </NativeTabs.Trigger>
+        <NativeTabs.Trigger name="dashboard">
+          <NativeTabs.Trigger.Icon sf="squareshape.split.2x2" md="dashboard" />
+          <NativeTabs.Trigger.Label>Dashboard</NativeTabs.Trigger.Label>
+        </NativeTabs.Trigger>
       </NativeTabs>
       <OnboardingTutorial
         visible={isTutorialVisible}
