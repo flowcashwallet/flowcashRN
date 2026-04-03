@@ -2,39 +2,46 @@ import { GlassCard } from "@/components/atoms/GlassCard";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { BorderRadius, Spacing } from "@/constants/theme";
 import { useTheme } from "@/contexts/ThemeContext";
+import { MonthSelector } from "@/features/wallet/components/MonthSelector";
+import { MonthYearPickerModal } from "@/features/wallet/components/MonthYearPickerModal";
 import { useWalletData } from "@/features/wallet/hooks/useWalletData";
 import STRINGS from "@/i18n/es.json";
 import { formatCurrency } from "@/utils/format";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { PieChart } from "react-native-gifted-charts";
 
 export default function DashboardScreen() {
   const { colors } = useTheme();
-  const { transactions, income, expense, balance } = useWalletData();
-  const now = new Date();
-  const month = now.getMonth();
-  const year = now.getFullYear();
+  const {
+    currentMonthTransactions,
+    currentMonthName,
+    selectedDate,
+    setSelectedDate,
+    income,
+    expense,
+    balance,
+  } = useWalletData();
+  const year = selectedDate.getFullYear();
+  const [datePickerVisible, setDatePickerVisible] = useState(false);
 
   const recentTransactions = useMemo(
-    () => transactions.slice(0, 5),
-    [transactions],
+    () => currentMonthTransactions.slice(0, 5),
+    [currentMonthTransactions],
   );
   const savings = income - expense;
 
   const categoryTotals = useMemo(() => {
     const totals = new Map<string, number>();
-    for (const t of transactions) {
-      const d = new Date(t.date);
+    for (const t of currentMonthTransactions) {
       if (t.type !== "expense") continue;
-      if (d.getMonth() !== month || d.getFullYear() !== year) continue;
       const key = t.category || "Otros";
       totals.set(key, (totals.get(key) || 0) + Math.abs(t.amount));
     }
     return totals;
-  }, [transactions, month, year]);
+  }, [currentMonthTransactions]);
 
   const piePalette = [
     "#8fb1ff",
@@ -121,6 +128,15 @@ export default function DashboardScreen() {
             {STRINGS.dashboard.title}
           </Text>
           <IconSymbol name="bell.fill" size={18} color={colors.textSecondary} />
+        </View>
+
+        <View style={{ marginBottom: Spacing.m }}>
+          <MonthSelector
+            currentMonthName={currentMonthName}
+            year={year}
+            showYear={year !== new Date().getFullYear()}
+            onPress={() => setDatePickerVisible(true)}
+          />
         </View>
 
         <GlassCard style={styles.card}>
@@ -404,6 +420,13 @@ export default function DashboardScreen() {
           })}
         </GlassCard>
       </ScrollView>
+
+      <MonthYearPickerModal
+        visible={datePickerVisible}
+        onClose={() => setDatePickerVisible(false)}
+        selectedDate={selectedDate}
+        onSelect={setSelectedDate}
+      />
     </LinearGradient>
   );
 }
