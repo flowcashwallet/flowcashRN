@@ -11,7 +11,7 @@ import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { useMemo, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
-import { PieChart } from "react-native-gifted-charts";
+import { LineChart, PieChart } from "react-native-gifted-charts";
 
 export default function DashboardScreen() {
   const { colors } = useTheme();
@@ -33,11 +33,33 @@ export default function DashboardScreen() {
   );
   const savings = income - expense;
 
+  const weeklyExpense = useMemo(() => {
+    const monthIndex = selectedDate.getMonth();
+    const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+    const weeksCount = Math.ceil(daysInMonth / 7);
+    const totals = Array.from({ length: weeksCount }, () => 0);
+
+    for (const t of currentMonthTransactions) {
+      if (t.type !== "expense") continue;
+      const day = new Date(t.date).getDate();
+      const weekIndex = Math.min(weeksCount - 1, Math.floor((day - 1) / 7));
+      totals[weekIndex] += Math.abs(t.amount);
+    }
+
+    const data = totals.map((value, i) => ({
+      value,
+      label: `${STRINGS.dashboard.weekAbbrev} ${i + 1}`,
+    }));
+
+    const hasData = totals.some((v) => v > 0);
+    return { data, hasData };
+  }, [currentMonthTransactions, selectedDate, year]);
+
   const categoryTotals = useMemo(() => {
     const totals = new Map<string, number>();
     for (const t of currentMonthTransactions) {
       if (t.type !== "expense") continue;
-      const key = t.category || "Otros";
+      const key = t.category || STRINGS.dashboard.uncategorized;
       totals.set(key, (totals.get(key) || 0) + Math.abs(t.amount));
     }
     return totals;
@@ -249,6 +271,40 @@ export default function DashboardScreen() {
 
         <GlassCard style={styles.card}>
           <Text style={[styles.cardTitle, { color: colors.text }]}>
+            {STRINGS.dashboard.weeklySpending}
+          </Text>
+          {weeklyExpense.hasData ? (
+            <LineChart
+              data={weeklyExpense.data}
+              color={colors.primary}
+              thickness={3}
+              hideDataPoints={false}
+              dataPointsColor={colors.primary}
+              dataPointsRadius={4}
+              height={160}
+              spacing={56}
+              initialSpacing={10}
+              endSpacing={10}
+              yAxisColor={colors.border}
+              xAxisColor={colors.border}
+              xAxisLabelTextStyle={{
+                color: colors.textSecondary,
+                fontSize: 12,
+              }}
+              yAxisTextStyle={{ color: colors.textSecondary, fontSize: 12 }}
+              noOfSections={4}
+              backgroundColor="transparent"
+              rulesColor={colors.border}
+            />
+          ) : (
+            <Text style={{ color: colors.textSecondary, fontSize: 14 }}>
+              {STRINGS.dashboard.noWeeklySpending}
+            </Text>
+          )}
+        </GlassCard>
+
+        <GlassCard style={styles.card}>
+          <Text style={[styles.cardTitle, { color: colors.text }]}>
             {STRINGS.dashboard.monthlyAllocation}
           </Text>
           <View style={{ alignItems: "center", marginBottom: 20 }}>
@@ -398,7 +454,9 @@ export default function DashboardScreen() {
                     {tx.description}
                   </Text>
                   <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
-                    {(tx.category || "General") + " • " + dateStr}
+                    {(tx.category || STRINGS.dashboard.uncategorized) +
+                      " • " +
+                      dateStr}
                   </Text>
                 </View>
                 <View style={{ alignItems: "flex-end" }}>

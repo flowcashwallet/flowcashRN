@@ -24,7 +24,7 @@
   ],
   "crons": [
     {
-      "path": "/wallet/cron/process_recurring/",
+      "path": "/api/wallet/cron/process_recurring/",
       "schedule": "0 14 * * *"
     }
   ]
