@@ -14,6 +14,7 @@ import os
 
 class CronViewSet(viewsets.ViewSet):
     permission_classes = [permissions.AllowAny] # Secured by header check manually
+    authentication_classes = []  # Avoid JWT auth treating CRON_SECRET as an access token
 
     @action(detail=False, methods=['get'])
     def process_recurring(self, request):
@@ -30,7 +31,15 @@ class CronViewSet(viewsets.ViewSet):
         incoming_token = auth_header.replace('Bearer ', '').strip()
         if incoming_token != cron_secret:
             return Response(
-                {"error": "Unauthorized"},
+                {
+                    "error": "Unauthorized",
+                    "debug": {
+                        "hasAuthorizationHeader": bool(auth_header),
+                        "authHeaderStartsWithBearer": auth_header.startswith("Bearer "),
+                        "incomingTokenLength": len(incoming_token),
+                        "configuredSecretLength": len(cron_secret),
+                    },
+                },
                 status=status.HTTP_401_UNAUTHORIZED,
             )
 
