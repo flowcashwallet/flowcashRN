@@ -1,4 +1,4 @@
-import { Card } from "@/components/atoms/Card";
+import { GlassCard } from "@/components/atoms/GlassCard";
 import { Typography } from "@/components/atoms/Typography";
 import { ThemedView } from "@/components/themed-view";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -96,7 +96,11 @@ export default function AnalyticsScreen() {
   };
 
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView
+      lightColor="transparent"
+      darkColor="transparent"
+      style={styles.container}
+    >
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={[
@@ -145,7 +149,7 @@ export default function AnalyticsScreen() {
             Consejos para ti
           </Text>
           {financialTips.map((tip, index) => (
-            <Card key={index} variant="outlined" style={styles.tipCard}>
+            <GlassCard key={index} style={styles.tipCard}>
               <IconSymbol
                 name="lightbulb.fill"
                 size={24}
@@ -154,7 +158,7 @@ export default function AnalyticsScreen() {
               <Text style={[styles.tipText, { color: colors.text }]}>
                 {tip}
               </Text>
-            </Card>
+            </GlassCard>
           ))}
         </View>
 
@@ -176,7 +180,7 @@ export default function AnalyticsScreen() {
             </Text>
           ) : (
             recurringExpenses.map((expense, index) => (
-              <Card key={index} variant="outlined" style={styles.expenseCard}>
+              <GlassCard key={index} style={styles.expenseCard}>
                 <View style={styles.expenseHeader}>
                   <Text style={[styles.expenseName, { color: colors.text }]}>
                     {expense.description}
@@ -193,7 +197,7 @@ export default function AnalyticsScreen() {
                 >
                   Total del mes
                 </Text>
-              </Card>
+              </GlassCard>
             ))
           )}
         </View>
@@ -216,7 +220,7 @@ export default function AnalyticsScreen() {
             </Text>
           ) : (
             topCategories.map((category, index) => (
-              <Card key={index} variant="outlined" style={styles.categoryCard}>
+              <GlassCard key={index} style={styles.categoryCard}>
                 <TouchableOpacity
                   style={styles.categoryHeader}
                   onPress={() => handleCategoryPress(category.category)}
@@ -313,7 +317,7 @@ export default function AnalyticsScreen() {
                     )}
                   </View>
                 )}
-              </Card>
+              </GlassCard>
             ))
           )}
         </View>

@@ -12,14 +12,18 @@ export default function BudgetScreen() {
 
   if (budgetLoading) {
     return (
-      <ThemedView style={[styles.container, { justifyContent: "center" }]}>
+      <ThemedView
+        lightColor="transparent"
+        darkColor="transparent"
+        style={[styles.container, { justifyContent: "center" }]}
+      >
         <ActivityIndicator size="large" color={colors.primary} />
       </ThemedView>
     );
   }
 
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView lightColor="transparent" darkColor="transparent" style={styles.container}>
       <Stack.Screen
         options={{
           headerShown: true,

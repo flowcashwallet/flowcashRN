@@ -5,6 +5,7 @@ import STRINGS from "@/i18n/es.json";
 import { formatCurrency } from "@/utils/format";
 import React, { useState } from "react";
 import { Platform, StyleSheet, TouchableOpacity, View } from "react-native";
+import { BlurView } from "expo-blur";
 import Animated, {
   FadeIn,
   FadeOut,
@@ -35,14 +36,17 @@ export const WalletHeader: React.FC<WalletHeaderProps> = ({
   const remaining = income - expense;
 
   return (
-    <View
+    <BlurView
+      intensity={40}
+      tint="dark"
       style={[
         styles.balanceCard,
         {
           padding: Spacing.m,
           borderRadius: BorderRadius.xl,
-          backgroundColor: "#2C2C2E", // Dark card background like the image
-          borderWidth: 0, // Remove border for the clean dark look
+          backgroundColor: "rgba(20, 20, 20, 0.4)", // Dark liquid glass
+          borderWidth: 1, // Glass border
+          borderColor: "rgba(255, 255, 255, 0.2)",
           ...Platform.select({
             ios: {
               shadowColor: "#000",
@@ -185,7 +189,7 @@ export const WalletHeader: React.FC<WalletHeaderProps> = ({
           </View>
         </Animated.View>
       )}
-    </View>
+    </BlurView>
   );
 };
 

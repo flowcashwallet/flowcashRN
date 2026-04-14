@@ -77,7 +77,7 @@ export const VisionEntityList: React.FC<VisionEntityListProps> = ({
               flexDirection: "row",
               alignItems: "center",
               padding: Spacing.m,
-              backgroundColor: colors.surface,
+              backgroundColor: colors.glass.cardBg,
               marginBottom: Spacing.s,
               borderRadius: 12,
             }}

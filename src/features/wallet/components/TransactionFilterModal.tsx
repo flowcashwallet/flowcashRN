@@ -6,15 +6,23 @@ import { VisionEntity } from "@/features/vision/data/visionSlice";
 import { Category } from "@/features/wallet/data/categoriesSlice";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import STRINGS from "@/i18n/es.json";
+import { RootState } from "@/store/store";
+import DateTimePicker, {
+    DateTimePickerEvent,
+} from "@react-native-community/datetimepicker";
+import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  View,
+    Modal,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    TouchableOpacity,
+    View,
 } from "react-native";
+import { useDispatch, useSelector } from "react-redux";
+import { clearCategoryPickerSelection } from "../data/walletUiSlice";
 
 interface TransactionFilterModalProps {
   visible: boolean;
@@ -32,6 +40,10 @@ interface TransactionFilterModalProps {
       | "transfer"
       | "payroll"
       | null;
+    dateMode: "none" | "single" | "range";
+    date: number | null;
+    dateFrom: number | null;
+    dateTo: number | null;
   };
   onApply: (filters: {
     category: string | null;
@@ -44,6 +56,10 @@ interface TransactionFilterModalProps {
       | "transfer"
       | "payroll"
       | null;
+    dateMode: "none" | "single" | "range";
+    date: number | null;
+    dateFrom: number | null;
+    dateTo: number | null;
   }) => void;
   onClear: () => void;
 }
@@ -57,6 +73,8 @@ export const TransactionFilterModal: React.FC<TransactionFilterModalProps> = ({
   onApply,
   onClear,
 }) => {
+  const router = useRouter();
+  const dispatch = useDispatch();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme === "dark" ? "dark" : "light"];
 
@@ -73,10 +91,28 @@ export const TransactionFilterModal: React.FC<TransactionFilterModalProps> = ({
     "credit_card" | "debit_card" | "cash" | "transfer" | "payroll" | null
   >(currentFilters.paymentType);
 
-  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
+  const [dateMode, setDateMode] = useState<"none" | "single" | "range">(
+    currentFilters.dateMode,
+  );
+  const [selectedDate, setSelectedDate] = useState<number | null>(
+    currentFilters.date,
+  );
+  const [selectedFromDate, setSelectedFromDate] = useState<number | null>(
+    currentFilters.dateFrom,
+  );
+  const [selectedToDate, setSelectedToDate] = useState<number | null>(
+    currentFilters.dateTo,
+  );
+  const [activeDatePicker, setActiveDatePicker] = useState<
+    "single" | "from" | "to" | null
+  >(null);
+
   const [isEntityDropdownOpen, setIsEntityDropdownOpen] = useState(false);
   const [isPaymentTypeDropdownOpen, setIsPaymentTypeDropdownOpen] =
     useState(false);
+  const categoryPickerSelection = useSelector(
+    (state: RootState) => state.walletUi.categoryPickerSelection,
+  );
 
   useEffect(() => {
     if (visible) {
@@ -84,18 +120,41 @@ export const TransactionFilterModal: React.FC<TransactionFilterModalProps> = ({
       setSelectedEntityId(currentFilters.entityId);
       setSelectedType(currentFilters.type);
       setSelectedPaymentType(currentFilters.paymentType);
-      setIsCategoryDropdownOpen(false);
+      setDateMode(currentFilters.dateMode);
+      setSelectedDate(currentFilters.date);
+      setSelectedFromDate(currentFilters.dateFrom);
+      setSelectedToDate(currentFilters.dateTo);
+      setActiveDatePicker(null);
       setIsEntityDropdownOpen(false);
       setIsPaymentTypeDropdownOpen(false);
     }
   }, [visible, currentFilters]);
 
+  useEffect(() => {
+    if (!visible) return;
+    if (!categoryPickerSelection) return;
+    if (categoryPickerSelection.target !== "transactionFilter") return;
+    setSelectedCategory(categoryPickerSelection.value);
+    dispatch(clearCategoryPickerSelection());
+  }, [categoryPickerSelection, dispatch, visible]);
+
   const handleApply = () => {
+    const normalizedDateMode =
+      dateMode === "single" && !selectedDate
+        ? "none"
+        : dateMode === "range" && !selectedFromDate && !selectedToDate
+          ? "none"
+          : dateMode;
+
     onApply({
       category: selectedCategory,
       entityId: selectedEntityId,
       type: selectedType,
       paymentType: selectedPaymentType,
+      dateMode: normalizedDateMode,
+      date: normalizedDateMode === "single" ? selectedDate : null,
+      dateFrom: normalizedDateMode === "range" ? selectedFromDate : null,
+      dateTo: normalizedDateMode === "range" ? selectedToDate : null,
     });
     onClose();
   };
@@ -105,6 +164,11 @@ export const TransactionFilterModal: React.FC<TransactionFilterModalProps> = ({
     setSelectedEntityId(null);
     setSelectedType(null);
     setSelectedPaymentType(null);
+    setDateMode("none");
+    setSelectedDate(null);
+    setSelectedFromDate(null);
+    setSelectedToDate(null);
+    setActiveDatePicker(null);
     onClear();
     onClose();
   };
@@ -137,6 +201,76 @@ export const TransactionFilterModal: React.FC<TransactionFilterModalProps> = ({
       </Typography>
     </Pressable>
   );
+
+  const DateRow = ({
+    label,
+    value,
+    onPress,
+  }: {
+    label: string;
+    value: number | null;
+    onPress: () => void;
+  }) => (
+    <TouchableOpacity
+      onPress={onPress}
+      style={[
+        styles.dateRow,
+        {
+          backgroundColor: colors.surfaceHighlight,
+          borderColor: colors.border,
+        },
+      ]}
+    >
+      <Typography variant="caption" style={{ color: colors.textSecondary }}>
+        {label}
+      </Typography>
+      <Typography variant="body" style={{ color: colors.text }}>
+        {value
+          ? new Date(value).toLocaleDateString()
+          : ((STRINGS.wallet as any).selectDate ?? "Seleccionar fecha")}
+      </Typography>
+    </TouchableOpacity>
+  );
+
+  const RadioRow = ({
+    label,
+    selected,
+    onPress,
+  }: {
+    label: string;
+    selected: boolean;
+    onPress: () => void;
+  }) => (
+    <Pressable onPress={onPress} style={styles.radioRow}>
+      <View
+        style={[
+          styles.radioOuter,
+          { borderColor: selected ? colors.primary : colors.border },
+        ]}
+      >
+        {selected && (
+          <View
+            style={[styles.radioInner, { backgroundColor: colors.primary }]}
+          />
+        )}
+      </View>
+      <Typography variant="body" style={{ color: colors.text }}>
+        {label}
+      </Typography>
+    </Pressable>
+  );
+
+  const handleDateChange = (
+    target: "single" | "from" | "to",
+    _: DateTimePickerEvent,
+    selected?: Date,
+  ) => {
+    const next = selected?.getTime();
+    if (target === "single") setSelectedDate(next ?? null);
+    if (target === "from") setSelectedFromDate(next ?? null);
+    if (target === "to") setSelectedToDate(next ?? null);
+    setActiveDatePicker(null);
+  };
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
@@ -189,6 +323,114 @@ export const TransactionFilterModal: React.FC<TransactionFilterModalProps> = ({
                   }
                 />
               </View>
+            </View>
+
+            {/* Date Filter */}
+            <View style={styles.section}>
+              <Typography
+                variant="body"
+                weight="bold"
+                style={{ marginBottom: Spacing.s, color: colors.text }}
+              >
+                {(STRINGS.wallet as any).dateFilter ?? "Fecha"}
+              </Typography>
+
+              <RadioRow
+                label={(STRINGS.wallet as any).noDateFilter ?? "Sin filtro"}
+                selected={dateMode === "none"}
+                onPress={() => {
+                  setDateMode("none");
+                  setSelectedDate(null);
+                  setSelectedFromDate(null);
+                  setSelectedToDate(null);
+                  setActiveDatePicker(null);
+                }}
+              />
+              <RadioRow
+                label={(STRINGS.wallet as any).singleDate ?? "Fecha específica"}
+                selected={dateMode === "single"}
+                onPress={() => {
+                  setDateMode("single");
+                  setSelectedFromDate(null);
+                  setSelectedToDate(null);
+                  setActiveDatePicker(null);
+                }}
+              />
+              {dateMode === "single" && (
+                <>
+                  <DateRow
+                    label={STRINGS.wallet.date}
+                    value={selectedDate}
+                    onPress={() => setActiveDatePicker("single")}
+                  />
+                  {activeDatePicker === "single" && (
+                    <DateTimePicker
+                      value={new Date(selectedDate ?? Date.now())}
+                      mode="date"
+                      display={Platform.OS === "ios" ? "inline" : "default"}
+                      onChange={(e, d) => handleDateChange("single", e, d)}
+                      maximumDate={new Date()}
+                      style={
+                        Platform.OS === "ios"
+                          ? { backgroundColor: colors.surfaceHighlight }
+                          : undefined
+                      }
+                    />
+                  )}
+                </>
+              )}
+
+              <RadioRow
+                label={(STRINGS.wallet as any).dateRange ?? "Rango de fechas"}
+                selected={dateMode === "range"}
+                onPress={() => {
+                  setDateMode("range");
+                  setSelectedDate(null);
+                  setActiveDatePicker(null);
+                }}
+              />
+              {dateMode === "range" && (
+                <>
+                  <DateRow
+                    label={(STRINGS.wallet as any).from ?? "Desde"}
+                    value={selectedFromDate}
+                    onPress={() => setActiveDatePicker("from")}
+                  />
+                  {activeDatePicker === "from" && (
+                    <DateTimePicker
+                      value={new Date(selectedFromDate ?? Date.now())}
+                      mode="date"
+                      display={Platform.OS === "ios" ? "inline" : "default"}
+                      onChange={(e, d) => handleDateChange("from", e, d)}
+                      maximumDate={new Date()}
+                      style={
+                        Platform.OS === "ios"
+                          ? { backgroundColor: colors.surfaceHighlight }
+                          : undefined
+                      }
+                    />
+                  )}
+                  <DateRow
+                    label={(STRINGS.wallet as any).to ?? "Hasta"}
+                    value={selectedToDate}
+                    onPress={() => setActiveDatePicker("to")}
+                  />
+                  {activeDatePicker === "to" && (
+                    <DateTimePicker
+                      value={new Date(selectedToDate ?? Date.now())}
+                      mode="date"
+                      display={Platform.OS === "ios" ? "inline" : "default"}
+                      onChange={(e, d) => handleDateChange("to", e, d)}
+                      maximumDate={new Date()}
+                      style={
+                        Platform.OS === "ios"
+                          ? { backgroundColor: colors.surfaceHighlight }
+                          : undefined
+                      }
+                    />
+                  )}
+                </>
+              )}
             </View>
 
             {/* Payment Type Filter */}
@@ -277,7 +519,7 @@ export const TransactionFilterModal: React.FC<TransactionFilterModalProps> = ({
                       { id: "cash", label: "Efectivo" },
                       { id: "transfer", label: "Transferencia" },
                       { id: "payroll", label: "Nómina" },
-                    ].map((pt, index) => (
+                    ].map((pt) => (
                       <TouchableOpacity
                         key={pt.id}
                         onPress={() => {
@@ -383,7 +625,7 @@ export const TransactionFilterModal: React.FC<TransactionFilterModalProps> = ({
                           Todos
                         </Typography>
                       </TouchableOpacity>
-                      {entities.map((entity, index) => (
+                      {entities.map((entity) => (
                         <TouchableOpacity
                           key={entity.id}
                           onPress={() => {
@@ -429,20 +671,21 @@ export const TransactionFilterModal: React.FC<TransactionFilterModalProps> = ({
                 </Typography>
                 <TouchableOpacity
                   onPress={() =>
-                    setIsCategoryDropdownOpen(!isCategoryDropdownOpen)
+                    router.push({
+                      pathname: "/wallet/category-picker",
+                      params: {
+                        target: "transactionFilter",
+                        includeAll: "1",
+                        selected: selectedCategory || "",
+                      },
+                    })
                   }
                   style={[
                     styles.dropdown,
                     {
                       backgroundColor: colors.surfaceHighlight,
                       borderColor: colors.border,
-                      marginBottom: isCategoryDropdownOpen ? 0 : Spacing.m,
-                      borderBottomLeftRadius: isCategoryDropdownOpen
-                        ? 0
-                        : BorderRadius.m,
-                      borderBottomRightRadius: isCategoryDropdownOpen
-                        ? 0
-                        : BorderRadius.m,
+                      marginBottom: Spacing.m,
                     },
                   ]}
                 >
@@ -450,77 +693,19 @@ export const TransactionFilterModal: React.FC<TransactionFilterModalProps> = ({
                     <Typography
                       variant="body"
                       style={{
-                        color: selectedCategory
-                          ? colors.text
-                          : colors.textSecondary,
+                        color: colors.text,
                         flex: 1,
                       }}
                     >
-                      {selectedCategory || "Seleccionar Categoría"}
+                      {selectedCategory || "Todas"}
                     </Typography>
-                    <Typography variant="body" style={{ color: colors.text }}>
-                      {isCategoryDropdownOpen ? "▲" : "▼"}
-                    </Typography>
+                    <IconSymbol
+                      name="chevron.right"
+                      size={16}
+                      color={colors.text}
+                    />
                   </View>
                 </TouchableOpacity>
-
-                {isCategoryDropdownOpen && (
-                  <View
-                    style={[
-                      styles.dropdownList,
-                      {
-                        borderColor: colors.border,
-                        backgroundColor: colors.surfaceHighlight,
-                      },
-                    ]}
-                  >
-                    <ScrollView nestedScrollEnabled style={{ maxHeight: 200 }}>
-                      <TouchableOpacity
-                        onPress={() => {
-                          setSelectedCategory(null);
-                          setIsCategoryDropdownOpen(false);
-                        }}
-                        style={[
-                          styles.dropdownItem,
-                          { borderBottomColor: colors.border },
-                        ]}
-                      >
-                        <Typography
-                          variant="body"
-                          style={{ color: colors.text }}
-                        >
-                          Todas
-                        </Typography>
-                      </TouchableOpacity>
-                      {categories.map((cat, index) => (
-                        <TouchableOpacity
-                          key={cat.id || cat.name}
-                          onPress={() => {
-                            setSelectedCategory(cat.name);
-                            setIsCategoryDropdownOpen(false);
-                          }}
-                          style={[
-                            styles.dropdownItem,
-                            {
-                              borderTopWidth: 1,
-                              borderTopColor: colors.border,
-                            },
-                          ]}
-                        >
-                          <Typography
-                            variant="body"
-                            weight={
-                              selectedCategory === cat.name ? "bold" : "regular"
-                            }
-                            style={{ color: colors.text }}
-                          >
-                            {cat.name}
-                          </Typography>
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
-                  </View>
-                )}
               </View>
             )}
           </ScrollView>
@@ -596,5 +781,40 @@ const styles = StyleSheet.create({
   footer: {
     flexDirection: "row",
     marginTop: Spacing.m,
+  },
+  searchContainer: {
+    paddingHorizontal: Spacing.m,
+    paddingVertical: Spacing.s,
+    borderBottomWidth: 1,
+  },
+  searchInput: {
+    paddingVertical: Spacing.s,
+    paddingHorizontal: Spacing.s,
+    borderRadius: BorderRadius.m,
+  },
+  radioRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 10,
+    gap: Spacing.s,
+  },
+  radioOuter: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  radioInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  dateRow: {
+    padding: Spacing.m,
+    borderRadius: BorderRadius.m,
+    borderWidth: 1,
+    marginBottom: Spacing.s,
   },
 });

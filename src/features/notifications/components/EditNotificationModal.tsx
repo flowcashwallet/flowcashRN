@@ -16,6 +16,7 @@ import { NotificationRequest } from "expo-notifications";
 import React, { useEffect, useState } from "react";
 import {
     Alert,
+    KeyboardAvoidingView,
     Modal,
     Platform,
     Pressable,
@@ -187,24 +188,36 @@ export const EditNotificationModal: React.FC<EditNotificationModalProps> = ({
   return (
     <Modal visible={visible} animationType="slide" transparent>
       <Pressable style={styles.overlay} onPress={onClose}>
-        <Pressable
-          style={[styles.content, { backgroundColor: colors.surface }]}
-          onPress={(e) => e.stopPropagation()}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={{ width: "100%" }}
         >
-          <View style={styles.header}>
-            <Typography
-              variant="h3"
-              weight="bold"
-              style={{ color: colors.text }}
-            >
-              {notification ? "Editar Recordatorio" : "Nuevo Recordatorio"}
-            </Typography>
-            <Pressable onPress={onClose}>
-              <IconSymbol name="xmark" size={24} color={colors.textSecondary} />
-            </Pressable>
-          </View>
+          <Pressable
+            style={[styles.content, { backgroundColor: colors.surface }]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={styles.header}>
+              <Typography
+                variant="h3"
+                weight="bold"
+                style={{ color: colors.text }}
+              >
+                {notification ? "Editar Recordatorio" : "Nuevo Recordatorio"}
+              </Typography>
+              <Pressable onPress={onClose}>
+                <IconSymbol
+                  name="xmark"
+                  size={24}
+                  color={colors.textSecondary}
+                />
+              </Pressable>
+            </View>
 
-          <ScrollView style={{ maxHeight: 500 }}>
+            <ScrollView
+              style={{ flex: 1 }}
+              contentContainerStyle={{ paddingBottom: Spacing.l }}
+              keyboardShouldPersistTaps="handled"
+            >
             {/* Type Selection (only if creating new) */}
             {!notification && (
               <View style={styles.section}>
@@ -429,7 +442,8 @@ export const EditNotificationModal: React.FC<EditNotificationModalProps> = ({
               disabled={loading}
             />
           </View>
-        </Pressable>
+          </Pressable>
+        </KeyboardAvoidingView>
       </Pressable>
     </Modal>
   );

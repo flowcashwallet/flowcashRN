@@ -63,7 +63,7 @@ export const BudgetDashboard = () => {
         style={[
           styles.card,
           {
-            backgroundColor: "#2C2C2E",
+            backgroundColor: colors.glass.cardBg,
             ...Platform.select({
               ios: {
                 shadowColor: "#000",
@@ -87,7 +87,7 @@ export const BudgetDashboard = () => {
           style={styles.cardHeader}
         >
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-            <Typography variant="h3" weight="bold" style={{ color: "#FFFFFF" }}>
+            <Typography variant="h3" weight="bold">
               {STRINGS.budget.distribution}
             </Typography>
           </View>
@@ -95,7 +95,7 @@ export const BudgetDashboard = () => {
             {!isPieExpanded && (
               <Typography
                 weight="bold"
-                style={{ color: "#30D158", fontSize: 16 }}
+                style={{ color: colors.success, fontSize: 16 }}
               >
                 {formatCurrency(remainingBudget)}
               </Typography>
@@ -117,10 +117,7 @@ export const BudgetDashboard = () => {
           >
             {/* Fixed Expenses Row */}
             <View style={styles.row}>
-              <Typography
-                variant="body"
-                style={{ color: "#D1D1D6", fontSize: 15 }}
-              >
+              <Typography variant="body" style={{ fontSize: 15 }}>
                 {STRINGS.budget.fixed}
               </Typography>
               <View
@@ -128,11 +125,11 @@ export const BudgetDashboard = () => {
               >
                 <Typography
                   weight="bold"
-                  style={{ color: "#FFFFFF", fontSize: 16 }}
+                  style={{ color: colors.error, fontSize: 16 }}
                 >
                   {formatCurrency(totalFixedExpenses)}
                 </Typography>
-                <View style={[styles.dot, { backgroundColor: "#FF5252" }]} />
+                <View style={[styles.dot, { backgroundColor: colors.error }]} />
               </View>
             </View>
 
@@ -146,10 +143,7 @@ export const BudgetDashboard = () => {
 
             {/* Remaining Budget Row */}
             <View style={styles.row}>
-              <Typography
-                variant="body"
-                style={{ color: "#D1D1D6", fontSize: 15 }}
-              >
+              <Typography variant="body" style={{ fontSize: 15 }}>
                 {STRINGS.budget.free}
               </Typography>
               <View
@@ -157,11 +151,13 @@ export const BudgetDashboard = () => {
               >
                 <Typography
                   weight="bold"
-                  style={{ color: "#FFFFFF", fontSize: 16 }}
+                  style={{ color: colors.success, fontSize: 16 }}
                 >
                   {formatCurrency(remainingBudget)}
                 </Typography>
-                <View style={[styles.dot, { backgroundColor: "#00E676" }]} />
+                <View
+                  style={[styles.dot, { backgroundColor: colors.success }]}
+                />
               </View>
             </View>
           </Animated.View>
@@ -173,7 +169,7 @@ export const BudgetDashboard = () => {
         style={[
           styles.card,
           {
-            backgroundColor: "#2C2C2E",
+            backgroundColor: colors.glass.cardBg,
             ...Platform.select({
               ios: {
                 shadowColor: "#000",
@@ -197,14 +193,18 @@ export const BudgetDashboard = () => {
           style={styles.cardHeader}
         >
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-            <Typography variant="h3" weight="bold" style={{ color: "#FFFFFF" }}>
+            <Typography
+              variant="h3"
+              weight="bold"
+              style={{ color: colors.text }}
+            >
               {STRINGS.budget.monthlySummary}
             </Typography>
           </View>
           <IconSymbol
             name={isBarExpanded ? "chevron.up" : "chevron.down"}
             size={16}
-            color="#8E8E93"
+            color={colors.textSecondary}
           />
         </TouchableOpacity>
 
@@ -238,8 +238,11 @@ export const BudgetDashboard = () => {
                   100,
                 ) * 1.2
               }
-              yAxisTextStyle={{ color: "#D1D1D6", fontSize: 10 }}
-              xAxisLabelTextStyle={{ color: "#D1D1D6", fontSize: 10 }}
+              yAxisTextStyle={{ color: colors.textSecondary, fontSize: 10 }}
+              xAxisLabelTextStyle={{
+                color: colors.textSecondary,
+                fontSize: 10,
+              }}
             />
           </Animated.View>
         )}
@@ -250,7 +253,7 @@ export const BudgetDashboard = () => {
         style={[
           styles.card,
           {
-            backgroundColor: "#2C2C2E",
+            backgroundColor: colors.glass.cardBg,
             ...Platform.select({
               ios: {
                 shadowColor: "#000",
@@ -274,14 +277,18 @@ export const BudgetDashboard = () => {
           style={styles.cardHeader}
         >
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-            <Typography variant="h3" weight="bold" style={{ color: "#FFFFFF" }}>
+            <Typography
+              variant="h3"
+              weight="bold"
+              style={{ color: colors.text }}
+            >
               Detalles
             </Typography>
           </View>
           <IconSymbol
             name={isStatsExpanded ? "chevron.up" : "chevron.down"}
             size={16}
-            color="#8E8E93"
+            color={colors.textSecondary}
           />
         </TouchableOpacity>
 
@@ -296,7 +303,7 @@ export const BudgetDashboard = () => {
             <View style={styles.row}>
               <Typography
                 variant="body"
-                style={{ color: "#D1D1D6", fontSize: 15 }}
+                style={{ color: colors.textSecondary, fontSize: 15 }}
               >
                 {STRINGS.budget.expectedIncome}
               </Typography>
@@ -305,7 +312,7 @@ export const BudgetDashboard = () => {
               >
                 <Typography
                   weight="bold"
-                  style={{ color: "#FFFFFF", fontSize: 16 }}
+                  style={{ color: colors.text, fontSize: 16 }}
                 >
                   {formatCurrency(monthlyIncome)}
                 </Typography>
@@ -317,7 +324,7 @@ export const BudgetDashboard = () => {
             <View style={styles.row}>
               <Typography
                 variant="body"
-                style={{ color: "#D1D1D6", fontSize: 15 }}
+                style={{ color: colors.textSecondary, fontSize: 15 }}
               >
                 {STRINGS.budget.fixedExpenses}
               </Typography>
@@ -326,7 +333,7 @@ export const BudgetDashboard = () => {
               >
                 <Typography
                   weight="bold"
-                  style={{ color: "#FFFFFF", fontSize: 16 }}
+                  style={{ color: colors.text, fontSize: 16 }}
                 >
                   -{formatCurrency(totalFixedExpenses)}
                 </Typography>
@@ -346,7 +353,7 @@ export const BudgetDashboard = () => {
             <View style={styles.row}>
               <Typography
                 variant="body"
-                style={{ color: "#D1D1D6", fontSize: 15 }}
+                style={{ color: colors.textSecondary, fontSize: 15 }}
               >
                 {STRINGS.budget.actualIncome}
               </Typography>
@@ -355,7 +362,7 @@ export const BudgetDashboard = () => {
               >
                 <Typography
                   weight="bold"
-                  style={{ color: "#FFFFFF", fontSize: 16 }}
+                  style={{ color: colors.text, fontSize: 16 }}
                 >
                   {formatCurrency(totalActualIncome)}
                 </Typography>
@@ -367,7 +374,7 @@ export const BudgetDashboard = () => {
             <View style={styles.row}>
               <Typography
                 variant="body"
-                style={{ color: "#D1D1D6", fontSize: 15 }}
+                style={{ color: colors.textSecondary, fontSize: 15 }}
               >
                 {STRINGS.budget.actualExpense}
               </Typography>
@@ -376,7 +383,7 @@ export const BudgetDashboard = () => {
               >
                 <Typography
                   weight="bold"
-                  style={{ color: "#FFFFFF", fontSize: 16 }}
+                  style={{ color: colors.text, fontSize: 16 }}
                 >
                   -{formatCurrency(totalActualExpense)}
                 </Typography>

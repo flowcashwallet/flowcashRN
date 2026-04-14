@@ -316,7 +316,7 @@ export const useTransactionForm = ({
 
         // If adding a new transaction, always return to Wallet (root)
         // If editing, just go back to where we came from
-        router.back();
+        router.dismissAll();
       } else {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       }

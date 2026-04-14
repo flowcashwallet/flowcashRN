@@ -66,7 +66,7 @@ export default function CategoriesScreen() {
       ).unwrap();
       setNewCategoryName("");
       setIsModalVisible(false);
-    } catch (error) {
+    } catch {
       Alert.alert("Error", "No se pudo agregar la categoría");
     }
   };
@@ -82,7 +82,7 @@ export default function CategoriesScreen() {
       ).unwrap();
       setEditingCategory(null);
       setIsModalVisible(false);
-    } catch (error) {
+    } catch {
       Alert.alert("Error", "No se pudo actualizar la categoría");
     }
   };
@@ -99,7 +99,7 @@ export default function CategoriesScreen() {
           onPress: async () => {
             try {
               await dispatch(deleteCategory(id)).unwrap();
-            } catch (error) {
+            } catch {
               Alert.alert("Error", "No se pudo eliminar la categoría");
             }
           },
@@ -177,6 +177,7 @@ export default function CategoriesScreen() {
       </View>
 
       <FlatList
+        contentInsetAdjustmentBehavior="automatic"
         data={categories}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ padding: Spacing.m }}

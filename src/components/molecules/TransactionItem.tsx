@@ -98,7 +98,7 @@ export function TransactionItem({
         delayLongPress={500}
         style={{
           borderRadius: BorderRadius.xl, // More rounded
-          backgroundColor: "transparent",
+          backgroundColor: colors.glass.cardBg,
           padding: Spacing.s, // Internal padding for the "card" feel
           // Subtle shadow
           ...Platform.select({

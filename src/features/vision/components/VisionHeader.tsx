@@ -1,6 +1,7 @@
 import { Typography } from "@/components/atoms/Typography";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { BorderRadius, Spacing } from "@/constants/theme";
+import { useTheme } from "@/contexts/ThemeContext";
 import STRINGS from "@/i18n/es.json";
 import { formatCurrency } from "@/utils/format";
 import React, { useState } from "react";
@@ -24,6 +25,7 @@ export const VisionHeader: React.FC<VisionHeaderProps> = ({
 }) => {
   const [isExpanded, setIsExpanded] = useState(false); // Default collapsed
 
+  const colors = useTheme().colors;
   return (
     <View
       style={[
@@ -31,7 +33,7 @@ export const VisionHeader: React.FC<VisionHeaderProps> = ({
         {
           padding: Spacing.m,
           borderRadius: BorderRadius.xl,
-          backgroundColor: "#2C2C2E", // Dark card background
+          backgroundColor: colors.glass.cardBg, // Dark card background
           borderWidth: 0,
           ...Platform.select({
             ios: {
@@ -57,14 +59,14 @@ export const VisionHeader: React.FC<VisionHeaderProps> = ({
         }}
       >
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-          <Typography variant="h3" weight="bold" style={{ color: "#FFFFFF" }}>
+          <Typography variant="h3" weight="bold">
             {STRINGS.vision.netWorth}
           </Typography>
         </View>
         <IconSymbol
           name={isExpanded ? "chevron.up" : "chevron.down"}
           size={16}
-          color="#8E8E93"
+          color={colors.textSecondary}
         />
       </TouchableOpacity>
 
@@ -80,18 +82,13 @@ export const VisionHeader: React.FC<VisionHeaderProps> = ({
             <View
               style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
             >
-              <Typography style={{ color: "#D1D1D6", fontSize: 15 }}>
-                {STRINGS.vision.assets}
-              </Typography>
+              <Typography>{STRINGS.vision.assets}</Typography>
               <IconSymbol name="info.circle" size={14} color="#8E8E93" />
             </View>
             <View
               style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
             >
-              <Typography
-                weight="bold"
-                style={{ color: "#FFFFFF", fontSize: 16 }}
-              >
+              <Typography weight="bold">
                 {formatCurrency(totalAssets)}
               </Typography>
               <View style={[styles.dot, { backgroundColor: "#30D158" }]} />
@@ -100,16 +97,11 @@ export const VisionHeader: React.FC<VisionHeaderProps> = ({
 
           {/* Liabilities */}
           <View style={styles.row}>
-            <Typography style={{ color: "#D1D1D6", fontSize: 15 }}>
-              {STRINGS.vision.liabilities}
-            </Typography>
+            <Typography>{STRINGS.vision.liabilities}</Typography>
             <View
               style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
             >
-              <Typography
-                weight="bold"
-                style={{ color: "#FFFFFF", fontSize: 16 }}
-              >
+              <Typography weight="bold">
                 -{formatCurrency(totalLiabilities)}
               </Typography>
               <View style={[styles.dot, { backgroundColor: "#FF453A" }]} />
@@ -127,18 +119,11 @@ export const VisionHeader: React.FC<VisionHeaderProps> = ({
 
           {/* Net Worth */}
           <View style={styles.row}>
-            <Typography style={{ color: "#D1D1D6", fontSize: 15 }}>
-              {STRINGS.wallet.balanceTotal}
-            </Typography>
+            <Typography>{STRINGS.wallet.balanceTotal}</Typography>
             <View
               style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
             >
-              <Typography
-                weight="bold"
-                style={{ color: "#FFFFFF", fontSize: 16 }}
-              >
-                {formatCurrency(netWorth)}
-              </Typography>
+              <Typography weight="bold">{formatCurrency(netWorth)}</Typography>
               <View
                 style={[
                   styles.dot,
@@ -163,15 +148,8 @@ export const VisionHeader: React.FC<VisionHeaderProps> = ({
               alignItems: "center",
             }}
           >
-            <Typography style={{ color: "#D1D1D6", fontSize: 15 }}>
-              {STRINGS.wallet.balanceTotal}
-            </Typography>
-            <Typography
-              weight="bold"
-              style={{ color: "#FFFFFF", fontSize: 16 }}
-            >
-              {formatCurrency(netWorth)}
-            </Typography>
+            <Typography>{STRINGS.wallet.balanceTotal}</Typography>
+            <Typography weight="bold">{formatCurrency(netWorth)}</Typography>
           </View>
         </Animated.View>
       )}

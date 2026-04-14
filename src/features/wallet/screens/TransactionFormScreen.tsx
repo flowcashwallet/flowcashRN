@@ -6,13 +6,14 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { BorderRadius, Spacing } from "@/constants/theme";
 import { useTheme } from "@/contexts/ThemeContext";
 import STRINGS from "@/i18n/es.json";
+import { RootState } from "@/store/store";
 import { formatAmountInput } from "@/utils/format";
 import DateTimePicker, {
   DateTimePickerEvent,
 } from "@react-native-community/datetimepicker";
 import * as Haptics from "expo-haptics";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Keyboard,
   KeyboardAvoidingView,
@@ -25,11 +26,14 @@ import {
   TouchableWithoutFeedback,
   View,
 } from "react-native";
+import { useDispatch, useSelector } from "react-redux";
 import { EntitySelectionModal } from "../components/EntitySelectionModal";
+import { clearCategoryPickerSelection } from "../data/walletUiSlice";
 import { useTransactionForm } from "../hooks/useTransactionForm";
 
 export default function TransactionFormScreen() {
   const router = useRouter();
+  const dispatch = useDispatch();
   const params = useLocalSearchParams();
   const {
     id,
@@ -63,7 +67,6 @@ export default function TransactionFormScreen() {
     handleDelete,
     frequentCategories,
     frequentEntities,
-    categories,
     entities,
     isRecurring,
     setIsRecurring,
@@ -81,12 +84,22 @@ export default function TransactionFormScreen() {
   const { colors, theme } = useTheme();
 
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
   const [isPaymentTypeDropdownOpen, setIsPaymentTypeDropdownOpen] =
     useState(false);
   const [isEntityModalVisible, setIsEntityModalVisible] = useState(false);
   const [isDestEntityModalVisible, setIsDestEntityModalVisible] =
     useState(false);
+
+  const categoryPickerSelection = useSelector(
+    (state: RootState) => state.walletUi.categoryPickerSelection,
+  );
+
+  useEffect(() => {
+    if (!categoryPickerSelection) return;
+    if (categoryPickerSelection.target !== "transactionForm") return;
+    setSelectedCategory(categoryPickerSelection.value);
+    dispatch(clearCategoryPickerSelection());
+  }, [categoryPickerSelection, dispatch, setSelectedCategory]);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -477,14 +490,21 @@ export default function TransactionFormScreen() {
 
                   <TouchableOpacity
                     onPress={() =>
-                      setIsCategoryDropdownOpen(!isCategoryDropdownOpen)
+                      router.push({
+                        pathname: "/wallet/category-picker",
+                        params: {
+                          target: "transactionForm",
+                          includeAll: "0",
+                          selected: selectedCategory || "",
+                        },
+                      })
                     }
                     style={[
                       styles.dropdown,
                       {
                         backgroundColor: colors.surface,
                         borderColor: colors.border,
-                        marginBottom: isCategoryDropdownOpen ? 0 : Spacing.m,
+                        marginBottom: Spacing.m,
                       },
                     ]}
                   >
@@ -499,74 +519,12 @@ export default function TransactionFormScreen() {
                         {selectedCategory || STRINGS.wallet.selectCategory}
                       </Typography>
                       <IconSymbol
-                        name="chevron.down"
+                        name="chevron.right"
                         size={16}
                         color={colors.text}
                       />
                     </View>
                   </TouchableOpacity>
-
-                  {isCategoryDropdownOpen && (
-                    <View
-                      style={[
-                        styles.dropdownList,
-                        {
-                          borderColor: colors.border,
-                          backgroundColor: colors.surface,
-                        },
-                      ]}
-                    >
-                      <ScrollView
-                        nestedScrollEnabled
-                        style={{ maxHeight: 200 }}
-                      >
-                        {categories.map((cat, index) => (
-                          <TouchableOpacity
-                            key={cat.id}
-                            onPress={() => {
-                              setSelectedCategory(cat.name);
-                              setIsCategoryDropdownOpen(false);
-                            }}
-                            style={{
-                              padding: Spacing.m,
-                              borderTopWidth: index > 0 ? 1 : 0,
-                              borderTopColor: colors.border,
-                            }}
-                          >
-                            <Typography variant="body">{cat.name}</Typography>
-                          </TouchableOpacity>
-                        ))}
-                        <TouchableOpacity
-                          onPress={() => {
-                            router.push("/wallet/categories");
-                            setIsCategoryDropdownOpen(false);
-                          }}
-                          style={{
-                            padding: Spacing.m,
-                            borderTopWidth: 1,
-                            borderTopColor: colors.border,
-                            flexDirection: "row",
-                            alignItems: "center",
-                          }}
-                        >
-                          <IconSymbol
-                            name="plus"
-                            size={16}
-                            color={colors.primary}
-                          />
-                          <Typography
-                            variant="body"
-                            style={{
-                              color: colors.primary,
-                              marginLeft: Spacing.s,
-                            }}
-                          >
-                            Administrar Categorías
-                          </Typography>
-                        </TouchableOpacity>
-                      </ScrollView>
-                    </View>
-                  )}
                 </View>
               )}
 

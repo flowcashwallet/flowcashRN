@@ -1,7 +1,6 @@
 import { VoiceInputButton } from "@/components/atoms/VoiceInputButton";
 import { FloatingActionMenu } from "@/components/molecules/FloatingActionMenu";
 import { TransactionList } from "@/components/organisms/TransactionList";
-import { ThemedView } from "@/components/themed-view";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { BorderRadius, Spacing } from "@/constants/theme";
 import STRINGS from "@/i18n/es.json";
@@ -9,6 +8,8 @@ import { endpoints } from "@/services/api";
 import { RootState } from "@/store/store";
 import { fetchWithAuth } from "@/utils/apiClient";
 import { useHeaderHeight } from "@react-navigation/elements";
+import { BlurView } from "expo-blur";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import {
@@ -26,7 +27,6 @@ import { MonthSelector } from "../components/MonthSelector";
 import { MonthYearPickerModal } from "../components/MonthYearPickerModal";
 import { StreakCalendarModal } from "../components/StreakCalendarModal";
 import { TransactionFilterModal } from "../components/TransactionFilterModal";
-import { WalletHeader } from "../components/WalletHeader";
 import { Transaction } from "../data/walletSlice";
 import { useWalletData } from "../hooks/useWalletData";
 import { useWalletTransactions } from "../hooks/useWalletTransactions";
@@ -76,12 +76,38 @@ export default function WalletScreen() {
       | "transfer"
       | "payroll"
       | null;
+    dateMode: "none" | "single" | "range";
+    date: number | null;
+    dateFrom: number | null;
+    dateTo: number | null;
   }>({
     category: null,
     entityId: null,
     type: null,
     paymentType: null,
+    dateMode: "none",
+    date: null,
+    dateFrom: null,
+    dateTo: null,
   });
+
+  const toDayStart = (timestamp: number) => {
+    const d = new Date(timestamp);
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  };
+
+  const toDayEnd = (timestamp: number) => {
+    const d = new Date(timestamp);
+    return new Date(
+      d.getFullYear(),
+      d.getMonth(),
+      d.getDate(),
+      23,
+      59,
+      59,
+      999,
+    ).getTime();
+  };
 
   const [processingVoice, setProcessingVoice] = useState(false);
 
@@ -138,7 +164,7 @@ export default function WalletScreen() {
   const handleTransactionPress = useCallback(
     (transaction: Transaction) => {
       router.push({
-        pathname: "/wallet/transaction-form",
+        pathname: "/wallet/transaction-details",
         params: { id: transaction.id },
       });
     },
@@ -153,6 +179,34 @@ export default function WalletScreen() {
       if (filters.type && t.type !== filters.type) return false;
       if (filters.paymentType && t.paymentType !== filters.paymentType)
         return false;
+      if (filters.dateMode === "single" && filters.date) {
+        const start = toDayStart(filters.date);
+        const end = toDayEnd(filters.date);
+        if (t.date < start || t.date > end) return false;
+      }
+      if (
+        filters.dateMode === "range" &&
+        (filters.dateFrom || filters.dateTo)
+      ) {
+        const startCandidate = filters.dateFrom
+          ? toDayStart(filters.dateFrom)
+          : undefined;
+        const endCandidate = filters.dateTo
+          ? toDayEnd(filters.dateTo)
+          : undefined;
+
+        const start =
+          startCandidate !== undefined && endCandidate !== undefined
+            ? Math.min(startCandidate, toDayStart(filters.dateTo as number))
+            : startCandidate;
+        const end =
+          startCandidate !== undefined && endCandidate !== undefined
+            ? Math.max(toDayEnd(filters.dateFrom as number), endCandidate)
+            : endCandidate;
+
+        if (start !== undefined && t.date < start) return false;
+        if (end !== undefined && t.date > end) return false;
+      }
 
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
@@ -167,7 +221,11 @@ export default function WalletScreen() {
   }, [currentMonthTransactions, filters, searchQuery]);
 
   const hasActiveFilters =
-    filters.category || filters.entityId || filters.type || filters.paymentType;
+    filters.category ||
+    filters.entityId ||
+    filters.type ||
+    filters.paymentType ||
+    filters.dateMode !== "none";
 
   const headerRight = useMemo(
     () => (
@@ -206,7 +264,7 @@ export default function WalletScreen() {
           <ExportButton />
         </View>
 
-        <WalletHeader
+        {/* <WalletHeader
           balance={balance}
           currentMonthName={currentMonthName}
           income={income}
@@ -217,19 +275,24 @@ export default function WalletScreen() {
           // onMonthPress={() => setDatePickerVisible(true)} // Removed from header
           showYear={selectedDate.getFullYear() !== new Date().getFullYear()}
           year={selectedDate.getFullYear()}
-        />
+        /> */}
 
         <View
           style={{
             flexDirection: "row",
             alignItems: "center",
-            backgroundColor: colors.background,
+            backgroundColor: "rgba(255, 255, 255, 0.15)",
             borderRadius: BorderRadius.l,
             paddingHorizontal: Spacing.s,
-            paddingVertical: Platform.OS === "ios" ? Spacing.xs : 0,
+            paddingVertical: Platform.OS === "ios" ? Spacing.xs : 10,
             marginBottom: Spacing.m,
-            borderWidth: 1.4,
-            borderColor: colors.border,
+            borderWidth: 1,
+            borderColor: "rgba(255, 255, 255, 0.3)",
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.1,
+            shadowRadius: 10,
+            elevation: 5,
           }}
         >
           <IconSymbol
@@ -282,7 +345,16 @@ export default function WalletScreen() {
 
   return (
     <>
-      <ThemedView collapsable={false} style={styles.container}>
+      <LinearGradient
+        collapsable={false}
+        colors={colors.gradients.background}
+        style={styles.container}
+      >
+        <BlurView
+          intensity={80}
+          tint={colors.background.toLowerCase() === "#fff" ? "light" : "dark"}
+          style={StyleSheet.absoluteFill}
+        />
         {/* Removed Stack.Toolbar due to conflict with NativeTabs */}
         <FloatingActionMenu
           actions={[
@@ -383,6 +455,10 @@ export default function WalletScreen() {
                 entityId: null,
                 type: null,
                 paymentType: null,
+                dateMode: "none",
+                date: null,
+                dateFrom: null,
+                dateTo: null,
               })
             }
           />
@@ -395,7 +471,7 @@ export default function WalletScreen() {
             </View>
           )}
         </View>
-      </ThemedView>
+      </LinearGradient>
     </>
   );
 }

@@ -169,6 +169,32 @@ export default function WalletLayout() {
             },
           }}
         />
+        <Stack.Screen
+          name="transaction-details"
+          options={{
+            headerShown: true,
+            presentation: "formSheet",
+            headerTransparent: true,
+            headerTitle: "Transacción",
+            sheetAllowedDetents: [0.9],
+            contentStyle: {
+              backgroundColor: "transparent",
+            },
+          }}
+        />
+        <Stack.Screen
+          name="category-picker"
+          options={{
+            headerShown: true,
+            presentation: "formSheet",
+            headerTransparent: true,
+            headerTitle: "Categorías",
+            sheetAllowedDetents: [0.9],
+            contentStyle: {
+              backgroundColor: colors.background,
+            },
+          }}
+        />
       </Stack>
     </SafeAreaProvider>
   );

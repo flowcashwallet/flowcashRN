@@ -17,7 +17,7 @@ import { useVisionOperations } from "@/features/vision/hooks/useVisionOperations
 import { ExportButton } from "@/features/wallet/components/ExportTransactions";
 import STRINGS from "@/i18n/es.json";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   RefreshControl,
@@ -29,6 +29,7 @@ import {
 const VISION_SORT_PREF_KEY = "vision_sort_preference";
 
 export default function VisionScreen() {
+  const router = useRouter();
   const {
     user,
     transactions,
@@ -140,7 +141,11 @@ export default function VisionScreen() {
   };
 
   return (
-    <ThemedView style={{ flex: 1 }}>
+    <ThemedView
+      lightColor="transparent"
+      darkColor="transparent"
+      style={{ flex: 1 }}
+    >
       <Stack.Screen
         options={{
           headerShown: true,
@@ -233,7 +238,7 @@ export default function VisionScreen() {
         <View
           style={{
             flexDirection: "row",
-            backgroundColor: "#2C2C2E",
+            backgroundColor: colors.glass.cardBg,
             borderRadius: BorderRadius.l,
             padding: 4,
             marginBottom: Spacing.m,
@@ -245,7 +250,7 @@ export default function VisionScreen() {
               paddingVertical: 8,
               alignItems: "center",
               backgroundColor:
-                activeTab === "asset" ? "#3A3A3C" : "transparent",
+                activeTab === "asset" ? colors.success : "transparent",
               borderRadius: BorderRadius.m,
             }}
             onPress={() => handleTabChange("asset")}
@@ -264,7 +269,7 @@ export default function VisionScreen() {
               paddingVertical: 8,
               alignItems: "center",
               backgroundColor:
-                activeTab === "liability" ? "#3A3A3C" : "transparent",
+                activeTab === "liability" ? colors.error : "transparent",
               borderRadius: BorderRadius.m,
             }}
             onPress={() => handleTabChange("liability")}
@@ -280,6 +285,41 @@ export default function VisionScreen() {
             </Typography>
           </TouchableOpacity>
         </View>
+
+        {activeTab === "liability" && (
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "flex-end",
+              marginBottom: Spacing.m,
+            }}
+          >
+            <TouchableOpacity
+              onPress={() =>
+                router.push("/balance/liability-payments-management")
+              }
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: Spacing.xs,
+                paddingHorizontal: Spacing.m,
+                paddingVertical: Spacing.s,
+                borderRadius: BorderRadius.l,
+                borderWidth: 1,
+                borderColor: colors.border,
+                backgroundColor: colors.glass.cardBg,
+              }}
+            >
+              <Typography
+                variant="body"
+                weight="bold"
+                style={{ color: colors.text }}
+              >
+                Gestión de pagos
+              </Typography>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Entity List */}
         <VisionEntityList

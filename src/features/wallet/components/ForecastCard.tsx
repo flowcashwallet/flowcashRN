@@ -78,7 +78,7 @@ export const ForecastCard: React.FC<ForecastCardProps> = ({ forecast }) => {
       style={[
         styles.container,
         {
-          backgroundColor: colors.surface,
+          backgroundColor: colors.glass.cardBg,
           borderColor: getStatusColor(),
           borderWidth: 1,
           borderLeftWidth: 4, // Emphasis on the status color
