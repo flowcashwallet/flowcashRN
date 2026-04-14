@@ -18,12 +18,21 @@ class CronViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['get'])
     def process_recurring(self, request):
         # Verify Vercel Cron Secret (or general shared secret)
-        auth_header = request.headers.get('Authorization')
-        # Prioritize env var directly, fallback to settings, then default
-        cron_secret = os.environ.get('CRON_SECRET') or getattr(settings, 'CRON_SECRET', 'my_dev_secret_123')
-        
-        if auth_header != f'Bearer {cron_secret}':
-            return Response({"error": "Unauthorized"}, status=status.HTTP_401_UNAUTHORIZED)
+        auth_header = request.headers.get('Authorization', '')
+        # Prioritize env var directly, fallback to settings (no insecure default)
+        cron_secret = os.environ.get('CRON_SECRET') or getattr(settings, 'CRON_SECRET', None)
+        if not cron_secret:
+            return Response(
+                {"error": "CRON_SECRET_NOT_CONFIGURED"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        incoming_token = auth_header.replace('Bearer ', '').strip()
+        if incoming_token != cron_secret:
+            return Response(
+                {"error": "Unauthorized"},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
 
         now = timezone.now()
         recurring_transactions = Transaction.objects.filter(is_recurring=True)
