@@ -161,47 +161,6 @@ export default function AnalyticsScreen() {
             </GlassCard>
           ))}
         </View>
-
-        {/* Gastos Recurrentes */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeaderRow}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              Gastos Recurrentes
-            </Text>
-            <TouchableOpacity onPress={handleViewAllRecurring}>
-              <Text style={[styles.viewMoreText, { color: colors.primary }]}>
-                Ver más
-              </Text>
-            </TouchableOpacity>
-          </View>
-          {recurringExpenses.length === 0 ? (
-            <Text style={{ color: colors.textSecondary }}>
-              No hay gastos recurrentes detectados.
-            </Text>
-          ) : (
-            recurringExpenses.map((expense, index) => (
-              <GlassCard key={index} style={styles.expenseCard}>
-                <View style={styles.expenseHeader}>
-                  <Text style={[styles.expenseName, { color: colors.text }]}>
-                    {expense.description}
-                  </Text>
-                  <Text style={[styles.expenseAmount, { color: colors.text }]}>
-                    ${expense.totalAmount.toFixed(2)}
-                  </Text>
-                </View>
-                <Text
-                  style={[
-                    styles.expenseFrequency,
-                    { color: colors.textSecondary },
-                  ]}
-                >
-                  Total del mes
-                </Text>
-              </GlassCard>
-            ))
-          )}
-        </View>
-
         {/* Top Categorías */}
         <View style={styles.section}>
           <View style={styles.sectionHeaderRow}>
@@ -317,6 +276,45 @@ export default function AnalyticsScreen() {
                     )}
                   </View>
                 )}
+              </GlassCard>
+            ))
+          )}
+        </View>
+        {/* Gastos Recurrentes */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              Gastos Recurrentes
+            </Text>
+            <TouchableOpacity onPress={handleViewAllRecurring}>
+              <Text style={[styles.viewMoreText, { color: colors.primary }]}>
+                Ver más
+              </Text>
+            </TouchableOpacity>
+          </View>
+          {recurringExpenses.length === 0 ? (
+            <Text style={{ color: colors.textSecondary }}>
+              No hay gastos recurrentes detectados.
+            </Text>
+          ) : (
+            recurringExpenses.map((expense, index) => (
+              <GlassCard key={index} style={styles.expenseCard}>
+                <View style={styles.expenseHeader}>
+                  <Text style={[styles.expenseName, { color: colors.text }]}>
+                    {expense.description}
+                  </Text>
+                  <Text style={[styles.expenseAmount, { color: colors.text }]}>
+                    ${expense.totalAmount.toFixed(2)}
+                  </Text>
+                </View>
+                <Text
+                  style={[
+                    styles.expenseFrequency,
+                    { color: colors.textSecondary },
+                  ]}
+                >
+                  Total del mes
+                </Text>
               </GlassCard>
             ))
           )}

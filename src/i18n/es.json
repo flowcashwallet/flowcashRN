@@ -178,6 +178,13 @@
     "weeklySpending": "Gasto semanal",
     "weekAbbrev": "Sem",
     "noWeeklySpending": "No hay gastos para graficar en este mes.",
+    "toggleWeeklyDetailsShow": "Ver detalles por semana",
+    "toggleWeeklyDetailsHide": "Ocultar detalles",
+    "weeklyTopExpenses": "Top 10 gastos",
+    "noWeekExpenses": "Sin gastos en esta semana.",
+    "toggleWeekShow": "Ver gastos",
+    "toggleWeekHide": "Ocultar gastos",
+    "weekRange": "{from}–{to}",
     "uncategorized": "Sin categoría"
   }
 }

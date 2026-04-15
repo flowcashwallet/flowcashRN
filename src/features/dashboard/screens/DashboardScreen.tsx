@@ -10,7 +10,7 @@ import { formatCurrency } from "@/utils/format";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { useMemo, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { LineChart, PieChart } from "react-native-gifted-charts";
 
 export default function DashboardScreen() {
@@ -26,12 +26,19 @@ export default function DashboardScreen() {
   } = useWalletData();
   const year = selectedDate.getFullYear();
   const [datePickerVisible, setDatePickerVisible] = useState(false);
+  const [showWeeklyDetails, setShowWeeklyDetails] = useState(false);
+  const [expandedWeek, setExpandedWeek] = useState<string | null>(null);
 
   const recentTransactions = useMemo(
     () => currentMonthTransactions.slice(0, 5),
     [currentMonthTransactions],
   );
   const savings = income - expense;
+
+  const formatWeeklyValue = (value: number) => {
+    const formatted = formatCurrency(value);
+    return formatted.endsWith(".00") ? formatted.slice(0, -3) : formatted;
+  };
 
   const weeklyExpense = useMemo(() => {
     const monthIndex = selectedDate.getMonth();
@@ -46,13 +53,63 @@ export default function DashboardScreen() {
       totals[weekIndex] += Math.abs(t.amount);
     }
 
-    const data = totals.map((value, i) => ({
-      value,
-      label: `${STRINGS.dashboard.weekAbbrev} ${i + 1}`,
-    }));
+    const data = totals.map((value, i) => {
+      const label = `${STRINGS.dashboard.weekAbbrev} ${i + 1}`;
+      return {
+        value,
+        label,
+        dataPointText: formatWeeklyValue(value),
+      };
+    });
 
     const hasData = totals.some((v) => v > 0);
     return { data, hasData };
+  }, [currentMonthTransactions, selectedDate, year]);
+
+  const weeklyDetails = useMemo(() => {
+    const monthIndex = selectedDate.getMonth();
+    const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+    const weeksCount = Math.ceil(daysInMonth / 7);
+
+    const perWeek = Array.from({ length: weeksCount }, (_, i) => ({
+      label: `${STRINGS.dashboard.weekAbbrev} ${i + 1}`,
+      fromDay: i * 7 + 1,
+      toDay: Math.min(daysInMonth, (i + 1) * 7),
+      total: 0,
+      expenses: [] as typeof currentMonthTransactions,
+    }));
+
+    for (const t of currentMonthTransactions) {
+      if (t.type !== "expense") continue;
+      const day = new Date(t.date).getDate();
+      const weekIndex = Math.min(weeksCount - 1, Math.floor((day - 1) / 7));
+      perWeek[weekIndex].total += Math.abs(t.amount);
+      perWeek[weekIndex].expenses.push(t);
+    }
+
+    return perWeek.map((w) => ({
+      label: w.label,
+      range: STRINGS.dashboard.weekRange
+        .replace(
+          "{from}",
+          new Date(year, monthIndex, w.fromDay).toLocaleDateString("es-MX", {
+            day: "2-digit",
+            month: "short",
+          }),
+        )
+        .replace(
+          "{to}",
+          new Date(year, monthIndex, w.toDay).toLocaleDateString("es-MX", {
+            day: "2-digit",
+            month: "short",
+          }),
+        ),
+      total: w.total,
+      top: w.expenses
+        .slice()
+        .sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount))
+        .slice(0, 10),
+    }));
   }, [currentMonthTransactions, selectedDate, year]);
 
   const categoryTotals = useMemo(() => {
@@ -274,28 +331,206 @@ export default function DashboardScreen() {
             {STRINGS.dashboard.weeklySpending}
           </Text>
           {weeklyExpense.hasData ? (
-            <LineChart
-              data={weeklyExpense.data}
-              color={colors.primary}
-              thickness={3}
-              hideDataPoints={false}
-              dataPointsColor={colors.primary}
-              dataPointsRadius={4}
-              height={160}
-              spacing={56}
-              initialSpacing={10}
-              endSpacing={10}
-              yAxisColor={colors.border}
-              xAxisColor={colors.border}
-              xAxisLabelTextStyle={{
-                color: colors.textSecondary,
-                fontSize: 12,
-              }}
-              yAxisTextStyle={{ color: colors.textSecondary, fontSize: 12 }}
-              noOfSections={4}
-              backgroundColor="transparent"
-              rulesColor={colors.border}
-            />
+            <>
+              <LineChart
+                data={weeklyExpense.data}
+                color={colors.primary}
+                thickness={3}
+                hideDataPoints={false}
+                dataPointsColor={colors.primary}
+                dataPointsRadius={4}
+                height={160}
+                spacing={Math.max(44, 240 / Math.max(1, weeklyExpense.data.length))}
+                initialSpacing={10}
+                endSpacing={10}
+                yAxisColor={colors.border}
+                xAxisColor={colors.border}
+                yAxisLabelPrefix="$"
+                overflowTop={22}
+                textColor1={colors.text}
+                textFontSize={12}
+                textShiftY={-8}
+                textShiftX={10}
+                xAxisLabelTextStyle={{
+                  color: colors.textSecondary,
+                  fontSize: 12,
+                }}
+                yAxisTextStyle={{ color: colors.textSecondary, fontSize: 12 }}
+                noOfSections={4}
+                backgroundColor="transparent"
+                rulesColor={colors.border}
+                pointerConfig={{
+                  pointerStripHeight: 160,
+                  pointerStripColor: colors.border,
+                  pointerStripWidth: 2,
+                  pointerColor: colors.primary,
+                  radius: 4,
+                  pointerLabelComponent: (items: any) => {
+                    const item = Array.isArray(items) ? items[0] : items;
+                    const label = item?.label ?? "";
+                    const value = typeof item?.value === "number" ? item.value : 0;
+                    return (
+                      <View
+                        style={{
+                          paddingHorizontal: 10,
+                          paddingVertical: 8,
+                          borderRadius: 10,
+                          backgroundColor: colors.surface,
+                          borderWidth: 1,
+                          borderColor: colors.border,
+                        }}
+                      >
+                        <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
+                          {label}
+                        </Text>
+                        <Text style={{ color: colors.text, fontSize: 14, fontWeight: "700" }}>
+                          {formatWeeklyValue(value)}
+                        </Text>
+                      </View>
+                    );
+                  },
+                }}
+              />
+
+              <TouchableOpacity
+                onPress={() => setShowWeeklyDetails((v) => !v)}
+                style={{
+                  marginTop: 12,
+                  paddingVertical: 10,
+                  paddingHorizontal: 12,
+                  borderRadius: 12,
+                  backgroundColor: colors.surfaceHighlight,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
+              >
+                <Text style={{ color: colors.text, fontSize: 14, fontWeight: "700" }}>
+                  {showWeeklyDetails
+                    ? STRINGS.dashboard.toggleWeeklyDetailsHide
+                    : STRINGS.dashboard.toggleWeeklyDetailsShow}
+                </Text>
+                <IconSymbol
+                  name={showWeeklyDetails ? "chevron.up" : "chevron.down"}
+                  size={18}
+                  color={colors.textSecondary}
+                />
+              </TouchableOpacity>
+
+              {showWeeklyDetails ? (
+                <View style={{ marginTop: 12, gap: 12 }}>
+                  {weeklyDetails.map((w) => (
+                    <View
+                      key={w.label}
+                      style={{
+                        borderRadius: 14,
+                        backgroundColor: colors.surfaceHighlight,
+                        borderWidth: 1,
+                        borderColor: colors.border,
+                        padding: 12,
+                      }}
+                    >
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          marginBottom: 8,
+                        }}
+                      >
+                        <Text style={{ color: colors.text, fontSize: 14, fontWeight: "700" }}>
+                          {w.label}
+                        </Text>
+                        <Text style={{ color: colors.text, fontSize: 14, fontWeight: "700" }}>
+                          {formatWeeklyValue(w.total)}
+                        </Text>
+                      </View>
+                      <Text style={{ color: colors.textSecondary, fontSize: 12, marginBottom: 8 }}>
+                        {w.range}
+                      </Text>
+
+                      <Text style={{ color: colors.textSecondary, fontSize: 12, marginBottom: 8 }}>
+                        {STRINGS.dashboard.weeklyTopExpenses}
+                      </Text>
+
+                      <TouchableOpacity
+                        onPress={() =>
+                          setExpandedWeek((prev) => (prev === w.label ? null : w.label))
+                        }
+                        style={{
+                          marginTop: 6,
+                          paddingVertical: 10,
+                          paddingHorizontal: 10,
+                          borderRadius: 12,
+                          backgroundColor: colors.surface,
+                          borderWidth: 1,
+                          borderColor: colors.border,
+                          flexDirection: "row",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                        }}
+                      >
+                        <Text style={{ color: colors.text, fontSize: 13, fontWeight: "700" }}>
+                          {expandedWeek === w.label
+                            ? STRINGS.dashboard.toggleWeekHide
+                            : STRINGS.dashboard.toggleWeekShow}
+                        </Text>
+                        <IconSymbol
+                          name={expandedWeek === w.label ? "chevron.up" : "chevron.down"}
+                          size={16}
+                          color={colors.textSecondary}
+                        />
+                      </TouchableOpacity>
+
+                      {expandedWeek === w.label ? (
+                        w.top.length === 0 ? (
+                          <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 10 }}>
+                            {STRINGS.dashboard.noWeekExpenses}
+                          </Text>
+                        ) : (
+                          <View style={{ marginTop: 10 }}>
+                            {w.top.map((tx, idx) => {
+                              const dateStr = new Date(tx.date).toLocaleDateString("es-MX", {
+                                day: "2-digit",
+                                month: "short",
+                              });
+                              const isFirst = idx === 0;
+                              return (
+                                <View
+                                  key={tx.id}
+                                  style={{
+                                    flexDirection: "row",
+                                    justifyContent: "space-between",
+                                    alignItems: "center",
+                                    paddingVertical: 6,
+                                    borderTopWidth: isFirst ? 0 : 1,
+                                    borderTopColor: colors.border,
+                                  }}
+                                >
+                                  <View style={{ flex: 1, paddingRight: 12 }}>
+                                    <Text style={{ color: colors.text, fontSize: 13 }} numberOfLines={1}>
+                                      {tx.description || STRINGS.dashboard.uncategorized}
+                                    </Text>
+                                    <Text style={{ color: colors.textSecondary, fontSize: 12 }} numberOfLines={1}>
+                                      {(tx.category || STRINGS.dashboard.uncategorized) + " • " + dateStr}
+                                    </Text>
+                                  </View>
+                                  <Text style={{ color: colors.text, fontSize: 13, fontWeight: "700" }}>
+                                    {formatWeeklyValue(Math.abs(tx.amount))}
+                                  </Text>
+                                </View>
+                              );
+                            })}
+                          </View>
+                        )
+                      ) : null}
+                    </View>
+                  ))}
+                </View>
+              ) : null}
+            </>
           ) : (
             <Text style={{ color: colors.textSecondary, fontSize: 14 }}>
               {STRINGS.dashboard.noWeeklySpending}
