@@ -4,27 +4,27 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Spacing } from "@/constants/theme";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
-    cancelScheduledNotification,
-    registerForPushNotificationsAsync,
-    scheduleCreditCardReminder,
-    scheduleDailyNotification,
-    scheduleMonthlyNotification,
-    scheduleWeeklyNotification,
+  cancelScheduledNotification,
+  registerForPushNotificationsAsync,
+  scheduleCreditCardReminder,
+  scheduleDailyNotification,
+  scheduleMonthlyNotification,
+  scheduleWeeklyNotification,
 } from "@/services/notifications";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { NotificationRequest } from "expo-notifications";
 import React, { useEffect, useState } from "react";
 import {
-    Alert,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 interface EditNotificationModalProps {
@@ -56,7 +56,7 @@ export const EditNotificationModal: React.FC<EditNotificationModalProps> = ({
 
   // Credit Card State
   const [bankName, setBankName] = useState("");
-  const [paymentDay, setPaymentDay] = useState(1);
+  const [paymentDayText, setPaymentDayText] = useState("1");
 
   const [loading, setLoading] = useState(false);
   const [showAndroidTimePicker, setShowAndroidTimePicker] = useState(false);
@@ -70,7 +70,7 @@ export const EditNotificationModal: React.FC<EditNotificationModalProps> = ({
           if (data.type === "credit_card") {
             setType("credit_card");
             setBankName(data.bankName || "");
-            setPaymentDay(data.paymentDay || 1);
+            setPaymentDayText(String(data.paymentDay || 1));
           } else {
             setType("temporal");
             setFrequency(data.frequency || "daily");
@@ -100,7 +100,7 @@ export const EditNotificationModal: React.FC<EditNotificationModalProps> = ({
         setFrequency("daily");
         setTime(new Date());
         setBankName("");
-        setPaymentDay(1);
+        setPaymentDayText("1");
       }
     }
   }, [visible, notification, initialType]);
@@ -140,7 +140,20 @@ export const EditNotificationModal: React.FC<EditNotificationModalProps> = ({
           setLoading(false);
           return;
         }
-        await scheduleCreditCardReminder(bankName, paymentDay);
+        const parsedPaymentDay = parseInt(paymentDayText, 10);
+        if (
+          Number.isNaN(parsedPaymentDay) ||
+          parsedPaymentDay < 1 ||
+          parsedPaymentDay > 31
+        ) {
+          Alert.alert(
+            "Error",
+            "Por favor ingresa un día de pago válido (1-31).",
+          );
+          setLoading(false);
+          return;
+        }
+        await scheduleCreditCardReminder(bankName, parsedPaymentDay);
       }
 
       Alert.alert("¡Listo!", "Recordatorio guardado exitosamente.");
@@ -190,7 +203,7 @@ export const EditNotificationModal: React.FC<EditNotificationModalProps> = ({
       <Pressable style={styles.overlay} onPress={onClose}>
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : undefined}
-          style={{ width: "100%" }}
+          style={{ flex: 1, justifyContent: "flex-end", width: "100%" }}
         >
           <Pressable
             style={[styles.content, { backgroundColor: colors.surface }]}
@@ -217,231 +230,237 @@ export const EditNotificationModal: React.FC<EditNotificationModalProps> = ({
               style={{ flex: 1 }}
               contentContainerStyle={{ paddingBottom: Spacing.l }}
               keyboardShouldPersistTaps="handled"
+              keyboardDismissMode={
+                Platform.OS === "ios" ? "interactive" : "on-drag"
+              }
+              showsVerticalScrollIndicator={false}
             >
-            {/* Type Selection (only if creating new) */}
-            {!notification && (
-              <View style={styles.section}>
-                <Typography
-                  variant="body"
-                  weight="bold"
-                  style={{ marginBottom: Spacing.s, color: colors.text }}
-                >
-                  Tipo de Recordatorio
-                </Typography>
-                <View style={styles.optionsRow}>
-                  <OptionButton
-                    label="General"
-                    value="temporal"
-                    selected={type === "temporal"}
-                    onPress={() => setType("temporal")}
-                  />
-                  <OptionButton
-                    label="Tarjeta"
-                    value="credit_card"
-                    selected={type === "credit_card"}
-                    onPress={() => setType("credit_card")}
-                  />
-                </View>
-              </View>
-            )}
-
-            {type === "temporal" ? (
-              <>
+              {/* Type Selection (only if creating new) */}
+              {!notification && (
                 <View style={styles.section}>
                   <Typography
                     variant="body"
                     weight="bold"
                     style={{ marginBottom: Spacing.s, color: colors.text }}
                   >
-                    Frecuencia
+                    Tipo de Recordatorio
                   </Typography>
                   <View style={styles.optionsRow}>
                     <OptionButton
-                      label="Diaria"
-                      value="daily"
-                      selected={frequency === "daily"}
-                      onPress={() => setFrequency("daily")}
+                      label="General"
+                      value="temporal"
+                      selected={type === "temporal"}
+                      onPress={() => setType("temporal")}
                     />
                     <OptionButton
-                      label="Semanal"
-                      value="weekly"
-                      selected={frequency === "weekly"}
-                      onPress={() => setFrequency("weekly")}
-                    />
-                    <OptionButton
-                      label="Mensual"
-                      value="monthly"
-                      selected={frequency === "monthly"}
-                      onPress={() => setFrequency("monthly")}
+                      label="Tarjeta"
+                      value="credit_card"
+                      selected={type === "credit_card"}
+                      onPress={() => setType("credit_card")}
                     />
                   </View>
                 </View>
+              )}
 
-                {frequency === "weekly" && (
+              {type === "temporal" ? (
+                <>
                   <View style={styles.section}>
                     <Typography
                       variant="body"
                       weight="bold"
                       style={{ marginBottom: Spacing.s, color: colors.text }}
                     >
-                      Día de la semana (1=Lunes, 7=Domingo)
+                      Frecuencia
+                    </Typography>
+                    <View style={styles.optionsRow}>
+                      <OptionButton
+                        label="Diaria"
+                        value="daily"
+                        selected={frequency === "daily"}
+                        onPress={() => setFrequency("daily")}
+                      />
+                      <OptionButton
+                        label="Semanal"
+                        value="weekly"
+                        selected={frequency === "weekly"}
+                        onPress={() => setFrequency("weekly")}
+                      />
+                      <OptionButton
+                        label="Mensual"
+                        value="monthly"
+                        selected={frequency === "monthly"}
+                        onPress={() => setFrequency("monthly")}
+                      />
+                    </View>
+                  </View>
+
+                  {frequency === "weekly" && (
+                    <View style={styles.section}>
+                      <Typography
+                        variant="body"
+                        weight="bold"
+                        style={{ marginBottom: Spacing.s, color: colors.text }}
+                      >
+                        Día de la semana (1=Lunes, 7=Domingo)
+                      </Typography>
+                      <TextInput
+                        style={[
+                          styles.input,
+                          { color: colors.text, borderColor: colors.border },
+                        ]}
+                        value={weekday.toString()}
+                        keyboardType="numeric"
+                        onChangeText={(text) => {
+                          const val = parseInt(text);
+                          if (!isNaN(val) && val >= 1 && val <= 7)
+                            setWeekday(val);
+                        }}
+                        placeholder="1-7"
+                        placeholderTextColor={colors.textSecondary}
+                      />
+                    </View>
+                  )}
+
+                  {frequency === "monthly" && (
+                    <View style={styles.section}>
+                      <Typography
+                        variant="body"
+                        weight="bold"
+                        style={{ marginBottom: Spacing.s, color: colors.text }}
+                      >
+                        Día del mes
+                      </Typography>
+                      <TextInput
+                        style={[
+                          styles.input,
+                          { color: colors.text, borderColor: colors.border },
+                        ]}
+                        value={day.toString()}
+                        keyboardType="numeric"
+                        onChangeText={(text) => {
+                          const val = parseInt(text);
+                          if (!isNaN(val) && val >= 1 && val <= 31) setDay(val);
+                        }}
+                        placeholder="1-31"
+                        placeholderTextColor={colors.textSecondary}
+                      />
+                    </View>
+                  )}
+
+                  <View style={styles.section}>
+                    <Typography
+                      variant="body"
+                      weight="bold"
+                      style={{ marginBottom: Spacing.s, color: colors.text }}
+                    >
+                      Hora
+                    </Typography>
+                    <View style={{ alignItems: "flex-start" }}>
+                      {Platform.OS === "ios" ? (
+                        <DateTimePicker
+                          value={time}
+                          mode="time"
+                          display="spinner"
+                          onChange={(e, date) => date && setTime(date)}
+                          textColor={colors.text}
+                          themeVariant={theme}
+                        />
+                      ) : (
+                        <>
+                          <Button
+                            title={time.toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                            onPress={() => setShowAndroidTimePicker(true)}
+                            variant="outline"
+                          />
+                          {showAndroidTimePicker && (
+                            <DateTimePicker
+                              value={time}
+                              mode="time"
+                              display="default"
+                              onChange={(e, date) => {
+                                setShowAndroidTimePicker(false);
+                                if (date) setTime(date);
+                              }}
+                            />
+                          )}
+                        </>
+                      )}
+                    </View>
+                  </View>
+                </>
+              ) : (
+                // Credit Card Fields
+                <>
+                  <View style={styles.section}>
+                    <Typography
+                      variant="body"
+                      weight="bold"
+                      style={{ marginBottom: Spacing.s, color: colors.text }}
+                    >
+                      Nombre del Banco
                     </Typography>
                     <TextInput
                       style={[
                         styles.input,
                         { color: colors.text, borderColor: colors.border },
                       ]}
-                      value={weekday.toString()}
-                      keyboardType="numeric"
-                      onChangeText={(text) => {
-                        const val = parseInt(text);
-                        if (!isNaN(val) && val >= 1 && val <= 7)
-                          setWeekday(val);
-                      }}
-                      placeholder="1-7"
+                      value={bankName}
+                      onChangeText={setBankName}
+                      placeholder="Ej. BBVA, Santander"
                       placeholderTextColor={colors.textSecondary}
                     />
                   </View>
-                )}
 
-                {frequency === "monthly" && (
                   <View style={styles.section}>
                     <Typography
                       variant="body"
                       weight="bold"
                       style={{ marginBottom: Spacing.s, color: colors.text }}
                     >
-                      Día del mes
+                      Día de Pago
                     </Typography>
                     <TextInput
                       style={[
                         styles.input,
                         { color: colors.text, borderColor: colors.border },
                       ]}
-                      value={day.toString()}
+                      value={paymentDayText}
                       keyboardType="numeric"
                       onChangeText={(text) => {
-                        const val = parseInt(text);
-                        if (!isNaN(val) && val >= 1 && val <= 31) setDay(val);
+                        if (text === "") {
+                          setPaymentDayText("");
+                          return;
+                        }
+                        if (/^\d{1,2}$/.test(text)) setPaymentDayText(text);
                       }}
                       placeholder="1-31"
                       placeholderTextColor={colors.textSecondary}
                     />
+                    <Typography
+                      variant="caption"
+                      style={{ color: colors.textSecondary, marginTop: 4 }}
+                    >
+                      Te avisaremos 2 días antes.
+                    </Typography>
                   </View>
-                )}
+                </>
+              )}
 
-                <View style={styles.section}>
-                  <Typography
-                    variant="body"
-                    weight="bold"
-                    style={{ marginBottom: Spacing.s, color: colors.text }}
-                  >
-                    Hora
-                  </Typography>
-                  <View style={{ alignItems: "flex-start" }}>
-                    {Platform.OS === "ios" ? (
-                      <DateTimePicker
-                        value={time}
-                        mode="time"
-                        display="spinner"
-                        onChange={(e, date) => date && setTime(date)}
-                    textColor={colors.text}
-                    themeVariant={theme}
-                      />
-                    ) : (
-                      <>
-                        <Button
-                          title={time.toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                          onPress={() => setShowAndroidTimePicker(true)}
-                          variant="outline"
-                        />
-                        {showAndroidTimePicker && (
-                          <DateTimePicker
-                            value={time}
-                            mode="time"
-                            display="default"
-                            onChange={(e, date) => {
-                              setShowAndroidTimePicker(false);
-                              if (date) setTime(date);
-                            }}
-                          />
-                        )}
-                      </>
-                    )}
-                  </View>
-                </View>
-              </>
-            ) : (
-              // Credit Card Fields
-              <>
-                <View style={styles.section}>
-                  <Typography
-                    variant="body"
-                    weight="bold"
-                    style={{ marginBottom: Spacing.s, color: colors.text }}
-                  >
-                    Nombre del Banco
-                  </Typography>
-                  <TextInput
-                    style={[
-                      styles.input,
-                      { color: colors.text, borderColor: colors.border },
-                    ]}
-                    value={bankName}
-                    onChangeText={setBankName}
-                    placeholder="Ej. BBVA, Santander"
-                    placeholderTextColor={colors.textSecondary}
-                  />
-                </View>
+              <View style={{ height: 20 }} />
+            </ScrollView>
 
-                <View style={styles.section}>
-                  <Typography
-                    variant="body"
-                    weight="bold"
-                    style={{ marginBottom: Spacing.s, color: colors.text }}
-                  >
-                    Día de Pago
-                  </Typography>
-                  <TextInput
-                    style={[
-                      styles.input,
-                      { color: colors.text, borderColor: colors.border },
-                    ]}
-                    value={paymentDay.toString()}
-                    keyboardType="numeric"
-                    onChangeText={(text) => {
-                      const val = parseInt(text);
-                      if (!isNaN(val) && val >= 1 && val <= 31)
-                        setPaymentDay(val);
-                    }}
-                    placeholder="1-31"
-                    placeholderTextColor={colors.textSecondary}
-                  />
-                  <Typography
-                    variant="caption"
-                    style={{ color: colors.textSecondary, marginTop: 4 }}
-                  >
-                    Te avisaremos 2 días antes.
-                  </Typography>
-                </View>
-              </>
-            )}
-
-            <View style={{ height: 20 }} />
-          </ScrollView>
-
-          <View style={styles.footer}>
-            <Button
-              title={loading ? "Guardando..." : "Guardar"}
-              onPress={handleSave}
-              size="large"
-              style={{ width: "100%" }}
-              disabled={loading}
-            />
-          </View>
+            <View style={styles.footer}>
+              <Button
+                title={loading ? "Guardando..." : "Guardar"}
+                onPress={handleSave}
+                size="large"
+                style={{ width: "100%" }}
+                disabled={loading}
+              />
+            </View>
           </Pressable>
         </KeyboardAvoidingView>
       </Pressable>
@@ -456,11 +475,14 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   content: {
+    width: "100%",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: Spacing.l,
-    paddingBottom: 40,
+    paddingBottom: Spacing.l,
     maxHeight: "90%",
+    minHeight: 500,
+    flexShrink: 1,
   },
   header: {
     flexDirection: "row",
