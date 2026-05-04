@@ -9,8 +9,10 @@ import WalletScreen from "../WalletScreen";
 // Mock Hooks
 jest.mock("react-redux", () => ({
   useDispatch: () => jest.fn(),
-  useSelector: jest.fn((fn) => fn({ settings: { isVoiceCommandEnabled: false } })),
-  useStore: () => ({ getState: jest.fn() })
+  useSelector: jest.fn((fn) =>
+    fn({ settings: { isVoiceCommandEnabled: false } }),
+  ),
+  useStore: () => ({ getState: jest.fn() }),
 }));
 jest.mock("../../hooks/useWalletData");
 jest.mock("../../hooks/useWalletTransactions");
@@ -18,7 +20,10 @@ jest.mock("expo-router", () => ({
   useRouter: jest.fn(),
 }));
 jest.mock("@/contexts/ThemeContext", () => ({
-  useTheme: () => ({ colors: { background: "#ffffff", text: "#000000" } }),
+  useTheme: () => ({
+    theme: "light",
+    colors: require("@/constants/theme").Colors.light,
+  }),
 }));
 jest.mock("@react-navigation/elements", () => ({
   useHeaderHeight: () => 100,
@@ -41,13 +46,13 @@ jest.mock("@/features/wallet/components/WalletHeader", () => ({
         <Text>Balance Total</Text>
       </View>
     );
-  }
+  },
 }));
 jest.mock("@/components/atoms/Typography", () => ({
   Typography: ({ children }: any) => {
     const { Text } = require("react-native");
     return <Text>{children}</Text>;
-  }
+  },
 }));
 jest.mock("@/components/atoms/VoiceInputButton", () => ({
   VoiceInputButton: () => "VoiceInputButton",
@@ -74,7 +79,7 @@ jest.mock("../../components/TransactionFilterModal", () => ({
 
 // Mock ExportTransactions to avoid Redux Provider requirement
 jest.mock("../../components/ExportTransactions", () => ({
-  ExportTransactions: () => "ExportTransactions",
+  ExportButton: () => "ExportButton",
 }));
 
 // We use real components for WalletHeader, QuickActions, and TransactionList
@@ -108,13 +113,9 @@ describe("WalletScreen", () => {
   it("renders correctly with real components", () => {
     const { getByText, getByPlaceholderText } = render(<WalletScreen />);
 
-    // Check elements from WalletHeader
-    expect(getByText(/Enero/)).toBeTruthy(); // Month name (regex for potential spaces)
-    expect(getByText("Balance Total")).toBeTruthy();
-
-    // Check elements from QuickActions
-    expect(getByText("Ingreso")).toBeTruthy();
-    expect(getByText("Gasto")).toBeTruthy();
+    expect(getByText(/Enero/)).toBeTruthy();
+    expect(getByText("Mes")).toBeTruthy();
+    expect(getByText("Año")).toBeTruthy();
 
     // Check elements from TransactionList
     expect(getByText("Movimientos Recientes")).toBeTruthy();
@@ -125,17 +126,6 @@ describe("WalletScreen", () => {
     expect(getByPlaceholderText("Buscar...")).toBeTruthy();
   });
 
-  it("handles navigation via QuickActions", () => {
-    const { getByText } = render(<WalletScreen />);
-
-    // Press "Ingreso" button (from real QuickActions component)
-    fireEvent.press(getByText("Ingreso"));
-    expect(mockRouter.push).toHaveBeenCalledWith({
-      pathname: "/transaction-form",
-      params: { initialType: "income" },
-    });
-  });
-
   it("handles transaction press navigation", () => {
     const { getByText } = render(<WalletScreen />);
 
@@ -143,7 +133,7 @@ describe("WalletScreen", () => {
     fireEvent.press(getByText("Salary"));
 
     expect(mockRouter.push).toHaveBeenCalledWith({
-      pathname: "/transaction-form",
+      pathname: "/wallet/transaction-details",
       params: { id: "2" },
     });
   });

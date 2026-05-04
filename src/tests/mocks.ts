@@ -10,6 +10,25 @@ export const mockThemeColors = {
   success: "green",
   background: "#fff",
   border: "#ccc",
+  tint: "#000",
+  icon: "#666",
+  tabIconDefault: "#666",
+  tabIconSelected: "#000",
+  secondary: "#000",
+  accent: "#000",
+  warning: "orange",
+  surfaceActive: "#fff",
+  gradients: {
+    background: ["#000", "#111"] as const,
+    primary: ["#000", "#111"] as const,
+    success: ["#0a0", "#0b0"] as const,
+    error: ["#a00", "#b00"] as const,
+  },
+  glass: {
+    cardBg: "rgba(255,255,255,0.1)",
+    cardBorder: "rgba(0,0,0,0.1)",
+    specularTop: "rgba(255,255,255,0.1)",
+  },
 };
 
 export const mockUser = {
@@ -150,6 +169,8 @@ export const mockWalletDataFactory = (overrides = {}) => ({
   categories: [],
   selectedDate: new Date("2024-01-01"),
   setSelectedDate: jest.fn(),
+  periodView: "month",
+  setPeriodView: jest.fn(),
   loading: false,
   error: null,
   ...overrides,

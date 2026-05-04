@@ -2,10 +2,11 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { fetchVisionEntities } from "@/features/vision/data/visionSlice";
 import STRINGS from "@/i18n/es.json";
 import { AppDispatch, RootState } from "@/store/store";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchCategories } from "../data/categoriesSlice";
 import { fetchGamificationData } from "../data/gamificationSlice";
+import { setPeriodView, setSelectedMonthTimestamp } from "../data/walletUiSlice";
 import { fetchForecast, fetchTransactions } from "../data/walletSlice";
 import { useStreak } from "./useStreak";
 
@@ -14,6 +15,10 @@ export const useWalletData = () => {
   const { transactions, forecast } = useSelector(
     (state: RootState) => state.wallet,
   );
+  const selectedMonthTimestamp = useSelector(
+    (state: RootState) => state.walletUi.selectedMonthTimestamp,
+  );
+  const periodView = useSelector((state: RootState) => state.walletUi.periodView);
   const { entities: visionEntities } = useSelector(
     (state: RootState) => state.vision,
   );
@@ -27,7 +32,23 @@ export const useWalletData = () => {
   const streak = useStreak(transactions, repairedDays);
 
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const selectedDate = useMemo(
+    () => new Date(selectedMonthTimestamp),
+    [selectedMonthTimestamp],
+  );
+  const setSelectedDate = useCallback(
+    (date: Date) => {
+      const normalized = new Date(date.getFullYear(), date.getMonth(), 1);
+      dispatch(setSelectedMonthTimestamp(normalized.getTime()));
+    },
+    [dispatch],
+  );
+  const setPeriodViewMode = useCallback(
+    (mode: "month" | "year") => {
+      dispatch(setPeriodView(mode));
+    },
+    [dispatch],
+  );
 
   useEffect(() => {
     if (user?.id) {
@@ -61,9 +82,8 @@ export const useWalletData = () => {
 
   const currentMonthTransactions = transactions.filter((t) => {
     const tDate = new Date(t.date);
-    return (
-      tDate.getMonth() === currentMonth && tDate.getFullYear() === currentYear
-    );
+    if (periodView === "year") return tDate.getFullYear() === currentYear;
+    return tDate.getMonth() === currentMonth && tDate.getFullYear() === currentYear;
   });
 
   const balance = currentMonthTransactions.reduce((acc, curr) => {
@@ -96,6 +116,8 @@ export const useWalletData = () => {
     categories,
     selectedDate,
     setSelectedDate,
+    periodView,
+    setPeriodView: setPeriodViewMode,
     forecast,
   };
 };

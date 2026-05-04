@@ -1,3 +1,4 @@
+import { GlassSegmentedControl } from "@/components/atoms/GlassSegmentedControl";
 import { VoiceInputButton } from "@/components/atoms/VoiceInputButton";
 import { FloatingActionMenu } from "@/components/molecules/FloatingActionMenu";
 import { TransactionList } from "@/components/organisms/TransactionList";
@@ -53,6 +54,8 @@ export default function WalletScreen() {
     categories,
     selectedDate,
     setSelectedDate,
+    periodView,
+    setPeriodView,
     forecast,
   } = useWalletData();
 
@@ -255,12 +258,30 @@ export default function WalletScreen() {
             marginBottom: Spacing.m,
           }}
         >
-          <MonthSelector
-            currentMonthName={currentMonthName}
-            year={selectedDate.getFullYear()}
-            showYear={selectedDate.getFullYear() !== new Date().getFullYear()}
-            onPress={() => setDatePickerVisible(true)}
-          />
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <MonthSelector
+              currentMonthName={
+                periodView === "year"
+                  ? `${STRINGS.wallet.viewYear} ${selectedDate.getFullYear()}`
+                  : currentMonthName
+              }
+              year={selectedDate.getFullYear()}
+              showYear={
+                periodView === "month" &&
+                selectedDate.getFullYear() !== new Date().getFullYear()
+              }
+              onPress={() => setDatePickerVisible(true)}
+            />
+            <GlassSegmentedControl
+              style={{ marginLeft: Spacing.s }}
+              value={periodView}
+              options={[
+                { value: "month", label: STRINGS.wallet.viewMonth },
+                { value: "year", label: STRINGS.wallet.viewYear },
+              ]}
+              onChange={setPeriodView}
+            />
+          </View>
           <ExportButton />
         </View>
 
@@ -329,6 +350,7 @@ export default function WalletScreen() {
       balance,
       colors.border,
       colors.surfaceHighlight,
+      colors.primary,
       colors.text,
       colors.textSecondary,
       currentMonthName,
@@ -339,6 +361,9 @@ export default function WalletScreen() {
       router,
       searchQuery,
       selectedDate,
+      periodView,
+      setPeriodView,
+      setSelectedDate,
       streak,
     ],
   );
@@ -440,6 +465,7 @@ export default function WalletScreen() {
             onClose={() => setDatePickerVisible(false)}
             selectedDate={selectedDate}
             onSelect={setSelectedDate}
+            mode={periodView}
           />
 
           <TransactionFilterModal
