@@ -48,6 +48,16 @@ class CronViewSet(viewsets.ViewSet):
         count = 0
         
         for tx in recurring_transactions:
+            if not tx.recurrence_frequency:
+                continue
+
+            start_date = tx.date
+            end_date = (
+                start_date + relativedelta(months=tx.recurrence_months)
+                if tx.recurrence_months
+                else None
+            )
+
             # Determine the last processed date (or original date if never processed)
             base_date = tx.last_recurrence_date if tx.last_recurrence_date else tx.date
             
@@ -59,6 +69,11 @@ class CronViewSet(viewsets.ViewSet):
             elif tx.recurrence_frequency == 'yearly':
                 next_date = base_date + relativedelta(years=1)
             else:
+                continue
+
+            if end_date and next_date > end_date:
+                tx.is_recurring = False
+                tx.save(update_fields=["is_recurring"])
                 continue
 
             # Check if it's due

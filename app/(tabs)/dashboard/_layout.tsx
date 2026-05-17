@@ -19,14 +19,6 @@ export default function DashboardLayout() {
           headerShadowVisible: false,
           headerTitle: STRINGS.dashboard.title,
           headerTitleAlign: "center",
-          headerTitleStyle: {
-            color: colors.primary,
-            fontWeight: "700",
-          },
-          contentStyle: {
-            backgroundColor: colors.background,
-          },
-
           headerRight: () => (
             <TouchableOpacity onPress={() => router.push("/notifications")}>
               <IconSymbol

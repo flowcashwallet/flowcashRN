@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.core.validators import MaxValueValidator, MinValueValidator
 
 class Transaction(models.Model):
     TRANSACTION_TYPES = [
@@ -33,6 +34,12 @@ class Transaction(models.Model):
         choices=[('weekly', 'Weekly'), ('monthly', 'Monthly'), ('yearly', 'Yearly')],
         null=True, 
         blank=True
+    )
+    recurrence_months = models.IntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(1), MaxValueValidator(36)],
+        help_text="Duration of the recurrence in months (1-36). Null means indefinite.",
     )
     last_recurrence_date = models.DateTimeField(null=True, blank=True, help_text="Last time a recurring transaction was generated from this one")
     
