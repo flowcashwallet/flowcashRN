@@ -10,6 +10,7 @@ import {
 export default function WalletLayout() {
   const router = useRouter();
   const { colors } = useTheme();
+  const isIOS = Platform.OS === "ios";
 
   const handleNotificationPress = async () => {
     const hasPermission = await registerForPushNotificationsAsync();
@@ -161,12 +162,12 @@ export default function WalletLayout() {
           name="transaction-form"
           options={{
             headerShown: true,
-            presentation: Platform.OS === "ios" ? "formSheet" : "card",
+            presentation: isIOS ? "formSheet" : "card",
             headerTransparent: true,
             headerTitle: "Transacción",
-            sheetAllowedDetents: [0.9],
+            ...(isIOS ? { sheetAllowedDetents: [0.9] } : {}),
             contentStyle: {
-              backgroundColor: "transparent",
+              backgroundColor: isIOS ? "transparent" : colors.background,
             },
           }}
         />
@@ -174,12 +175,12 @@ export default function WalletLayout() {
           name="transaction-details"
           options={{
             headerShown: true,
-            presentation: Platform.OS === "ios" ? "formSheet" : "card",
+            presentation: isIOS ? "formSheet" : "card",
             headerTransparent: true,
             headerTitle: "Transacción",
-            sheetAllowedDetents: [0.9],
+            ...(isIOS ? { sheetAllowedDetents: [0.9] } : {}),
             contentStyle: {
-              backgroundColor: "transparent",
+              backgroundColor: isIOS ? "transparent" : colors.background,
             },
           }}
         />
