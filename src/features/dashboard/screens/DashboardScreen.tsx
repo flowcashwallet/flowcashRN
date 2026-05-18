@@ -12,11 +12,11 @@ import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useMemo, useState } from "react";
 import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { LineChart, PieChart } from "react-native-gifted-charts";
 
@@ -37,6 +37,7 @@ export default function DashboardScreen() {
   const [datePickerVisible, setDatePickerVisible] = useState(false);
   const [showWeeklyDetails, setShowWeeklyDetails] = useState(false);
   const [expandedWeek, setExpandedWeek] = useState<string | null>(null);
+  const [lineChartWidth, setLineChartWidth] = useState(0);
 
   useEffect(() => {
     if (periodView === "year") {
@@ -96,6 +97,21 @@ export default function DashboardScreen() {
     const hasData = totals.some((v) => v > 0);
     return { data, hasData };
   }, [currentMonthTransactions, periodView, selectedDate, year]);
+
+  const resolvedLineChartWidth = useMemo(() => {
+    if (!lineChartWidth) return undefined;
+    return Math.max(0, lineChartWidth - 16);
+  }, [lineChartWidth]);
+
+  const lineChartSpacing = useMemo(() => {
+    const points = Math.max(1, expenseTrend.data.length);
+    if (!resolvedLineChartWidth) {
+      return Math.max(44, 240 / points);
+    }
+    if (points <= 1) return Math.max(44, resolvedLineChartWidth);
+    const available = Math.max(0, resolvedLineChartWidth - 20);
+    return Math.max(24, available / (points - 1));
+  }, [expenseTrend.data.length, resolvedLineChartWidth]);
 
   const weeklyDetails = useMemo(() => {
     if (periodView === "year") return [];
@@ -362,80 +378,95 @@ export default function DashboardScreen() {
           </Text>
           {expenseTrend.hasData ? (
             <>
-              <LineChart
-                data={expenseTrend.data}
-                color={colors.primary}
-                thickness={3}
-                hideDataPoints={false}
-                dataPointsColor={colors.primary}
-                dataPointsRadius={4}
-                height={160}
-                spacing={Math.max(
-                  44,
-                  240 / Math.max(1, expenseTrend.data.length),
-                )}
-                initialSpacing={10}
-                endSpacing={10}
-                yAxisColor={colors.border}
-                xAxisColor={colors.border}
-                yAxisLabelPrefix="$"
-                overflowTop={22}
-                textColor1={colors.text}
-                textFontSize={12}
-                textShiftY={-8}
-                textShiftX={10}
-                xAxisLabelTextStyle={{
-                  color: colors.textSecondary,
-                  fontSize: 12,
-                }}
-                yAxisTextStyle={{ color: colors.textSecondary, fontSize: 12 }}
-                noOfSections={4}
-                backgroundColor="transparent"
-                rulesColor={colors.border}
-                pointerConfig={{
-                  pointerStripHeight: 160,
-                  pointerStripColor: colors.border,
-                  pointerStripWidth: 2,
-                  pointerColor: colors.primary,
-                  radius: 4,
-                  pointerLabelComponent: (items: any) => {
-                    const item = Array.isArray(items) ? items[0] : items;
-                    const label = item?.label ?? "";
-                    const value =
-                      typeof item?.value === "number" ? item.value : 0;
-                    return (
-                      <View
-                        style={{
-                          paddingHorizontal: 10,
-                          paddingVertical: 8,
-                          borderRadius: 10,
-                          backgroundColor: colors.surface,
-                          borderWidth: 1,
-                          borderColor: colors.border,
-                        }}
-                      >
-                        <Text
+              <View
+                style={{ width: "100%" }}
+                onLayout={(e) => setLineChartWidth(e.nativeEvent.layout.width)}
+              >
+                <LineChart
+                  data={expenseTrend.data}
+                  color={colors.primary}
+                  thickness={3}
+                  hideDataPoints={false}
+                  dataPointsColor={colors.primary}
+                  dataPointsRadius={4}
+                  height={160}
+                  spacing={lineChartSpacing}
+                  initialSpacing={10}
+                  endSpacing={10}
+                  yAxisColor={colors.border}
+                  xAxisColor={colors.border}
+                  yAxisLabelPrefix="$"
+                  overflowTop={22}
+                  textColor1={colors.text}
+                  textFontSize={12}
+                  textShiftY={-8}
+                  textShiftX={10}
+                  xAxisLabelTextStyle={{
+                    color: colors.textSecondary,
+                    fontSize: 12,
+                  }}
+                  yAxisTextStyle={{ color: colors.textSecondary, fontSize: 12 }}
+                  noOfSections={4}
+                  backgroundColor="transparent"
+                  rulesColor={colors.border}
+                  {...(resolvedLineChartWidth
+                    ? { width: resolvedLineChartWidth }
+                    : {})}
+                  pointerConfig={{
+                    pointerStripHeight: 160,
+                    pointerStripColor: colors.border,
+                    pointerStripWidth: 2,
+                    pointerColor: colors.primary,
+                    radius: 4,
+                    pointerLabelWidth: 160,
+                    pointerLabelHeight: 70,
+                    autoAdjustPointerLabelPosition: true,
+                    pointerLabelComponent: (items: any) => {
+                      const item = Array.isArray(items) ? items[0] : items;
+                      const label = item?.label ?? "";
+                      const value =
+                        typeof item?.value === "number" ? item.value : 0;
+                      return (
+                        <View
                           style={{
-                            color: colors.textSecondary,
-                            fontSize: 12,
+                            paddingHorizontal: 10,
+                            paddingVertical: 8,
+                            borderRadius: 10,
+                            backgroundColor: colors.surface,
+                            borderWidth: 1,
+                            borderColor: colors.border,
+                            minWidth: 140,
                           }}
                         >
-                          {label}
-                        </Text>
-                        <Text
-                          style={{
-                            color: colors.text,
-                            fontSize: 14,
-                            fontWeight: "700",
-                          }}
-                        >
-                          {formatWeeklyValue(value)}
-                        </Text>
-                      </View>
-                    );
-                  },
-                }}
-              />
+                          <Text
+                            style={{
+                              color: colors.textSecondary,
+                              fontSize: 12,
+                              maxWidth: "100%",
+                            }}
+                            numberOfLines={1}
+                            ellipsizeMode="tail"
+                          >
+                            {label}
+                          </Text>
+                          <Text
+                            style={{
+                              color: colors.text,
+                              fontSize: 14,
+                              fontWeight: "700",
+                              maxWidth: "100%",
+                            }}
+                            numberOfLines={1}
+                            ellipsizeMode="tail"
+                          >
+                            {formatWeeklyValue(value)}
+                          </Text>
+                        </View>
+                      );
+                    },
+                  }}
+                />
+              </View>
 
               {periodView === "month" ? (
                 <>

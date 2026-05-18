@@ -1,12 +1,15 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
+import type React from "react";
 import { Platform } from "react-native";
-import { HeaderButton as AndroidButton } from "./HeaderButton.android";
-import { HeaderButton as IOSButton } from "./HeaderButton.ios";
-import { HeaderButtonProps } from "./types";
+import type { HeaderButtonProps } from "./types";
 
-export const HeaderButton = Platform.select({
-  ios: IOSButton,
-  android: AndroidButton,
-  default: AndroidButton,
-}) as React.FC<HeaderButtonProps>;
+const isTest = process.env.NODE_ENV === "test";
+
+const HeaderButtonImpl: React.FC<HeaderButtonProps> =
+  Platform.OS === "ios" && !isTest
+    ? require("./HeaderButton.ios").HeaderButton
+    : require("./HeaderButton.android").HeaderButton;
+
+export const HeaderButton = HeaderButtonImpl;
 
 export type { HeaderButtonProps };

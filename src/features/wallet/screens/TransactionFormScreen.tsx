@@ -8,9 +8,6 @@ import { useTheme } from "@/contexts/ThemeContext";
 import STRINGS from "@/i18n/es.json";
 import { RootState } from "@/store/store";
 import { formatAmountInput } from "@/utils/format";
-import DateTimePicker, {
-  DateTimePickerEvent,
-} from "@react-native-community/datetimepicker";
 import * as Haptics from "expo-haptics";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -30,6 +27,36 @@ import { useDispatch, useSelector } from "react-redux";
 import { EntitySelectionModal } from "../components/EntitySelectionModal";
 import { clearCategoryPickerSelection } from "../data/walletUiSlice";
 import { useTransactionForm } from "../hooks/useTransactionForm";
+
+const NativeDateTimePicker = ({
+  value,
+  themeVariant,
+  onChange,
+  maximumDate,
+  backgroundColor,
+}: {
+  value: Date;
+  themeVariant: "light" | "dark" | undefined;
+  onChange: (selectedDate?: Date) => void;
+  maximumDate?: Date;
+  backgroundColor: string;
+}) => {
+  if (Platform.OS === "web") return null;
+  const DateTimePicker =
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    require("@react-native-community/datetimepicker").default;
+  return (
+    <DateTimePicker
+      value={value}
+      mode="date"
+      display={Platform.OS === "ios" ? "inline" : "default"}
+      themeVariant={themeVariant}
+      onChange={(_: any, selectedDate?: Date) => onChange(selectedDate)}
+      maximumDate={maximumDate}
+      style={Platform.OS === "ios" ? { backgroundColor } : undefined}
+    />
+  );
+};
 
 export default function TransactionFormScreen() {
   const router = useRouter();
@@ -102,6 +129,10 @@ export default function TransactionFormScreen() {
     setSelectedCategory(categoryPickerSelection.value);
     dispatch(clearCategoryPickerSelection());
   }, [categoryPickerSelection, dispatch, setSelectedCategory]);
+
+  const dateInputValue = `${date.getFullYear()}-${String(
+    date.getMonth() + 1,
+  ).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -299,51 +330,69 @@ export default function TransactionFormScreen() {
                 >
                   Fecha
                 </Typography>
-                <TouchableOpacity
-                  onPress={() => setShowDatePicker(true)}
-                  style={{
-                    backgroundColor: colors.surface,
-                    padding: Spacing.m,
-                    borderRadius: BorderRadius.m,
-                    borderWidth: 1,
-                    borderColor: colors.border,
-                    flexDirection: "row",
-                    alignItems: "center",
-                  }}
-                >
-                  <IconSymbol
-                    name="calendar"
-                    size={20}
-                    color={colors.text}
-                    style={{ marginRight: Spacing.s }}
-                  />
-                  <Typography>
-                    {date.toLocaleDateString("es-ES", {
-                      weekday: "long",
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}
-                  </Typography>
-                </TouchableOpacity>
-                {showDatePicker && (
-                  <DateTimePicker
-                    value={date}
-                    mode="date"
-                    display={Platform.OS === "ios" ? "inline" : "default"}
-                    themeVariant={theme}
-                    onChange={(_: DateTimePickerEvent, selectedDate?: Date) => {
-                      const currentDate = selectedDate || date;
-                      setShowDatePicker(false);
-                      setDate(currentDate);
+                {Platform.OS === "web" ? (
+                  <Input
+                    label=""
+                    placeholder="YYYY-MM-DD"
+                    value={dateInputValue}
+                    onChangeText={(text) => {
+                      const trimmed = text.trim();
+                      const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
+                      if (!match) return;
+                      const y = Number(match[1]);
+                      const m = Number(match[2]);
+                      const d = Number(match[3]);
+                      if (m < 1 || m > 12) return;
+                      if (d < 1 || d > 31) return;
+                      const next = new Date(y, m - 1, d);
+                      if (Number.isNaN(next.getTime())) return;
+                      if (next > new Date()) return;
+                      setDate(next);
                     }}
-                    maximumDate={new Date()}
-                    style={
-                      Platform.OS === "ios"
-                        ? { backgroundColor: colors.surface }
-                        : undefined
-                    }
                   />
+                ) : (
+                  <>
+                    <TouchableOpacity
+                      onPress={() => setShowDatePicker(true)}
+                      style={{
+                        backgroundColor: colors.surface,
+                        padding: Spacing.m,
+                        borderRadius: BorderRadius.m,
+                        borderWidth: 1,
+                        borderColor: colors.border,
+                        flexDirection: "row",
+                        alignItems: "center",
+                      }}
+                    >
+                      <IconSymbol
+                        name="calendar"
+                        size={20}
+                        color={colors.text}
+                        style={{ marginRight: Spacing.s }}
+                      />
+                      <Typography>
+                        {date.toLocaleDateString("es-ES", {
+                          weekday: "long",
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })}
+                      </Typography>
+                    </TouchableOpacity>
+                    {showDatePicker ? (
+                      <NativeDateTimePicker
+                        value={date}
+                        themeVariant={theme}
+                        onChange={(selectedDate?: Date) => {
+                          const currentDate = selectedDate || date;
+                          setShowDatePicker(false);
+                          setDate(currentDate);
+                        }}
+                        maximumDate={new Date()}
+                        backgroundColor={colors.surface}
+                      />
+                    ) : null}
+                  </>
                 )}
               </View>
 
@@ -785,7 +834,10 @@ export default function TransactionFormScreen() {
                       <View style={{ alignItems: "flex-end" }}>
                         <Typography
                           variant="caption"
-                          style={{ color: colors.textSecondary, marginBottom: 4 }}
+                          style={{
+                            color: colors.textSecondary,
+                            marginBottom: 4,
+                          }}
                         >
                           Indefinido
                         </Typography>
@@ -860,7 +912,10 @@ export default function TransactionFormScreen() {
                           </Typography>
                           <Typography
                             variant="caption"
-                            style={{ color: colors.textSecondary, marginTop: 2 }}
+                            style={{
+                              color: colors.textSecondary,
+                              marginTop: 2,
+                            }}
                           >
                             {recurrenceMonths === 1 ? "mes" : "meses"}
                           </Typography>
