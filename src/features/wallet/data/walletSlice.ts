@@ -21,7 +21,8 @@ export interface Transaction {
     | "payroll"
     | null;
   isRecurring?: boolean;
-  recurrenceFrequency?: "weekly" | "monthly" | "yearly";
+  recurrenceFrequency?: "weekly" | "monthly" | "yearly" | null;
+  recurrenceMonths?: number | null;
 }
 
 export interface Forecast {
@@ -90,6 +91,7 @@ export const fetchTransactions = createAsyncThunk(
         paymentType: tx.payment_type,
         isRecurring: tx.is_recurring,
         recurrenceFrequency: tx.recurrence_frequency,
+        recurrenceMonths: tx.recurrence_months ?? null,
       }));
 
       // Sort desc by date (already sorted by backend but good to ensure)
@@ -148,6 +150,7 @@ export const addTransaction = createAsyncThunk(
         payment_type: transaction.paymentType,
         is_recurring: transaction.isRecurring,
         recurrence_frequency: transaction.recurrenceFrequency,
+        recurrence_months: transaction.recurrenceMonths ?? null,
       };
 
       const response = await fetchWithAuth(
@@ -184,6 +187,7 @@ export const addTransaction = createAsyncThunk(
         paymentType: tx.payment_type,
         isRecurring: tx.is_recurring,
         recurrenceFrequency: tx.recurrence_frequency,
+        recurrenceMonths: tx.recurrence_months ?? null,
       };
     } catch (error: any) {
       console.error("Error adding transaction:", error);
@@ -239,6 +243,11 @@ export const updateTransaction = createAsyncThunk(
         payload.date = new Date(updates.date).toISOString();
       if (updates.paymentType !== undefined)
         payload.payment_type = updates.paymentType;
+      if (updates.isRecurring !== undefined) payload.is_recurring = updates.isRecurring;
+      if (updates.recurrenceFrequency !== undefined)
+        payload.recurrence_frequency = updates.recurrenceFrequency;
+      if (updates.recurrenceMonths !== undefined)
+        payload.recurrence_months = updates.recurrenceMonths;
 
       const response = await fetchWithAuth(
         `${endpoints.wallet.transactions}${id}/`,

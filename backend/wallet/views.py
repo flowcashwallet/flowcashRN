@@ -2,8 +2,8 @@ from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from decimal import Decimal
-from .models import Transaction, Budget, Category, VisionEntity, GamificationStats
-from .serializers import TransactionSerializer, BudgetSerializer, CategorySerializer, VisionEntitySerializer, GamificationStatsSerializer
+from .models import Transaction, Budget, Category, VisionEntity, GamificationStats, DevicePushToken
+from .serializers import TransactionSerializer, BudgetSerializer, CategorySerializer, VisionEntitySerializer, GamificationStatsSerializer, DevicePushTokenSerializer
 from .ml import predict_category_for_user
 from .nlp import parse_voice_command
 from .analytics import predict_runway
@@ -11,6 +11,9 @@ from django.utils import timezone
 from dateutil.relativedelta import relativedelta
 from django.conf import settings
 import os
+import json
+import urllib.request
+import urllib.error
 
 class CronViewSet(viewsets.ViewSet):
     permission_classes = [permissions.AllowAny] # Secured by header check manually
@@ -99,6 +102,93 @@ class CronViewSet(viewsets.ViewSet):
                 count += 1
 
         return Response({"status": "success", "processed": count})
+
+class DevicePushTokenViewSet(viewsets.ModelViewSet):
+    serializer_class = DevicePushTokenSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return DevicePushToken.objects.filter(user=self.request.user).order_by('-updated_at')
+
+    def create(self, request, *args, **kwargs):
+        expo_push_token = request.data.get('expo_push_token') or request.data.get('expoPushToken')
+        platform = request.data.get('platform')
+        if not expo_push_token:
+            return Response({"error": "expo_push_token_required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        token_obj, created = DevicePushToken.objects.update_or_create(
+            expo_push_token=expo_push_token,
+            defaults={
+                "user": request.user,
+                "platform": platform,
+            },
+        )
+
+        serializer = self.get_serializer(token_obj)
+        return Response(serializer.data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+
+class PushViewSet(viewsets.ViewSet):
+    permission_classes = [permissions.AllowAny]
+    authentication_classes = []
+
+    @action(detail=False, methods=['post'], url_path='suggest')
+    def suggest(self, request):
+        auth_header = request.headers.get('Authorization', '')
+        shortcut_secret = os.environ.get('SHORTCUT_SECRET') or getattr(settings, 'SHORTCUT_SECRET', None)
+        if not shortcut_secret:
+            return Response({"error": "SHORTCUT_SECRET_NOT_CONFIGURED"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        incoming_token = auth_header.replace('Bearer ', '').strip()
+        if incoming_token != shortcut_secret:
+            return Response({"error": "Unauthorized"}, status=status.HTTP_401_UNAUTHORIZED)
+
+        user_id = request.data.get('user_id') or request.data.get('userId')
+        title = request.data.get('title') or "Nueva transacción"
+        body = request.data.get('body') or "¿Quieres agregar esta transacción?"
+        data = request.data.get('data') or {}
+
+        if not user_id:
+            return Response({"error": "user_id_required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        tokens = list(DevicePushToken.objects.filter(user_id=user_id).values_list('expo_push_token', flat=True))
+        if not tokens:
+            return Response({"error": "no_push_tokens_for_user"}, status=status.HTTP_404_NOT_FOUND)
+
+        messages = []
+        for t in tokens:
+            messages.append(
+                {
+                    "to": t,
+                    "sound": "default",
+                    "title": title,
+                    "body": body,
+                    "categoryId": "wallet_tx_suggestion",
+                    "data": {"kind": "wallet_tx_suggestion", **data},
+                }
+            )
+
+        req = urllib.request.Request(
+            "https://exp.host/--/api/v2/push/send",
+            data=json.dumps(messages).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+
+        try:
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                raw = resp.read().decode("utf-8")
+                try:
+                    parsed = json.loads(raw)
+                except Exception:
+                    parsed = {"raw": raw}
+                return Response({"status": "ok", "expo": parsed})
+        except urllib.error.HTTPError as e:
+            return Response(
+                {"error": "expo_http_error", "status_code": e.code, "body": e.read().decode("utf-8")},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+        except Exception as e:
+            return Response({"error": "expo_send_failed", "detail": str(e)}, status=status.HTTP_502_BAD_GATEWAY)
 
 class AnalyticsViewSet(viewsets.ViewSet):
     permission_classes = [permissions.IsAuthenticated]

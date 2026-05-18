@@ -95,10 +95,15 @@ export const useTransactionForm = ({
     useState(false);
 
   // Recurrence State
-  const [isRecurring, setIsRecurring] = useState(false);
+  const [isRecurring, setIsRecurring] = useState(
+    !!existingTransaction?.isRecurring,
+  );
   const [recurrenceFrequency, setRecurrenceFrequency] = useState<
     "weekly" | "monthly" | "yearly"
-  >("monthly");
+  >(existingTransaction?.recurrenceFrequency || "monthly");
+  const [recurrenceMonths, setRecurrenceMonths] = useState<number | null>(
+    existingTransaction?.recurrenceMonths ?? null,
+  );
 
   // Load categories if needed
   useEffect(() => {
@@ -271,7 +276,8 @@ export const useTransactionForm = ({
             date: date.getTime(),
             paymentType: selectedPaymentType,
             isRecurring,
-            recurrenceFrequency: isRecurring ? recurrenceFrequency : undefined,
+            recurrenceFrequency: isRecurring ? recurrenceFrequency : null,
+            recurrenceMonths: isRecurring ? recurrenceMonths : null,
           })) || false;
       } else {
         success =
@@ -285,7 +291,8 @@ export const useTransactionForm = ({
             date: date.getTime(),
             paymentType: selectedPaymentType,
             isRecurring,
-            recurrenceFrequency: isRecurring ? recurrenceFrequency : undefined,
+            recurrenceFrequency: isRecurring ? recurrenceFrequency : null,
+            recurrenceMonths: isRecurring ? recurrenceMonths : null,
           })) || false;
       }
 
@@ -372,5 +379,7 @@ export const useTransactionForm = ({
     setIsRecurring,
     recurrenceFrequency,
     setRecurrenceFrequency,
+    recurrenceMonths,
+    setRecurrenceMonths,
   };
 };

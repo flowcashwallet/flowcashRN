@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Transaction, Budget, FixedExpense, Category, VisionEntity, GamificationStats
+from .models import Transaction, Budget, FixedExpense, Category, VisionEntity, GamificationStats, DevicePushToken
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -49,6 +49,12 @@ class TransactionSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data['user'] = self.context['request'].user
         return super().create(validated_data)
+
+class DevicePushTokenSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DevicePushToken
+        fields = ['id', 'expo_push_token', 'platform', 'created_at', 'updated_at']
+        read_only_fields = ('created_at', 'updated_at')
 
 class FixedExpenseSerializer(serializers.ModelSerializer):
     class Meta:

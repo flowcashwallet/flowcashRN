@@ -49,6 +49,16 @@ class Transaction(models.Model):
     def __str__(self):
         return f"{self.description} - {self.amount}"
 
+class DevicePushToken(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='device_push_tokens')
+    expo_push_token = models.CharField(max_length=255, unique=True)
+    platform = models.CharField(max_length=20, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.platform or 'unknown'}"
+
 class Budget(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='budget')
     monthly_income = models.DecimalField(max_digits=12, decimal_places=2, default=0)

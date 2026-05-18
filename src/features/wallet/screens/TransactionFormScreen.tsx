@@ -72,6 +72,8 @@ export default function TransactionFormScreen() {
     setIsRecurring,
     recurrenceFrequency,
     setRecurrenceFrequency,
+    recurrenceMonths,
+    setRecurrenceMonths,
   } = useTransactionForm({
     id: id as string,
     initialType: initialType as "income" | "expense" | "transfer",
@@ -700,54 +702,206 @@ export default function TransactionFormScreen() {
               </View>
 
               {isRecurring && (
-                <View
-                  style={{
-                    flexDirection: "row",
-                    gap: Spacing.s,
-                    marginBottom: Spacing.l,
-                  }}
-                >
-                  {(["weekly", "monthly", "yearly"] as const).map((freq) => (
-                    <TouchableOpacity
-                      key={freq}
-                      onPress={() => setRecurrenceFrequency(freq)}
-                      style={{
-                        flex: 1,
-                        padding: Spacing.s,
-                        borderRadius: BorderRadius.m,
-                        backgroundColor:
-                          recurrenceFrequency === freq
-                            ? colors.primary
-                            : colors.surface,
-                        alignItems: "center",
-                        borderWidth: 1,
-                        borderColor:
-                          recurrenceFrequency === freq
-                            ? colors.primary
-                            : colors.border,
-                      }}
-                    >
-                      <Typography
-                        variant="body"
-                        weight={
-                          recurrenceFrequency === freq ? "bold" : "regular"
-                        }
+                <View style={{ marginBottom: Spacing.l }}>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      gap: Spacing.s,
+                      marginBottom: Spacing.m,
+                    }}
+                  >
+                    {(["weekly", "monthly", "yearly"] as const).map((freq) => (
+                      <TouchableOpacity
+                        key={freq}
+                        onPress={() => setRecurrenceFrequency(freq)}
                         style={{
-                          color:
+                          flex: 1,
+                          padding: Spacing.s,
+                          borderRadius: BorderRadius.m,
+                          backgroundColor:
                             recurrenceFrequency === freq
-                              ? "#FFFFFF"
-                              : colors.textSecondary,
-                          textTransform: "capitalize",
+                              ? colors.primary
+                              : colors.surface,
+                          alignItems: "center",
+                          borderWidth: 1,
+                          borderColor:
+                            recurrenceFrequency === freq
+                              ? colors.primary
+                              : colors.border,
                         }}
                       >
-                        {freq === "weekly"
-                          ? "Semanal"
-                          : freq === "monthly"
-                            ? "Mensual"
-                            : "Anual"}
-                      </Typography>
-                    </TouchableOpacity>
-                  ))}
+                        <Typography
+                          variant="body"
+                          weight={
+                            recurrenceFrequency === freq ? "bold" : "regular"
+                          }
+                          style={{
+                            color:
+                              recurrenceFrequency === freq
+                                ? "#FFFFFF"
+                                : colors.textSecondary,
+                            textTransform: "capitalize",
+                          }}
+                        >
+                          {freq === "weekly"
+                            ? "Semanal"
+                            : freq === "monthly"
+                              ? "Mensual"
+                              : "Anual"}
+                        </Typography>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+
+                  <View
+                    style={{
+                      padding: Spacing.m,
+                      backgroundColor: colors.surface,
+                      borderRadius: BorderRadius.l,
+                    }}
+                  >
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      <View style={{ flex: 1, paddingRight: Spacing.m }}>
+                        <Typography
+                          variant="body"
+                          weight="bold"
+                          style={{ color: colors.text }}
+                        >
+                          Duración
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          style={{ color: colors.textSecondary, marginTop: 4 }}
+                        >
+                          De 1 a 36 meses o indefinido
+                        </Typography>
+                      </View>
+                      <View style={{ alignItems: "flex-end" }}>
+                        <Typography
+                          variant="caption"
+                          style={{ color: colors.textSecondary, marginBottom: 4 }}
+                        >
+                          Indefinido
+                        </Typography>
+                        <Switch
+                          value={recurrenceMonths === null}
+                          onValueChange={(value) => {
+                            if (value) {
+                              setRecurrenceMonths(null);
+                              return;
+                            }
+                            setRecurrenceMonths(12);
+                          }}
+                          trackColor={{
+                            false: colors.border,
+                            true: colors.primary,
+                          }}
+                          thumbColor={"#FFFFFF"}
+                        />
+                      </View>
+                    </View>
+
+                    {recurrenceMonths !== null && (
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          marginTop: Spacing.m,
+                        }}
+                      >
+                        <TouchableOpacity
+                          onPress={() => {
+                            Haptics.selectionAsync();
+                            setRecurrenceMonths(
+                              Math.max(1, recurrenceMonths - 1),
+                            );
+                          }}
+                          disabled={recurrenceMonths <= 1}
+                          style={{
+                            opacity: recurrenceMonths <= 1 ? 0.5 : 1,
+                          }}
+                        >
+                          <View
+                            style={{
+                              width: 40,
+                              height: 40,
+                              borderRadius: 20,
+                              backgroundColor: colors.surfaceHighlight,
+                              alignItems: "center",
+                              justifyContent: "center",
+                              borderWidth: 1,
+                              borderColor: colors.border,
+                            }}
+                          >
+                            <Typography
+                              variant="body"
+                              weight="bold"
+                              style={{ color: colors.text }}
+                            >
+                              -
+                            </Typography>
+                          </View>
+                        </TouchableOpacity>
+
+                        <View style={{ alignItems: "center" }}>
+                          <Typography
+                            variant="h3"
+                            weight="bold"
+                            style={{ color: colors.text }}
+                          >
+                            {recurrenceMonths}
+                          </Typography>
+                          <Typography
+                            variant="caption"
+                            style={{ color: colors.textSecondary, marginTop: 2 }}
+                          >
+                            {recurrenceMonths === 1 ? "mes" : "meses"}
+                          </Typography>
+                        </View>
+
+                        <TouchableOpacity
+                          onPress={() => {
+                            Haptics.selectionAsync();
+                            setRecurrenceMonths(
+                              Math.min(36, recurrenceMonths + 1),
+                            );
+                          }}
+                          disabled={recurrenceMonths >= 36}
+                          style={{
+                            opacity: recurrenceMonths >= 36 ? 0.5 : 1,
+                          }}
+                        >
+                          <View
+                            style={{
+                              width: 40,
+                              height: 40,
+                              borderRadius: 20,
+                              backgroundColor: colors.surfaceHighlight,
+                              alignItems: "center",
+                              justifyContent: "center",
+                              borderWidth: 1,
+                              borderColor: colors.border,
+                            }}
+                          >
+                            <Typography
+                              variant="body"
+                              weight="bold"
+                              style={{ color: colors.text }}
+                            >
+                              +
+                            </Typography>
+                          </View>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  </View>
                 </View>
               )}
 
