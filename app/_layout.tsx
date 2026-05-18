@@ -1,10 +1,16 @@
 import {
   loadUserFromStorage,
   logout,
+  registerPushToken,
   verifyBiometrics,
 } from "@/features/auth/authSlice";
+import {
+  WALLET_TX_DISMISS_ACTION,
+  ensureWalletNotificationCategoriesAsync,
+} from "@/services/notifications";
 import { AppDispatch, RootState, store } from "@/store/store";
 import { Stack, useRouter, useSegments } from "expo-router";
+import * as Notifications from "expo-notifications";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Platform, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -28,6 +34,39 @@ function RootLayoutNav() {
   const segments = useSegments();
   const [isMounted, setIsMounted] = useState(false);
   const [biometricsTried, setBiometricsTried] = useState(false);
+
+  useEffect(() => {
+    if (Platform.OS === "web") return;
+
+    ensureWalletNotificationCategoriesAsync();
+
+    const handleResponse = (response: Notifications.NotificationResponse) => {
+      const actionId = response.actionIdentifier;
+      if (actionId === WALLET_TX_DISMISS_ACTION) return;
+
+      const data = response.notification.request.content.data as any;
+      if (data?.kind !== "wallet_tx_suggestion") return;
+
+      router.push({
+        pathname: "/wallet/transaction-form",
+        params: {
+          initialType: data.initialType ?? "expense",
+          amount: data.amount,
+          description: data.description,
+          category: data.category,
+          relatedEntityId: data.relatedEntityId,
+        },
+      });
+    };
+
+    Notifications.getLastNotificationResponseAsync().then((response) => {
+      if (response) handleResponse(response);
+    });
+
+    const subscription =
+      Notifications.addNotificationResponseReceivedListener(handleResponse);
+    return () => subscription.remove();
+  }, [router]);
 
   useEffect(() => {
     setIsMounted(true);
@@ -75,6 +114,13 @@ function RootLayoutNav() {
     loading,
     router,
   ]);
+
+  useEffect(() => {
+    if (!isMounted) return;
+    if (!isAuthenticated) return;
+    if (Platform.OS === "web") return;
+    dispatch(registerPushToken());
+  }, [dispatch, isAuthenticated, isMounted]);
 
   if (loading && biometricRequired) {
     return (

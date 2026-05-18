@@ -1,4 +1,5 @@
 import { endpoints } from "@/services/api";
+import { getExpoPushTokenAsync, registerForPushNotificationsAsync } from "@/services/notifications";
 import {
   KEY_ACCESS_TOKEN,
   KEY_REFRESH_TOKEN,
@@ -13,6 +14,8 @@ import {
 } from "@/utils/secureStore";
 import { PayloadAction, createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import * as LocalAuthentication from "expo-local-authentication";
+import { fetchWithAuth } from "@/utils/apiClient";
+import { AppDispatch, RootState } from "@/store/store";
 
 // Serialized user type
 interface SerializedUser {
@@ -189,6 +192,45 @@ export const verifyBiometrics = createAsyncThunk(
       }
     } catch (error: any) {
       dispatch(logout());
+      return rejectWithValue(error.message);
+    }
+  },
+);
+
+export const registerPushToken = createAsyncThunk(
+  "auth/registerPushToken",
+  async (_, { getState, dispatch, rejectWithValue }) => {
+    try {
+      const state = getState() as RootState;
+      if (!state.auth.token) return false;
+
+      const hasPermission = await registerForPushNotificationsAsync();
+      if (!hasPermission) return false;
+
+      const expoPushToken = await getExpoPushTokenAsync();
+      if (!expoPushToken) return false;
+
+      const response = await fetchWithAuth(
+        endpoints.wallet.pushTokens,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            expo_push_token: expoPushToken,
+            platform: "expo",
+          }),
+        },
+        dispatch as AppDispatch,
+        getState as () => RootState,
+      );
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => null);
+        throw new Error(JSON.stringify(err || { status: response.status }));
+      }
+
+      return true;
+    } catch (error: any) {
       return rejectWithValue(error.message);
     }
   },

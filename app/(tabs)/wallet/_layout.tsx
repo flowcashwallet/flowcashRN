@@ -2,6 +2,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { registerForPushNotificationsAsync } from "@/services/notifications";
 import { Stack, useRouter } from "expo-router";
 import React from "react";
+import { Platform } from "react-native";
 import {
   SafeAreaProvider,
   initialWindowMetrics,
@@ -160,7 +161,7 @@ export default function WalletLayout() {
           name="transaction-form"
           options={{
             headerShown: true,
-            presentation: "formSheet",
+            presentation: Platform.OS === "ios" ? "formSheet" : "card",
             headerTransparent: true,
             headerTitle: "Transacción",
             sheetAllowedDetents: [0.9],

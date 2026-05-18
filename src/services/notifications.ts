@@ -1,6 +1,11 @@
+import Constants from "expo-constants";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
+
+export const WALLET_TX_SUGGESTION_CATEGORY = "wallet_tx_suggestion";
+export const WALLET_TX_ADD_ACTION = "wallet_tx_add";
+export const WALLET_TX_DISMISS_ACTION = "wallet_tx_dismiss";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -11,6 +16,24 @@ Notifications.setNotificationHandler({
     shouldShowList: true,
   }),
 });
+
+export async function ensureWalletNotificationCategoriesAsync() {
+  await Notifications.setNotificationCategoryAsync(
+    WALLET_TX_SUGGESTION_CATEGORY,
+    [
+      {
+        identifier: WALLET_TX_ADD_ACTION,
+        buttonTitle: "Agregar",
+        options: { opensAppToForeground: true },
+      },
+      {
+        identifier: WALLET_TX_DISMISS_ACTION,
+        buttonTitle: "Ignorar",
+        options: { opensAppToForeground: false },
+      },
+    ],
+  );
+}
 
 export async function registerForPushNotificationsAsync() {
   if (Platform.OS === "android") {
@@ -38,6 +61,49 @@ export async function registerForPushNotificationsAsync() {
     return false;
   }
   return true;
+}
+
+export async function getExpoPushTokenAsync() {
+  const projectId =
+    (Constants.expoConfig as any)?.extra?.eas?.projectId ||
+    (Constants as any)?.easConfig?.projectId;
+
+  if (!projectId) {
+    return null;
+  }
+
+  const token = await Notifications.getExpoPushTokenAsync({ projectId });
+  return token.data;
+}
+
+type WalletTxSuggestionData = {
+  kind: "wallet_tx_suggestion";
+  initialType?: "income" | "expense" | "transfer";
+  amount?: string;
+  description?: string;
+  category?: string;
+  relatedEntityId?: string;
+};
+
+export async function scheduleWalletTransactionSuggestionNotification(input: {
+  title: string;
+  body: string;
+  data: Omit<WalletTxSuggestionData, "kind">;
+}) {
+  const id = await Notifications.scheduleNotificationAsync({
+    content: {
+      title: input.title,
+      body: input.body,
+      sound: true,
+      categoryIdentifier: WALLET_TX_SUGGESTION_CATEGORY,
+      data: {
+        kind: "wallet_tx_suggestion",
+        ...input.data,
+      } satisfies WalletTxSuggestionData,
+    },
+    trigger: null,
+  });
+  return id;
 }
 
 export async function scheduleDailyNotification(hour: number, minute: number) {
