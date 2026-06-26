@@ -3,8 +3,10 @@ import { Spacing } from "@/constants/theme";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Transaction } from "@/features/wallet/data/walletSlice";
 import STRINGS from "@/i18n/es.json";
+import { formatCurrency } from "@/utils/format";
 import React, { useCallback, useMemo } from "react";
 import {
+  Platform,
   RefreshControlProps,
   SectionList,
   StyleProp,
@@ -23,6 +25,13 @@ interface TransactionListProps {
   contentContainerStyle?: StyleProp<ViewStyle>;
   refreshControl?: React.ReactElement<RefreshControlProps>;
   scrollEnabled?: boolean;
+}
+
+interface TransactionSection {
+  title: string;
+  data: Transaction[];
+  timestamp: number;
+  dayBalance: number;
 }
 
 const formatDateHeader = (timestamp: number) => {
@@ -56,7 +65,7 @@ export function TransactionList({
 }: TransactionListProps) {
   const { colors } = useTheme();
 
-  const sections = useMemo(() => {
+  const sections = useMemo<TransactionSection[]>(() => {
     if (!transactions) return [];
 
     // Group by date string (YYYY-MM-DD) to ensure correct grouping
@@ -77,10 +86,17 @@ export function TransactionList({
       .map((dateKey) => {
         // Use the timestamp of the first transaction in the group for sorting/display
         const firstTransaction = groups[dateKey][0];
+        const dayBalance = groups[dateKey].reduce((acc, transaction) => {
+          if (transaction.type === "income") return acc + transaction.amount;
+          if (transaction.type === "expense") return acc - transaction.amount;
+          return acc;
+        }, 0);
+
         return {
           title: formatDateHeader(firstTransaction.date),
           data: groups[dateKey],
           timestamp: firstTransaction.date,
+          dayBalance,
         };
       })
       .sort((a, b) => b.timestamp - a.timestamp);
@@ -127,14 +143,20 @@ export function TransactionList({
     <View style={styles.container}>
       <SectionList
         contentInsetAdjustmentBehavior="automatic"
+        automaticallyAdjustContentInsets={false}
         sections={sections}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
-        renderSectionHeader={({ section: { title } }) => (
+        renderSectionHeader={({ section: { title, dayBalance } }) => (
           <View
             style={[
               styles.sectionHeader,
-              { backgroundColor: "transparent" },
+              {
+                backgroundColor: "transparent",
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+              },
             ]}
           >
             <Typography
@@ -147,9 +169,24 @@ export function TransactionList({
             >
               {title}
             </Typography>
+            <Typography
+              variant="caption"
+              weight="bold"
+              style={{
+                color:
+                  dayBalance > 0
+                    ? colors.success
+                    : dayBalance < 0
+                      ? colors.error
+                      : colors.textSecondary,
+              }}
+            >
+              {dayBalance > 0 ? "+" : ""}
+              {formatCurrency(dayBalance)}
+            </Typography>
           </View>
         )}
-        stickySectionHeadersEnabled={true}
+        stickySectionHeadersEnabled={Platform.OS === "android"}
         contentContainerStyle={[styles.listContent, contentContainerStyle]}
         scrollEnabled={scrollEnabled}
         ListHeaderComponent={ListHeader}
@@ -168,7 +205,7 @@ export function TransactionList({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: Spacing.xl,
+    flex: 1,
   },
   title: {
     marginBottom: Spacing.m,

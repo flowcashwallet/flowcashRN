@@ -12,17 +12,18 @@ import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useMemo, useState } from "react";
 import {
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { LineChart, PieChart } from "react-native-gifted-charts";
 
 export default function DashboardScreen() {
   const { colors } = useTheme();
   const {
+    transactions,
     currentMonthTransactions,
     currentMonthName,
     selectedDate,
@@ -123,16 +124,35 @@ export default function DashboardScreen() {
       label: `${STRINGS.dashboard.weekAbbrev} ${i + 1}`,
       fromDay: i * 7 + 1,
       toDay: Math.min(daysInMonth, (i + 1) * 7),
-      total: 0,
-      expenses: [] as typeof currentMonthTransactions,
+      expenseTotal: 0,
+      incomeTotal: 0,
+      expenseByCategory: new Map<string, number>(),
+      incomeByCategory: new Map<string, number>(),
     }));
 
     for (const t of currentMonthTransactions) {
-      if (t.type !== "expense") continue;
       const day = new Date(t.date).getDate();
       const weekIndex = Math.min(weeksCount - 1, Math.floor((day - 1) / 7));
-      perWeek[weekIndex].total += Math.abs(t.amount);
-      perWeek[weekIndex].expenses.push(t);
+
+      if (t.type === "expense") {
+        const amount = Math.abs(t.amount);
+        const category = t.category || STRINGS.dashboard.uncategorized;
+        perWeek[weekIndex].expenseTotal += amount;
+        perWeek[weekIndex].expenseByCategory.set(
+          category,
+          (perWeek[weekIndex].expenseByCategory.get(category) || 0) + amount,
+        );
+      }
+
+      if (t.type === "income") {
+        const amount = Math.abs(t.amount);
+        const category = t.category || STRINGS.dashboard.uncategorized;
+        perWeek[weekIndex].incomeTotal += amount;
+        perWeek[weekIndex].incomeByCategory.set(
+          category,
+          (perWeek[weekIndex].incomeByCategory.get(category) || 0) + amount,
+        );
+      }
     }
 
     return perWeek.map((w) => ({
@@ -152,13 +172,211 @@ export default function DashboardScreen() {
             month: "short",
           }),
         ),
-      total: w.total,
-      top: w.expenses
-        .slice()
-        .sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount))
-        .slice(0, 10),
+      expenseTotal: w.expenseTotal,
+      incomeTotal: w.incomeTotal,
+      balance: w.incomeTotal - w.expenseTotal,
+      categories: Array.from(w.expenseByCategory.entries())
+        .map(([category, amount]) => ({ category, amount }))
+        .sort((a, b) => b.amount - a.amount),
+      incomeCategories: Array.from(w.incomeByCategory.entries())
+        .map(([category, amount]) => ({ category, amount }))
+        .sort((a, b) => b.amount - a.amount),
     }));
   }, [currentMonthTransactions, periodView, selectedDate, year]);
+
+  const categorySpikeAlerts = useMemo(() => {
+    if (periodView !== "month" || weeklyDetails.length < 2) return [];
+
+    let latestIndex = weeklyDetails.length - 1;
+    while (latestIndex >= 0 && weeklyDetails[latestIndex].expenseTotal === 0) {
+      latestIndex -= 1;
+    }
+    if (latestIndex <= 0) return [];
+
+    const latestWeek = weeklyDetails[latestIndex];
+    const previousWeeks = weeklyDetails.slice(
+      Math.max(0, latestIndex - 4),
+      latestIndex,
+    );
+    if (previousWeeks.length === 0) return [];
+
+    return latestWeek.categories
+      .map((categoryEntry) => {
+        const previousAmounts = previousWeeks.map((w) => {
+          const found = w.categories.find(
+            (c) => c.category === categoryEntry.category,
+          );
+          return found ? found.amount : 0;
+        });
+        const average =
+          previousAmounts.reduce((sum, value) => sum + value, 0) /
+          previousAmounts.length;
+        if (average <= 0) return null;
+
+        const increasePct = ((categoryEntry.amount - average) / average) * 100;
+        if (increasePct < 30) return null;
+
+        return {
+          category: categoryEntry.category,
+          currentAmount: categoryEntry.amount,
+          averageAmount: average,
+          increasePct,
+          weekLabel: latestWeek.label,
+        };
+      })
+      .filter((item): item is NonNullable<typeof item> => item !== null)
+      .sort((a, b) => b.increasePct - a.increasePct);
+  }, [periodView, weeklyDetails]);
+
+  const anomalousMovements = useMemo(() => {
+    const groups = new Map<string, number[]>();
+
+    currentMonthTransactions.forEach((tx) => {
+      const key = `${tx.type}|${tx.category || STRINGS.dashboard.uncategorized}`;
+      const amount = Math.abs(tx.amount);
+      const list = groups.get(key) || [];
+      list.push(amount);
+      groups.set(key, list);
+    });
+
+    const anomalies = currentMonthTransactions
+      .map((tx) => {
+        const key = `${tx.type}|${tx.category || STRINGS.dashboard.uncategorized}`;
+        const series = groups.get(key) || [];
+        if (series.length < 3) return null;
+
+        const value = Math.abs(tx.amount);
+        const mean = series.reduce((sum, v) => sum + v, 0) / series.length;
+        const variance =
+          series.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) /
+          series.length;
+        const std = Math.sqrt(variance);
+        if (std === 0) return null;
+
+        const zScore = (value - mean) / std;
+        if (zScore < 2) return null;
+
+        return {
+          id: tx.id,
+          description: tx.description,
+          category: tx.category || STRINGS.dashboard.uncategorized,
+          type: tx.type,
+          amount: value,
+          expected: mean,
+          zScore,
+          date: tx.date,
+        };
+      })
+      .filter((item): item is NonNullable<typeof item> => item !== null)
+      .sort((a, b) => b.zScore - a.zScore)
+      .slice(0, 3);
+
+    return anomalies;
+  }, [currentMonthTransactions]);
+
+  const upcomingFixedPayments = useMemo(() => {
+    const now = new Date();
+    const horizon = new Date(now);
+    horizon.setDate(horizon.getDate() + 30);
+
+    const addMonthsSafe = (source: Date, months: number) => {
+      const d = new Date(source);
+      const targetDay = d.getDate();
+      d.setDate(1);
+      d.setMonth(d.getMonth() + months);
+      const daysInTargetMonth = new Date(
+        d.getFullYear(),
+        d.getMonth() + 1,
+        0,
+      ).getDate();
+      d.setDate(Math.min(targetDay, daysInTargetMonth));
+      return d;
+    };
+
+    const seriesMap = new Map<
+      string,
+      {
+        description: string;
+        category: string;
+        amount: number;
+        recurrenceFrequency: "weekly" | "monthly" | "yearly";
+        recurrenceMonths: number | null;
+        lastDate: number;
+      }
+    >();
+
+    transactions.forEach((tx) => {
+      if (tx.type !== "expense") return;
+      if (!tx.isRecurring || !tx.recurrenceFrequency) return;
+
+      const key = [
+        tx.description || "(sin descripcion)",
+        tx.category || STRINGS.dashboard.uncategorized,
+        Math.abs(tx.amount).toFixed(2),
+        tx.recurrenceFrequency,
+        tx.recurrenceMonths ?? "",
+      ].join("|");
+
+      const current = seriesMap.get(key);
+      if (!current || tx.date > current.lastDate) {
+        seriesMap.set(key, {
+          description: tx.description || "(sin descripcion)",
+          category: tx.category || STRINGS.dashboard.uncategorized,
+          amount: Math.abs(tx.amount),
+          recurrenceFrequency: tx.recurrenceFrequency,
+          recurrenceMonths: tx.recurrenceMonths ?? null,
+          lastDate: tx.date,
+        });
+      }
+    });
+
+    const items: {
+      key: string;
+      description: string;
+      category: string;
+      amount: number;
+      dueDate: Date;
+      recurrenceFrequency: "weekly" | "monthly" | "yearly";
+    }[] = [];
+
+    seriesMap.forEach((series, key) => {
+      let nextDate = new Date(series.lastDate);
+      let safety = 0;
+
+      while (nextDate <= now && safety < 120) {
+        if (series.recurrenceFrequency === "weekly") {
+          nextDate = new Date(nextDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+        } else if (series.recurrenceFrequency === "monthly") {
+          nextDate = addMonthsSafe(nextDate, series.recurrenceMonths || 1);
+        } else {
+          nextDate = addMonthsSafe(nextDate, 12);
+        }
+        safety += 1;
+      }
+
+      if (nextDate > now && nextDate <= horizon) {
+        items.push({
+          key,
+          description: series.description,
+          category: series.category,
+          amount: series.amount,
+          dueDate: nextDate,
+          recurrenceFrequency: series.recurrenceFrequency,
+        });
+      }
+    });
+
+    const sorted = items.sort(
+      (a, b) => a.dueDate.getTime() - b.dueDate.getTime(),
+    );
+    const total = sorted.reduce((sum, item) => sum + item.amount, 0);
+
+    return {
+      items: sorted,
+      total,
+      expectedBalanceAfterFixed: balance - total,
+    };
+  }, [balance, transactions]);
 
   const categoryTotals = useMemo(() => {
     const totals = new Map<string, number>();
@@ -471,7 +689,13 @@ export default function DashboardScreen() {
               {periodView === "month" ? (
                 <>
                   <TouchableOpacity
-                    onPress={() => setShowWeeklyDetails((v) => !v)}
+                    onPress={() => {
+                      setShowWeeklyDetails((v) => {
+                        const next = !v;
+                        if (!next) setExpandedWeek(null);
+                        return next;
+                      });
+                    }}
                     style={{
                       marginTop: 12,
                       paddingVertical: 10,
@@ -535,23 +759,18 @@ export default function DashboardScreen() {
                             </Text>
                             <Text
                               style={{
-                                color: colors.text,
+                                color:
+                                  w.balance >= 0
+                                    ? colors.success
+                                    : colors.error,
                                 fontSize: 14,
                                 fontWeight: "700",
                               }}
                             >
-                              {formatWeeklyValue(w.total)}
+                              {(w.balance >= 0 ? "+" : "") +
+                                formatWeeklyValue(w.balance)}
                             </Text>
                           </View>
-                          <Text
-                            style={{
-                              color: colors.textSecondary,
-                              fontSize: 12,
-                              marginBottom: 8,
-                            }}
-                          >
-                            {w.range}
-                          </Text>
 
                           <Text
                             style={{
@@ -560,7 +779,7 @@ export default function DashboardScreen() {
                               marginBottom: 8,
                             }}
                           >
-                            {STRINGS.dashboard.weeklyTopExpenses}
+                            {w.range}
                           </Text>
 
                           <TouchableOpacity
@@ -605,78 +824,230 @@ export default function DashboardScreen() {
                           </TouchableOpacity>
 
                           {expandedWeek === w.label ? (
-                            w.top.length === 0 ? (
+                            <>
+                              <View
+                                style={{
+                                  marginTop: 8,
+                                  borderRadius: 12,
+                                  backgroundColor: colors.surface,
+                                  borderWidth: 1,
+                                  borderColor: colors.border,
+                                  padding: 10,
+                                  gap: 6,
+                                }}
+                              >
+                                <View
+                                  style={{
+                                    flexDirection: "row",
+                                    justifyContent: "space-between",
+                                    alignItems: "center",
+                                  }}
+                                >
+                                  <Text
+                                    style={{
+                                      color: colors.textSecondary,
+                                      fontSize: 12,
+                                    }}
+                                  >
+                                    Ingresos
+                                  </Text>
+                                  <Text
+                                    style={{
+                                      color: colors.success,
+                                      fontSize: 12,
+                                      fontWeight: "700",
+                                    }}
+                                  >
+                                    +{formatWeeklyValue(w.incomeTotal)}
+                                  </Text>
+                                </View>
+
+                                <View
+                                  style={{
+                                    flexDirection: "row",
+                                    justifyContent: "space-between",
+                                    alignItems: "center",
+                                  }}
+                                >
+                                  <Text
+                                    style={{
+                                      color: colors.textSecondary,
+                                      fontSize: 12,
+                                    }}
+                                  >
+                                    Gastos
+                                  </Text>
+                                  <Text
+                                    style={{
+                                      color: colors.error,
+                                      fontSize: 12,
+                                      fontWeight: "700",
+                                    }}
+                                  >
+                                    -{formatWeeklyValue(w.expenseTotal)}
+                                  </Text>
+                                </View>
+
+                                <View
+                                  style={{
+                                    flexDirection: "row",
+                                    justifyContent: "space-between",
+                                    alignItems: "center",
+                                    borderTopWidth: 1,
+                                    borderTopColor: colors.border,
+                                    paddingTop: 6,
+                                  }}
+                                >
+                                  <Text
+                                    style={{
+                                      color: colors.textSecondary,
+                                      fontSize: 12,
+                                    }}
+                                  >
+                                    Balance
+                                  </Text>
+                                  <Text
+                                    style={{
+                                      color:
+                                        w.balance >= 0
+                                          ? colors.success
+                                          : colors.error,
+                                      fontSize: 12,
+                                      fontWeight: "700",
+                                    }}
+                                  >
+                                    {(w.balance >= 0 ? "+" : "") +
+                                      formatWeeklyValue(w.balance)}
+                                  </Text>
+                                </View>
+                              </View>
+
                               <Text
                                 style={{
                                   color: colors.textSecondary,
                                   fontSize: 12,
                                   marginTop: 10,
+                                  marginBottom: 4,
                                 }}
                               >
-                                {STRINGS.dashboard.noWeekExpenses}
+                                Gastos por categoria
                               </Text>
-                            ) : (
-                              <View style={{ marginTop: 10 }}>
-                                {w.top.map((tx, idx) => {
-                                  const dateStr = new Date(
-                                    tx.date,
-                                  ).toLocaleDateString("es-MX", {
-                                    day: "2-digit",
-                                    month: "short",
-                                  });
-                                  const isFirst = idx === 0;
-                                  return (
-                                    <View
-                                      key={tx.id}
-                                      style={{
-                                        flexDirection: "row",
-                                        justifyContent: "space-between",
-                                        alignItems: "center",
-                                        paddingVertical: 6,
-                                        borderTopWidth: isFirst ? 0 : 1,
-                                        borderTopColor: colors.border,
-                                      }}
-                                    >
+
+                              {w.categories.length === 0 ? (
+                                <Text
+                                  style={{
+                                    color: colors.textSecondary,
+                                    fontSize: 12,
+                                    marginTop: 4,
+                                  }}
+                                >
+                                  {STRINGS.dashboard.noWeekExpenses}
+                                </Text>
+                              ) : (
+                                <View style={{ marginTop: 4 }}>
+                                  {w.categories.map((category, idx) => {
+                                    const isFirst = idx === 0;
+                                    return (
                                       <View
-                                        style={{ flex: 1, paddingRight: 12 }}
+                                        key={`${w.label}-${category.category}`}
+                                        style={{
+                                          flexDirection: "row",
+                                          justifyContent: "space-between",
+                                          alignItems: "center",
+                                          paddingVertical: 6,
+                                          borderTopWidth: isFirst ? 0 : 1,
+                                          borderTopColor: colors.border,
+                                        }}
                                       >
                                         <Text
                                           style={{
                                             color: colors.text,
                                             fontSize: 13,
+                                            flex: 1,
+                                            paddingRight: 12,
                                           }}
                                           numberOfLines={1}
                                         >
-                                          {tx.description ||
-                                            STRINGS.dashboard.uncategorized}
+                                          {category.category}
                                         </Text>
                                         <Text
                                           style={{
-                                            color: colors.textSecondary,
-                                            fontSize: 12,
+                                            color: colors.text,
+                                            fontSize: 13,
+                                            fontWeight: "700",
+                                          }}
+                                        >
+                                          -{formatWeeklyValue(category.amount)}
+                                        </Text>
+                                      </View>
+                                    );
+                                  })}
+                                </View>
+                              )}
+
+                              <Text
+                                style={{
+                                  color: colors.textSecondary,
+                                  fontSize: 12,
+                                  marginTop: 10,
+                                  marginBottom: 4,
+                                }}
+                              >
+                                Ingresos por categoria
+                              </Text>
+
+                              {w.incomeCategories.length === 0 ? (
+                                <Text
+                                  style={{
+                                    color: colors.textSecondary,
+                                    fontSize: 12,
+                                    marginTop: 4,
+                                  }}
+                                >
+                                  No hay ingresos en esta semana.
+                                </Text>
+                              ) : (
+                                <View style={{ marginTop: 4 }}>
+                                  {w.incomeCategories.map((category, idx) => {
+                                    const isFirst = idx === 0;
+                                    return (
+                                      <View
+                                        key={`${w.label}-income-${category.category}`}
+                                        style={{
+                                          flexDirection: "row",
+                                          justifyContent: "space-between",
+                                          alignItems: "center",
+                                          paddingVertical: 6,
+                                          borderTopWidth: isFirst ? 0 : 1,
+                                          borderTopColor: colors.border,
+                                        }}
+                                      >
+                                        <Text
+                                          style={{
+                                            color: colors.text,
+                                            fontSize: 13,
+                                            flex: 1,
+                                            paddingRight: 12,
                                           }}
                                           numberOfLines={1}
                                         >
-                                          {(tx.category ||
-                                            STRINGS.dashboard.uncategorized) +
-                                            " • " +
-                                            dateStr}
+                                          {category.category}
+                                        </Text>
+                                        <Text
+                                          style={{
+                                            color: colors.success,
+                                            fontSize: 13,
+                                            fontWeight: "700",
+                                          }}
+                                        >
+                                          +{formatWeeklyValue(category.amount)}
                                         </Text>
                                       </View>
-                                      <Text
-                                        style={{
-                                          color: colors.text,
-                                          fontSize: 13,
-                                          fontWeight: "700",
-                                        }}
-                                      >
-                                        {formatWeeklyValue(Math.abs(tx.amount))}
-                                      </Text>
-                                    </View>
-                                  );
-                                })}
-                              </View>
-                            )
+                                    );
+                                  })}
+                                </View>
+                              )}
+                            </>
                           ) : null}
                         </View>
                       ))}
@@ -691,6 +1062,284 @@ export default function DashboardScreen() {
                 ? STRINGS.dashboard.noMonthlySpending
                 : STRINGS.dashboard.noWeeklySpending}
             </Text>
+          )}
+        </GlassCard>
+
+        <GlassCard style={styles.card}>
+          <Text style={[styles.cardTitle, { color: colors.text }]}>
+            Alertas de categorias en alza
+          </Text>
+          <Text
+            style={{
+              color: colors.textSecondary,
+              fontSize: 12,
+              marginBottom: 10,
+            }}
+          >
+            +30% o mas vs promedio de las 4 semanas anteriores
+          </Text>
+
+          {periodView !== "month" ? (
+            <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
+              Cambia a vista mensual para analizar alertas semanales.
+            </Text>
+          ) : categorySpikeAlerts.length === 0 ? (
+            <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
+              Sin alertas de categorias con incremento significativo.
+            </Text>
+          ) : (
+            <View style={{ gap: 10 }}>
+              {categorySpikeAlerts.map((alert) => (
+                <View
+                  key={`${alert.weekLabel}-${alert.category}`}
+                  style={{
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    borderRadius: 12,
+                    padding: 10,
+                    backgroundColor: colors.surface,
+                  }}
+                >
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: colors.text,
+                        fontSize: 13,
+                        fontWeight: "700",
+                        flex: 1,
+                      }}
+                      numberOfLines={1}
+                    >
+                      {alert.category}
+                    </Text>
+                    <Text
+                      style={{
+                        color: colors.error,
+                        fontSize: 13,
+                        fontWeight: "700",
+                      }}
+                    >
+                      +{alert.increasePct.toFixed(0)}%
+                    </Text>
+                  </View>
+                  <Text
+                    style={{
+                      color: colors.textSecondary,
+                      fontSize: 12,
+                      marginTop: 4,
+                    }}
+                  >
+                    Actual: {formatWeeklyValue(alert.currentAmount)} vs
+                    Promedio: {formatWeeklyValue(alert.averageAmount)}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )}
+        </GlassCard>
+
+        <GlassCard style={styles.card}>
+          <Text style={[styles.cardTitle, { color: colors.text }]}>
+            Top 3 movimientos atipicos
+          </Text>
+          <Text
+            style={{
+              color: colors.textSecondary,
+              fontSize: 12,
+              marginBottom: 10,
+            }}
+          >
+            Detectados por desvio estadistico dentro de su categoria y tipo
+          </Text>
+
+          {anomalousMovements.length === 0 ? (
+            <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
+              No se detectaron movimientos atipicos con los datos actuales.
+            </Text>
+          ) : (
+            <View style={{ gap: 10 }}>
+              {anomalousMovements.map((movement) => (
+                <View
+                  key={movement.id}
+                  style={{
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    borderRadius: 12,
+                    padding: 10,
+                    backgroundColor: colors.surface,
+                  }}
+                >
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: colors.text,
+                        fontSize: 13,
+                        fontWeight: "700",
+                        flex: 1,
+                        paddingRight: 8,
+                      }}
+                      numberOfLines={1}
+                    >
+                      {movement.description || movement.category}
+                    </Text>
+                    <Text
+                      style={{
+                        color:
+                          movement.type === "income"
+                            ? colors.success
+                            : colors.error,
+                        fontSize: 13,
+                        fontWeight: "700",
+                      }}
+                    >
+                      {movement.type === "income" ? "+" : "-"}
+                      {formatWeeklyValue(movement.amount)}
+                    </Text>
+                  </View>
+                  <Text
+                    style={{
+                      color: colors.textSecondary,
+                      fontSize: 12,
+                      marginTop: 4,
+                    }}
+                  >
+                    {movement.category} • Esperado:{" "}
+                    {formatWeeklyValue(movement.expected)} • z=
+                    {movement.zScore.toFixed(1)}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )}
+        </GlassCard>
+
+        <GlassCard style={styles.card}>
+          <Text style={[styles.cardTitle, { color: colors.text }]}>
+            Pagos fijos proximos (30 dias)
+          </Text>
+
+          <View
+            style={{
+              borderWidth: 1,
+              borderColor: colors.border,
+              borderRadius: 12,
+              padding: 10,
+              backgroundColor: colors.surface,
+              marginBottom: 10,
+            }}
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                marginBottom: 6,
+              }}
+            >
+              <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
+                Total pagos fijos
+              </Text>
+              <Text
+                style={{ color: colors.error, fontSize: 12, fontWeight: "700" }}
+              >
+                -{formatWeeklyValue(upcomingFixedPayments.total)}
+              </Text>
+            </View>
+            <View
+              style={{ flexDirection: "row", justifyContent: "space-between" }}
+            >
+              <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
+                Balance estimado tras fijos
+              </Text>
+              <Text
+                style={{
+                  color:
+                    upcomingFixedPayments.expectedBalanceAfterFixed >= 0
+                      ? colors.success
+                      : colors.error,
+                  fontSize: 12,
+                  fontWeight: "700",
+                }}
+              >
+                {(upcomingFixedPayments.expectedBalanceAfterFixed >= 0
+                  ? "+"
+                  : "") +
+                  formatWeeklyValue(
+                    upcomingFixedPayments.expectedBalanceAfterFixed,
+                  )}
+              </Text>
+            </View>
+          </View>
+
+          {upcomingFixedPayments.items.length === 0 ? (
+            <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
+              No hay pagos fijos recurrentes en los proximos 30 dias.
+            </Text>
+          ) : (
+            <View style={{ gap: 10 }}>
+              {upcomingFixedPayments.items.map((item) => (
+                <View
+                  key={item.key}
+                  style={{
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    borderRadius: 12,
+                    padding: 10,
+                    backgroundColor: colors.surface,
+                  }}
+                >
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: colors.text,
+                        fontSize: 13,
+                        fontWeight: "700",
+                        flex: 1,
+                      }}
+                      numberOfLines={1}
+                    >
+                      {item.description}
+                    </Text>
+                    <Text
+                      style={{
+                        color: colors.error,
+                        fontSize: 13,
+                        fontWeight: "700",
+                      }}
+                    >
+                      -{formatWeeklyValue(item.amount)}
+                    </Text>
+                  </View>
+                  <Text
+                    style={{
+                      color: colors.textSecondary,
+                      fontSize: 12,
+                      marginTop: 4,
+                    }}
+                  >
+                    {item.category} •{" "}
+                    {item.dueDate.toLocaleDateString("es-MX", {
+                      day: "2-digit",
+                      month: "short",
+                    })}
+                  </Text>
+                </View>
+              ))}
+            </View>
           )}
         </GlassCard>
 
