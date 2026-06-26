@@ -38,16 +38,19 @@ export function CategorySpikeAlertsSection({
       <Text
         style={{ color: colors.textSecondary, fontSize: 12, marginBottom: 10 }}
       >
-        +30% o mas vs promedio de las 4 semanas anteriores
+        Mes seleccionado con +30% o mas vs promedio de los otros meses del ano
+        seleccionado
       </Text>
 
       {periodView !== "month" ? (
         <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
-          Cambia a vista mensual para analizar alertas semanales.
+          Cambia a vista mensual para comparar el mes seleccionado contra el
+          resto del ano.
         </Text>
       ) : alerts.length === 0 ? (
         <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
-          Sin alertas de categorias con incremento significativo.
+          Sin categorias con aumento significativo frente al promedio anual
+          restante.
         </Text>
       ) : (
         <View style={{ gap: 10 }}>
@@ -96,8 +99,8 @@ export function CategorySpikeAlertsSection({
                   marginTop: 4,
                 }}
               >
-                Actual: {formatWeeklyValue(alert.currentAmount)} vs Promedio:{" "}
-                {formatWeeklyValue(alert.averageAmount)}
+                Mes actual: {formatWeeklyValue(alert.currentAmount)} vs Promedio
+                anual restante: {formatWeeklyValue(alert.averageAmount)}
               </Text>
             </View>
           ))}

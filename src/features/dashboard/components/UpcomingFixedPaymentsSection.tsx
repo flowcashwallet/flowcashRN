@@ -33,6 +33,12 @@ export function UpcomingFixedPaymentsSection({
       >
         Pagos fijos proximos (30 dias)
       </Text>
+      <Text
+        style={{ color: colors.textSecondary, fontSize: 12, marginBottom: 10 }}
+      >
+        Proyeccion de recurrentes de gasto en los proximos 30 dias e impacto
+        estimado en el balance actual
+      </Text>
 
       <View
         style={{

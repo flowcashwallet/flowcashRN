@@ -36,12 +36,14 @@ export function AnomalousMovementsSection({
       <Text
         style={{ color: colors.textSecondary, fontSize: 12, marginBottom: 10 }}
       >
-        Detectados por desvio estadistico dentro de su categoria y tipo
+        Movimientos del mes seleccionado evaluados contra el comportamiento del
+        ano en su categoria y tipo
       </Text>
 
       {movements.length === 0 ? (
         <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
-          No se detectaron movimientos atipicos con los datos actuales.
+          No se detectaron movimientos atipicos del mes frente al baseline
+          anual.
         </Text>
       ) : (
         <View style={{ gap: 10 }}>

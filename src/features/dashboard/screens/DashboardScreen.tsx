@@ -49,6 +49,21 @@ export default function DashboardScreen() {
     [currentMonthTransactions],
   );
   const savings = income - expense;
+  const selectedMonthIndex = selectedDate.getMonth();
+
+  const selectedYearTransactions = useMemo(() => {
+    return transactions.filter((transaction) => {
+      const transactionDate = new Date(transaction.date);
+      return transactionDate.getFullYear() === year;
+    });
+  }, [transactions, year]);
+
+  const selectedMonthTransactions = useMemo(() => {
+    return selectedYearTransactions.filter((transaction) => {
+      const transactionDate = new Date(transaction.date);
+      return transactionDate.getMonth() === selectedMonthIndex;
+    });
+  }, [selectedMonthIndex, selectedYearTransactions]);
 
   const formatWeeklyValue = (value: number) => {
     const formatted = formatCurrency(value);
@@ -182,53 +197,83 @@ export default function DashboardScreen() {
   }, [currentMonthTransactions, periodView, selectedDate, year]);
 
   const categorySpikeAlerts = useMemo(() => {
-    if (periodView !== "month" || weeklyDetails.length < 2) return [];
+    const monthlyExpenseTotals = new Map<string, number>();
+    const categoryMonthlySeries = new Map<string, number[]>();
 
-    let latestIndex = weeklyDetails.length - 1;
-    while (latestIndex >= 0 && weeklyDetails[latestIndex].expenseTotal === 0) {
-      latestIndex -= 1;
-    }
-    if (latestIndex <= 0) return [];
-
-    const latestWeek = weeklyDetails[latestIndex];
-    const previousWeeks = weeklyDetails.slice(
-      Math.max(0, latestIndex - 4),
-      latestIndex,
-    );
-    if (previousWeeks.length === 0) return [];
-
-    return latestWeek.categories
-      .map((categoryEntry) => {
-        const previousAmounts = previousWeeks.map((w) => {
-          const found = w.categories.find(
-            (c) => c.category === categoryEntry.category,
+    for (let month = 0; month < 12; month += 1) {
+      const monthTransactions = selectedYearTransactions.filter(
+        (transaction) => {
+          const transactionDate = new Date(transaction.date);
+          return (
+            transactionDate.getMonth() === month &&
+            transaction.type === "expense"
           );
-          return found ? found.amount : 0;
-        });
-        const average =
-          previousAmounts.reduce((sum, value) => sum + value, 0) /
-          previousAmounts.length;
-        if (average <= 0) return null;
+        },
+      );
 
-        const increasePct = ((categoryEntry.amount - average) / average) * 100;
+      const monthCategoryTotals = new Map<string, number>();
+      monthTransactions.forEach((transaction) => {
+        const category =
+          transaction.category || STRINGS.dashboard.uncategorized;
+        const amount = Math.abs(transaction.amount);
+        monthCategoryTotals.set(
+          category,
+          (monthCategoryTotals.get(category) || 0) + amount,
+        );
+      });
+
+      monthCategoryTotals.forEach((amount, category) => {
+        const series =
+          categoryMonthlySeries.get(category) ||
+          Array.from({ length: 12 }, () => 0);
+        series[month] = amount;
+        categoryMonthlySeries.set(category, series);
+      });
+    }
+
+    selectedMonthTransactions.forEach((transaction) => {
+      if (transaction.type !== "expense") return;
+      const category = transaction.category || STRINGS.dashboard.uncategorized;
+      monthlyExpenseTotals.set(
+        category,
+        (monthlyExpenseTotals.get(category) || 0) +
+          Math.abs(transaction.amount),
+      );
+    });
+
+    return Array.from(monthlyExpenseTotals.entries())
+      .map(([category, currentAmount]) => {
+        const fullSeries = categoryMonthlySeries.get(category) || [];
+        const comparisonSeries = fullSeries.filter(
+          (_, index) => index !== selectedMonthIndex,
+        );
+        if (comparisonSeries.length === 0) return null;
+
+        const averageAmount =
+          comparisonSeries.reduce((sum, value) => sum + value, 0) /
+          comparisonSeries.length;
+        if (averageAmount <= 0) return null;
+
+        const increasePct =
+          ((currentAmount - averageAmount) / averageAmount) * 100;
         if (increasePct < 30) return null;
 
         return {
-          category: categoryEntry.category,
-          currentAmount: categoryEntry.amount,
-          averageAmount: average,
+          category,
+          currentAmount,
+          averageAmount,
           increasePct,
-          weekLabel: latestWeek.label,
+          weekLabel: STRINGS.wallet.months[selectedMonthIndex],
         };
       })
       .filter((item): item is NonNullable<typeof item> => item !== null)
       .sort((a, b) => b.increasePct - a.increasePct);
-  }, [periodView, weeklyDetails]);
+  }, [selectedMonthIndex, selectedMonthTransactions, selectedYearTransactions]);
 
   const anomalousMovements = useMemo(() => {
     const groups = new Map<string, number[]>();
 
-    currentMonthTransactions.forEach((tx) => {
+    selectedYearTransactions.forEach((tx) => {
       const key = `${tx.type}|${tx.category || STRINGS.dashboard.uncategorized}`;
       const amount = Math.abs(tx.amount);
       const list = groups.get(key) || [];
@@ -236,7 +281,7 @@ export default function DashboardScreen() {
       groups.set(key, list);
     });
 
-    const anomalies = currentMonthTransactions
+    const anomalies = selectedMonthTransactions
       .map((tx) => {
         const key = `${tx.type}|${tx.category || STRINGS.dashboard.uncategorized}`;
         const series = groups.get(key) || [];
@@ -269,7 +314,7 @@ export default function DashboardScreen() {
       .slice(0, 3);
 
     return anomalies;
-  }, [currentMonthTransactions]);
+  }, [selectedMonthTransactions, selectedYearTransactions]);
 
   const upcomingFixedPayments = useMemo(() => {
     const now = new Date();
