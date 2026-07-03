@@ -38,6 +38,12 @@ interface TransactionModalProps {
   visible: boolean;
   onClose: () => void;
   onSave: (data: TransactionData) => Promise<boolean | undefined | void>;
+  onSaveAndContinue?: (
+    data: TransactionData,
+  ) => Promise<boolean | undefined | void>;
+  onSaveAndExit?: (
+    data: TransactionData,
+  ) => Promise<boolean | undefined | void>;
   initialType: "income" | "expense";
   visionEntities: VisionEntity[];
   isSaving: boolean;
@@ -48,12 +54,15 @@ interface TransactionModalProps {
   suppressAutoClose?: boolean;
   initialDate?: number;
   onSkip?: () => void;
+  showDualSaveButtons?: boolean;
 }
 
 export const TransactionModal: React.FC<TransactionModalProps> = ({
   visible,
   onClose,
   onSave,
+  onSaveAndContinue,
+  onSaveAndExit,
   initialType,
   visionEntities,
   isSaving,
@@ -64,6 +73,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   suppressAutoClose = false,
   initialDate,
   onSkip,
+  showDualSaveButtons = false,
 }) => {
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
@@ -152,17 +162,54 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   };
 
   const handleSave = async () => {
-    const success = await onSave({
+    const payload = {
       amount,
       description,
       type,
       category: selectedCategory,
       relatedEntityId: selectedEntityId,
       date: initialDate ?? Date.now(),
-    });
+    };
+
+    const success = await onSave(payload);
     if (success && !suppressAutoClose) {
       onClose();
     }
+  };
+
+  const handleSaveAndContinue = async () => {
+    const payload = {
+      amount,
+      description,
+      type,
+      category: selectedCategory,
+      relatedEntityId: selectedEntityId,
+      date: initialDate ?? Date.now(),
+    };
+
+    const success = await (onSaveAndContinue
+      ? onSaveAndContinue(payload)
+      : onSave(payload));
+    return success;
+  };
+
+  const handleSaveAndExit = async () => {
+    const payload = {
+      amount,
+      description,
+      type,
+      category: selectedCategory,
+      relatedEntityId: selectedEntityId,
+      date: initialDate ?? Date.now(),
+    };
+
+    const success = await (onSaveAndExit
+      ? onSaveAndExit(payload)
+      : onSave(payload));
+    if (success) {
+      onClose();
+    }
+    return success;
   };
 
   const handleAmountChange = (text: string) => {
@@ -201,14 +248,19 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                   ? STRINGS.wallet.newIncome
                   : STRINGS.wallet.newExpense}
               </Typography>
-              <TouchableOpacity onPress={onSkip} style={{ padding: Spacing.s }}>
-                <Typography
-                  variant="body"
-                  style={{ color: colors.textSecondary }}
+              {onSkip && (
+                <TouchableOpacity
+                  onPress={onSkip}
+                  style={{ padding: Spacing.s }}
                 >
-                  Saltar
-                </Typography>
-              </TouchableOpacity>
+                  <Typography
+                    variant="body"
+                    style={{ color: colors.textSecondary }}
+                  >
+                    Saltar
+                  </Typography>
+                </TouchableOpacity>
+              )}
             </View>
 
             <Input
@@ -350,43 +402,49 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               variant="caption"
               style={{ marginBottom: Spacing.xs, color: colors.text }}
             >
-              {STRINGS.vision.selectEntity}
+              {STRINGS.vision.selectEntity}{" "}
+              {visionEntities.find((e) => e.id === selectedEntityId)?.name ||
+                "..."}
             </Typography>
 
-            <TouchableOpacity
-              onPress={() => setIsEntityDropdownOpen(!isEntityDropdownOpen)}
-              style={[
-                styles.dropdown,
-                {
-                  backgroundColor: colors.surface,
-                  borderColor: colors.border,
-                  marginBottom: isEntityDropdownOpen ? 0 : Spacing.m,
-                  borderBottomLeftRadius: isEntityDropdownOpen
-                    ? 0
-                    : BorderRadius.m,
-                  borderBottomRightRadius: isEntityDropdownOpen
-                    ? 0
-                    : BorderRadius.m,
-                },
-              ]}
-            >
-              <View style={styles.dropdownHeader}>
-                <Typography
-                  variant="body"
-                  style={{
-                    color: selectedEntityId ? colors.text : colors.text + "80",
-                  }}
-                >
-                  {selectedEntityId
-                    ? visionEntities.find((e) => e.id === selectedEntityId)
-                        ?.name || STRINGS.vision.entityPlaceholder
-                    : STRINGS.vision.entityPlaceholder}
-                </Typography>
-                <Typography variant="body" style={{ color: colors.text }}>
-                  {isEntityDropdownOpen ? "▲" : "▼"}
-                </Typography>
-              </View>
-            </TouchableOpacity>
+            {!selectedEntityId && (
+              <TouchableOpacity
+                onPress={() => setIsEntityDropdownOpen(!isEntityDropdownOpen)}
+                style={[
+                  styles.dropdown,
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                    marginBottom: isEntityDropdownOpen ? 0 : Spacing.m,
+                    borderBottomLeftRadius: isEntityDropdownOpen
+                      ? 0
+                      : BorderRadius.m,
+                    borderBottomRightRadius: isEntityDropdownOpen
+                      ? 0
+                      : BorderRadius.m,
+                  },
+                ]}
+              >
+                <View style={styles.dropdownHeader}>
+                  <Typography
+                    variant="body"
+                    style={{
+                      color: selectedEntityId
+                        ? colors.text
+                        : colors.text + "80",
+                    }}
+                  >
+                    {selectedEntityId
+                      ? visionEntities.find((e) => e.id === selectedEntityId)
+                          ?.name || STRINGS.vision.entityPlaceholder
+                      : STRINGS.vision.entityPlaceholder}
+                  </Typography>
+                  <Typography variant="body" style={{ color: colors.text }}>
+                    {isEntityDropdownOpen ? "▲" : "▼"}
+                  </Typography>
+                </View>
+              </TouchableOpacity>
+            )}
 
             {isEntityDropdownOpen && (
               <View
@@ -540,31 +598,53 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               </View>
             )}
 
-            <View style={styles.modalButtons}>
-              <Button
-                title={STRINGS.common.cancel}
-                variant="ghost"
-                onPress={() => {
-                  if (typeof onSkip === "function") {
-                    onSkip();
-                  } else {
-                    onClose();
-                  }
-                }}
-                style={{ flex: 1, marginRight: Spacing.s }}
-              />
-              <Button
-                title={STRINGS.common.save}
-                loading={isSaving}
-                onPress={handleSave}
-                style={{
-                  flex: 1,
-                  marginLeft: Spacing.s,
-                  backgroundColor:
-                    type === "income" ? colors.success : colors.error,
-                }}
-              />
-            </View>
+            {showDualSaveButtons ? (
+              <View style={styles.modalButtonsDual}>
+                <Button
+                  title="Guardar y continuar"
+                  loading={isSaving}
+                  onPress={handleSaveAndContinue}
+                  style={{
+                    backgroundColor:
+                      type === "income" ? colors.success : colors.error,
+                  }}
+                />
+                <Button
+                  title="Guardar y salir"
+                  loading={isSaving}
+                  onPress={handleSaveAndExit}
+                  style={{
+                    backgroundColor: colors.primary,
+                  }}
+                />
+              </View>
+            ) : (
+              <View style={styles.modalButtons}>
+                <Button
+                  title={STRINGS.common.cancel}
+                  variant="ghost"
+                  onPress={() => {
+                    if (typeof onSkip === "function") {
+                      onSkip();
+                    } else {
+                      onClose();
+                    }
+                  }}
+                  style={{ flex: 1, marginRight: Spacing.s }}
+                />
+                <Button
+                  title={STRINGS.common.save}
+                  loading={isSaving}
+                  onPress={handleSave}
+                  style={{
+                    flex: 1,
+                    marginLeft: Spacing.s,
+                    backgroundColor:
+                      type === "income" ? colors.success : colors.error,
+                  }}
+                />
+              </View>
+            )}
           </TouchableOpacity>
         </TouchableWithoutFeedback>
       </TouchableOpacity>
@@ -585,8 +665,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.5)",
   },
   modalContent: {
-    borderTopLeftRadius: BorderRadius.xl,
-    borderTopRightRadius: BorderRadius.xl,
+    borderRadius: BorderRadius.xl,
     padding: Spacing.l,
     paddingBottom: 40,
     shadowColor: "#000",
@@ -598,6 +677,10 @@ const styles = StyleSheet.create({
   modalButtons: {
     flexDirection: "row",
     marginTop: Spacing.m,
+  },
+  modalButtonsDual: {
+    marginTop: Spacing.m,
+    gap: Spacing.s,
   },
   dropdown: {
     paddingHorizontal: Spacing.m,
@@ -613,8 +696,7 @@ const styles = StyleSheet.create({
   dropdownList: {
     borderWidth: 1,
     borderTopWidth: 0,
-    borderBottomLeftRadius: BorderRadius.m,
-    borderBottomRightRadius: BorderRadius.m,
+    borderRadius: BorderRadius.m,
     marginBottom: Spacing.m,
     maxHeight: 200,
   },

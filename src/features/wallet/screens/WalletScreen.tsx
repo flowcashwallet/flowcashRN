@@ -23,6 +23,7 @@ import {
 } from "react-native";
 import { useDispatch, useSelector, useStore } from "react-redux";
 import { ExportButton } from "../components/ExportTransactions";
+import { ManualMultiTransactionModal } from "../components/ManualMultiTransactionModal";
 import { MonthSelector } from "../components/MonthSelector";
 import { MonthYearPickerModal } from "../components/MonthYearPickerModal";
 import { ReceiptScannerModal } from "../components/ReceiptScannerModal";
@@ -66,6 +67,7 @@ export default function WalletScreen() {
   const [datePickerVisible, setDatePickerVisible] = useState(false);
   const [filterVisible, setFilterVisible] = useState(false);
   const [receiptModalVisible, setReceiptModalVisible] = useState(false);
+  const [manualMultiModalVisible, setManualMultiModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState<{
     category: string | null;
@@ -436,6 +438,13 @@ export default function WalletScreen() {
               color: colors.primary,
               onPress: () => setReceiptModalVisible(true),
             },
+            {
+              id: "manual-multi",
+              label: "Añadir múltiples transacciones",
+              icon: "square.and.pencil",
+              color: colors.primary,
+              onPress: () => setManualMultiModalVisible(true),
+            },
           ]}
         />
         <View style={{ flex: 1 }}>
@@ -499,6 +508,13 @@ export default function WalletScreen() {
             onClose={() => setReceiptModalVisible(false)}
             visionEntities={visionEntities}
           />
+
+          <ManualMultiTransactionModal
+            visible={manualMultiModalVisible}
+            onClose={() => setManualMultiModalVisible(false)}
+            visionEntities={visionEntities}
+          />
+
           {isVoiceCommandEnabled && (
             <View style={styles.fabContainer}>
               <VoiceInputButton
