@@ -15,7 +15,10 @@
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSMicrophoneUsageDescription": "FlowCash necesita acceso al micrófono para que puedas registrar transacciones por voz.",
-        "NSSpeechRecognitionUsageDescription": "FlowCash necesita reconocimiento de voz para convertir tus comandos en texto."
+        "NSSpeechRecognitionUsageDescription": "FlowCash necesita reconocimiento de voz para convertir tus comandos en texto.",
+        "NSPhotoLibraryUsageDescription": "FlowCash necesita acceder a tus fotos para que puedas seleccionar recibos.",
+        "NSCameraUsageDescription": "FlowCash necesita acceso a la cámara para tomar fotos de recibos.",
+        "NSPhotoLibraryAddUsageDescription": "FlowCash puede guardar imágenes si lo solicitas."
       },
       "appleTeamId": "352D94D68K"
     },

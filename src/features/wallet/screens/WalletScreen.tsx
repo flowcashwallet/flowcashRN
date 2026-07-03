@@ -25,6 +25,7 @@ import { useDispatch, useSelector, useStore } from "react-redux";
 import { ExportButton } from "../components/ExportTransactions";
 import { MonthSelector } from "../components/MonthSelector";
 import { MonthYearPickerModal } from "../components/MonthYearPickerModal";
+import { ReceiptScannerModal } from "../components/ReceiptScannerModal";
 import { StreakCalendarModal } from "../components/StreakCalendarModal";
 import { TransactionFilterModal } from "../components/TransactionFilterModal";
 import { Transaction } from "../data/walletSlice";
@@ -64,6 +65,7 @@ export default function WalletScreen() {
   const [calendarVisible, setCalendarVisible] = useState(false);
   const [datePickerVisible, setDatePickerVisible] = useState(false);
   const [filterVisible, setFilterVisible] = useState(false);
+  const [receiptModalVisible, setReceiptModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState<{
     category: string | null;
@@ -427,6 +429,13 @@ export default function WalletScreen() {
               color: "#FF9500", // Orange
               onPress: () => router.push("/wallet/recurring"),
             },
+            {
+              id: "scan",
+              label: "Escanear recibo",
+              icon: "camera",
+              color: colors.primary,
+              onPress: () => setReceiptModalVisible(true),
+            },
           ]}
         />
         <View style={{ flex: 1 }}>
@@ -484,6 +493,11 @@ export default function WalletScreen() {
                 dateTo: null,
               })
             }
+          />
+          <ReceiptScannerModal
+            visible={receiptModalVisible}
+            onClose={() => setReceiptModalVisible(false)}
+            visionEntities={visionEntities}
           />
           {isVoiceCommandEnabled && (
             <View style={styles.fabContainer}>

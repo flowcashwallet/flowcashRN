@@ -30,6 +30,7 @@ interface TransactionData {
   type: "income" | "expense";
   category?: string | null;
   relatedEntityId?: string | null;
+  date?: number;
 }
 
 interface TransactionModalProps {
@@ -39,6 +40,13 @@ interface TransactionModalProps {
   initialType: "income" | "expense";
   visionEntities: VisionEntity[];
   isSaving: boolean;
+  initialAmount?: string;
+  initialDescription?: string;
+  initialCategory?: string | null;
+  initialRelatedEntityId?: string | null;
+  suppressAutoClose?: boolean;
+  initialDate?: number;
+  onSkip?: () => void;
 }
 
 export const TransactionModal: React.FC<TransactionModalProps> = ({
@@ -48,6 +56,13 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   initialType,
   visionEntities,
   isSaving,
+  initialAmount,
+  initialDescription,
+  initialCategory,
+  initialRelatedEntityId,
+  suppressAutoClose = false,
+  initialDate,
+  onSkip,
 }) => {
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
@@ -73,14 +88,21 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   useEffect(() => {
     if (visible) {
       setType(initialType);
-      setAmount("");
-      setDescription("");
-      setSelectedCategory(null);
-      setSelectedEntityId(null);
+      setAmount(initialAmount ?? "");
+      setDescription(initialDescription ?? "");
+      setSelectedCategory(initialCategory ?? null);
+      setSelectedEntityId(initialRelatedEntityId ?? null);
       setIsCategoryDropdownOpen(false);
       setIsEntityDropdownOpen(false);
     }
-  }, [visible, initialType]);
+  }, [
+    visible,
+    initialType,
+    initialAmount,
+    initialDescription,
+    initialCategory,
+    initialRelatedEntityId,
+  ]);
 
   const handleSave = async () => {
     const success = await onSave({
@@ -89,8 +111,9 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       type,
       category: selectedCategory,
       relatedEntityId: selectedEntityId,
+      date: initialDate ?? Date.now(),
     });
-    if (success) {
+    if (success && !suppressAutoClose) {
       onClose();
     }
   };
@@ -99,362 +122,377 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     setAmount(formatAmountInput(text));
   };
 
-  return (
-    <Modal visible={visible} animationType="slide" transparent>
-      <KeyboardAvoidingView
-        // persist taps on keyboard
-
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={styles.modalOverlay}
+  const InnerContent = (
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={styles.modalOverlay}
+    >
+      <TouchableOpacity
+        style={{ flex: 1, justifyContent: "flex-end" }}
+        activeOpacity={1}
+        onPress={onClose}
       >
-        <TouchableOpacity
-          style={{ flex: 1, justifyContent: "flex-end" }}
-          activeOpacity={1}
-          onPress={onClose}
-        >
-          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-            <TouchableOpacity
-              activeOpacity={1}
-              onPress={(e) => e.stopPropagation()}
-              style={[
-                styles.modalContent,
-                { backgroundColor: colors.background },
-              ]}
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+            style={[
+              styles.modalContent,
+              { backgroundColor: colors.background },
+            ]}
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: Spacing.l,
+              }}
             >
-              <Typography
-                variant="h3"
-                weight="bold"
-                style={{ marginBottom: Spacing.l }}
-              >
+              <Typography variant="h3" weight="bold">
                 {type === "income"
                   ? STRINGS.wallet.newIncome
                   : STRINGS.wallet.newExpense}
               </Typography>
-
-              <Input
-                label={STRINGS.wallet.description}
-                placeholder={STRINGS.wallet.descriptionPlaceholder}
-                value={description}
-                onChangeText={setDescription}
-              />
-
-              <Input
-                label={STRINGS.wallet.amount}
-                placeholder="0.00"
-                keyboardType="numeric"
-                value={amount}
-                onChangeText={handleAmountChange}
-              />
-
-              <Typography
-                variant="caption"
-                style={{ marginBottom: Spacing.xs, color: colors.text }}
-              >
-                {STRINGS.wallet.category}
-              </Typography>
-
-              <TouchableOpacity
-                onPress={() =>
-                  setIsCategoryDropdownOpen(!isCategoryDropdownOpen)
-                }
-                style={[
-                  styles.dropdown,
-                  {
-                    backgroundColor: colors.surface,
-                    borderColor: colors.border,
-                    marginBottom: isCategoryDropdownOpen ? 0 : Spacing.m,
-                    borderBottomLeftRadius: isCategoryDropdownOpen
-                      ? 0
-                      : BorderRadius.m,
-                    borderBottomRightRadius: isCategoryDropdownOpen
-                      ? 0
-                      : BorderRadius.m,
-                  },
-                ]}
-              >
-                <View style={styles.dropdownHeader}>
-                  <Typography
-                    variant="body"
-                    style={{
-                      color: selectedCategory
-                        ? colors.text
-                        : colors.text + "80",
-                      flex: 1,
-                    }}
-                  >
-                    {selectedCategory || STRINGS.wallet.selectCategory}
-                  </Typography>
-                  <View style={{ flexDirection: "row", alignItems: "center" }}>
-                    <TouchableOpacity
-                      onPress={() => {
-                        onClose();
-                        router.push("/wallet/categories");
-                      }}
-                      style={{ marginRight: Spacing.s, padding: 4 }}
-                    >
-                      <IconSymbol name="pencil" size={16} color={colors.text} />
-                    </TouchableOpacity>
-                    <Typography variant="body" style={{ color: colors.text }}>
-                      {isCategoryDropdownOpen ? "▲" : "▼"}
-                    </Typography>
-                  </View>
-                </View>
-              </TouchableOpacity>
-
-              {isCategoryDropdownOpen && (
-                <View
-                  style={[
-                    styles.dropdownList,
-                    {
-                      borderColor: colors.border,
-                      backgroundColor: colors.surface,
-                    },
-                  ]}
+              <TouchableOpacity onPress={onSkip} style={{ padding: Spacing.s }}>
+                <Typography
+                  variant="body"
+                  style={{ color: colors.textSecondary }}
                 >
-                  <ScrollView
-                    keyboardShouldPersistTaps="always"
-                    nestedScrollEnabled
-                  >
-                    {categories.map((cat, index) => (
-                      <TouchableOpacity
-                        key={cat.id}
-                        onPress={() => {
-                          setSelectedCategory(cat.name);
-                          setIsCategoryDropdownOpen(false);
-                        }}
-                        style={{
-                          padding: Spacing.m,
-                          borderTopWidth: index > 0 ? 1 : 0,
-                          borderTopColor: colors.border,
-                        }}
-                      >
-                        <Typography variant="body">{cat.name}</Typography>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                </View>
-              )}
-
-              {/* Entity Selector */}
-              <Typography
-                variant="caption"
-                style={{ marginBottom: Spacing.xs, color: colors.text }}
-              >
-                {STRINGS.vision.selectEntity}
-              </Typography>
-
-              <TouchableOpacity
-                onPress={() => setIsEntityDropdownOpen(!isEntityDropdownOpen)}
-                style={[
-                  styles.dropdown,
-                  {
-                    backgroundColor: colors.surface,
-                    borderColor: colors.border,
-                    marginBottom: isEntityDropdownOpen ? 0 : Spacing.m,
-                    borderBottomLeftRadius: isEntityDropdownOpen
-                      ? 0
-                      : BorderRadius.m,
-                    borderBottomRightRadius: isEntityDropdownOpen
-                      ? 0
-                      : BorderRadius.m,
-                  },
-                ]}
-              >
-                <View style={styles.dropdownHeader}>
-                  <Typography
-                    variant="body"
-                    style={{
-                      color: selectedEntityId
-                        ? colors.text
-                        : colors.text + "80",
-                    }}
-                  >
-                    {selectedEntityId
-                      ? visionEntities.find((e) => e.id === selectedEntityId)
-                          ?.name || STRINGS.vision.entityPlaceholder
-                      : STRINGS.vision.entityPlaceholder}
-                  </Typography>
-                  <Typography variant="body" style={{ color: colors.text }}>
-                    {isEntityDropdownOpen ? "▲" : "▼"}
-                  </Typography>
-                </View>
+                  Saltar
+                </Typography>
               </TouchableOpacity>
+            </View>
 
-              {isEntityDropdownOpen && (
-                <View
-                  style={[
-                    styles.dropdownList,
-                    {
-                      borderColor: colors.border,
-                      backgroundColor: colors.surface,
-                    },
-                  ]}
-                >
-                  <View style={{ padding: Spacing.s }}>
-                    <Input
-                      placeholder="Buscar activo/pasivo..."
-                      value={entitySearchQuery}
-                      onChangeText={setEntitySearchQuery}
-                      style={{ marginBottom: 0 }}
-                    />
-                  </View>
-                  <ScrollView
-                    keyboardShouldPersistTaps="always"
-                    nestedScrollEnabled
-                    style={{ maxHeight: 200 }}
-                  >
-                    {(() => {
-                      const filteredEntities = visionEntities.filter((e) =>
-                        e.name
-                          .toLowerCase()
-                          .includes(entitySearchQuery.toLowerCase()),
-                      );
+            <Input
+              label={STRINGS.wallet.description}
+              placeholder={STRINGS.wallet.descriptionPlaceholder}
+              value={description}
+              onChangeText={setDescription}
+            />
 
-                      if (filteredEntities.length === 0) {
-                        return (
-                          <Typography
-                            variant="body"
-                            style={{ padding: Spacing.m, color: colors.icon }}
-                          >
-                            No se encontraron resultados
-                          </Typography>
-                        );
-                      }
+            <Input
+              label={STRINGS.wallet.amount}
+              placeholder="0.00"
+              keyboardType="numeric"
+              value={amount}
+              onChangeText={handleAmountChange}
+            />
 
-                      const assets = filteredEntities.filter(
-                        (e) => e.type === "asset",
-                      );
-                      const liabilities = filteredEntities.filter(
-                        (e) => e.type === "liability",
-                      );
+            <Typography
+              variant="caption"
+              style={{ marginBottom: Spacing.xs, color: colors.text }}
+            >
+              {STRINGS.wallet.category}
+            </Typography>
 
-                      return (
-                        <>
-                          <TouchableOpacity
-                            onPress={() => {
-                              setSelectedEntityId(null);
-                              setIsEntityDropdownOpen(false);
-                            }}
-                            style={{
-                              padding: Spacing.m,
-                              borderBottomWidth: 1,
-                              borderBottomColor: colors.border,
-                            }}
-                          >
-                            <Typography
-                              variant="body"
-                              style={{
-                                color: colors.text,
-                                fontStyle: "italic",
-                              }}
-                            >
-                              Ninguno
-                            </Typography>
-                          </TouchableOpacity>
-
-                          {assets.length > 0 && (
-                            <>
-                              <View
-                                style={{
-                                  padding: Spacing.s,
-                                  backgroundColor: colors.surfaceHighlight,
-                                }}
-                              >
-                                <Typography
-                                  variant="caption"
-                                  weight="bold"
-                                  style={{ color: colors.textSecondary }}
-                                >
-                                  ACTIVOS
-                                </Typography>
-                              </View>
-                              {assets.map((entity) => (
-                                <TouchableOpacity
-                                  key={entity.id}
-                                  onPress={() => {
-                                    setSelectedEntityId(entity.id);
-                                    setIsEntityDropdownOpen(false);
-                                  }}
-                                  style={{
-                                    padding: Spacing.m,
-                                    borderBottomWidth: 1,
-                                    borderBottomColor: colors.border,
-                                  }}
-                                >
-                                  <Typography variant="body">
-                                    {entity.name}
-                                  </Typography>
-                                </TouchableOpacity>
-                              ))}
-                            </>
-                          )}
-
-                          {liabilities.length > 0 && (
-                            <>
-                              <View
-                                style={{
-                                  padding: Spacing.s,
-                                  backgroundColor: colors.surfaceHighlight,
-                                }}
-                              >
-                                <Typography
-                                  variant="caption"
-                                  weight="bold"
-                                  style={{ color: colors.textSecondary }}
-                                >
-                                  PASIVOS
-                                </Typography>
-                              </View>
-                              {liabilities.map((entity) => (
-                                <TouchableOpacity
-                                  key={entity.id}
-                                  onPress={() => {
-                                    setSelectedEntityId(entity.id);
-                                    setIsEntityDropdownOpen(false);
-                                  }}
-                                  style={{
-                                    padding: Spacing.m,
-                                    borderBottomWidth: 1,
-                                    borderBottomColor: colors.border,
-                                  }}
-                                >
-                                  <Typography variant="body">
-                                    {entity.name}
-                                  </Typography>
-                                </TouchableOpacity>
-                              ))}
-                            </>
-                          )}
-                        </>
-                      );
-                    })()}
-                  </ScrollView>
-                </View>
-              )}
-
-              <View style={styles.modalButtons}>
-                <Button
-                  title={STRINGS.common.cancel}
-                  variant="ghost"
-                  onPress={onClose}
-                  style={{ flex: 1, marginRight: Spacing.s }}
-                />
-                <Button
-                  title={STRINGS.common.save}
-                  loading={isSaving}
-                  onPress={handleSave}
+            <TouchableOpacity
+              onPress={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
+              style={[
+                styles.dropdown,
+                {
+                  backgroundColor: colors.surface,
+                  borderColor: colors.border,
+                  marginBottom: isCategoryDropdownOpen ? 0 : Spacing.m,
+                  borderBottomLeftRadius: isCategoryDropdownOpen
+                    ? 0
+                    : BorderRadius.m,
+                  borderBottomRightRadius: isCategoryDropdownOpen
+                    ? 0
+                    : BorderRadius.m,
+                },
+              ]}
+            >
+              <View style={styles.dropdownHeader}>
+                <Typography
+                  variant="body"
                   style={{
+                    color: selectedCategory ? colors.text : colors.text + "80",
                     flex: 1,
-                    marginLeft: Spacing.s,
-                    backgroundColor:
-                      type === "income" ? colors.success : colors.error,
                   }}
-                />
+                >
+                  {selectedCategory || STRINGS.wallet.selectCategory}
+                </Typography>
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      onClose();
+                      router.push("/wallet/categories");
+                    }}
+                    style={{ marginRight: Spacing.s, padding: 4 }}
+                  >
+                    <IconSymbol name="pencil" size={16} color={colors.text} />
+                  </TouchableOpacity>
+                  <Typography variant="body" style={{ color: colors.text }}>
+                    {isCategoryDropdownOpen ? "▲" : "▼"}
+                  </Typography>
+                </View>
               </View>
             </TouchableOpacity>
-          </TouchableWithoutFeedback>
-        </TouchableOpacity>
-      </KeyboardAvoidingView>
+
+            {isCategoryDropdownOpen && (
+              <View
+                style={[
+                  styles.dropdownList,
+                  {
+                    borderColor: colors.border,
+                    backgroundColor: colors.surface,
+                  },
+                ]}
+              >
+                <ScrollView
+                  keyboardShouldPersistTaps="always"
+                  nestedScrollEnabled
+                >
+                  {categories.map((cat, index) => (
+                    <TouchableOpacity
+                      key={cat.id}
+                      onPress={() => {
+                        setSelectedCategory(cat.name);
+                        setIsCategoryDropdownOpen(false);
+                      }}
+                      style={{
+                        padding: Spacing.m,
+                        borderTopWidth: index > 0 ? 1 : 0,
+                        borderTopColor: colors.border,
+                      }}
+                    >
+                      <Typography variant="body">{cat.name}</Typography>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
+            {/* Entity Selector */}
+            <Typography
+              variant="caption"
+              style={{ marginBottom: Spacing.xs, color: colors.text }}
+            >
+              {STRINGS.vision.selectEntity}
+            </Typography>
+
+            <TouchableOpacity
+              onPress={() => setIsEntityDropdownOpen(!isEntityDropdownOpen)}
+              style={[
+                styles.dropdown,
+                {
+                  backgroundColor: colors.surface,
+                  borderColor: colors.border,
+                  marginBottom: isEntityDropdownOpen ? 0 : Spacing.m,
+                  borderBottomLeftRadius: isEntityDropdownOpen
+                    ? 0
+                    : BorderRadius.m,
+                  borderBottomRightRadius: isEntityDropdownOpen
+                    ? 0
+                    : BorderRadius.m,
+                },
+              ]}
+            >
+              <View style={styles.dropdownHeader}>
+                <Typography
+                  variant="body"
+                  style={{
+                    color: selectedEntityId ? colors.text : colors.text + "80",
+                  }}
+                >
+                  {selectedEntityId
+                    ? visionEntities.find((e) => e.id === selectedEntityId)
+                        ?.name || STRINGS.vision.entityPlaceholder
+                    : STRINGS.vision.entityPlaceholder}
+                </Typography>
+                <Typography variant="body" style={{ color: colors.text }}>
+                  {isEntityDropdownOpen ? "▲" : "▼"}
+                </Typography>
+              </View>
+            </TouchableOpacity>
+
+            {isEntityDropdownOpen && (
+              <View
+                style={[
+                  styles.dropdownList,
+                  {
+                    borderColor: colors.border,
+                    backgroundColor: colors.surface,
+                  },
+                ]}
+              >
+                <View style={{ padding: Spacing.s }}>
+                  <Input
+                    placeholder="Buscar activo/pasivo..."
+                    value={entitySearchQuery}
+                    onChangeText={setEntitySearchQuery}
+                    style={{ marginBottom: 0 }}
+                  />
+                </View>
+                <ScrollView
+                  keyboardShouldPersistTaps="always"
+                  nestedScrollEnabled
+                  style={{ maxHeight: 200 }}
+                >
+                  {(() => {
+                    const filteredEntities = visionEntities.filter((e) =>
+                      e.name
+                        .toLowerCase()
+                        .includes(entitySearchQuery.toLowerCase()),
+                    );
+
+                    if (filteredEntities.length === 0) {
+                      return (
+                        <Typography
+                          variant="body"
+                          style={{ padding: Spacing.m, color: colors.icon }}
+                        >
+                          No se encontraron resultados
+                        </Typography>
+                      );
+                    }
+
+                    const assets = filteredEntities.filter(
+                      (e) => e.type === "asset",
+                    );
+                    const liabilities = filteredEntities.filter(
+                      (e) => e.type === "liability",
+                    );
+
+                    return (
+                      <>
+                        <TouchableOpacity
+                          onPress={() => {
+                            setSelectedEntityId(null);
+                            setIsEntityDropdownOpen(false);
+                          }}
+                          style={{
+                            padding: Spacing.m,
+                            borderBottomWidth: 1,
+                            borderBottomColor: colors.border,
+                          }}
+                        >
+                          <Typography
+                            variant="body"
+                            style={{
+                              color: colors.text,
+                              fontStyle: "italic",
+                            }}
+                          >
+                            Ninguno
+                          </Typography>
+                        </TouchableOpacity>
+
+                        {assets.length > 0 && (
+                          <>
+                            <View
+                              style={{
+                                padding: Spacing.s,
+                                backgroundColor: colors.surfaceHighlight,
+                              }}
+                            >
+                              <Typography
+                                variant="caption"
+                                weight="bold"
+                                style={{ color: colors.textSecondary }}
+                              >
+                                ACTIVOS
+                              </Typography>
+                            </View>
+                            {assets.map((entity) => (
+                              <TouchableOpacity
+                                key={entity.id}
+                                onPress={() => {
+                                  setSelectedEntityId(entity.id);
+                                  setIsEntityDropdownOpen(false);
+                                }}
+                                style={{
+                                  padding: Spacing.m,
+                                  borderBottomWidth: 1,
+                                  borderBottomColor: colors.border,
+                                }}
+                              >
+                                <Typography variant="body">
+                                  {entity.name}
+                                </Typography>
+                              </TouchableOpacity>
+                            ))}
+                          </>
+                        )}
+
+                        {liabilities.length > 0 && (
+                          <>
+                            <View
+                              style={{
+                                padding: Spacing.s,
+                                backgroundColor: colors.surfaceHighlight,
+                              }}
+                            >
+                              <Typography
+                                variant="caption"
+                                weight="bold"
+                                style={{ color: colors.textSecondary }}
+                              >
+                                PASIVOS
+                              </Typography>
+                            </View>
+                            {liabilities.map((entity) => (
+                              <TouchableOpacity
+                                key={entity.id}
+                                onPress={() => {
+                                  setSelectedEntityId(entity.id);
+                                  setIsEntityDropdownOpen(false);
+                                }}
+                                style={{
+                                  padding: Spacing.m,
+                                  borderBottomWidth: 1,
+                                  borderBottomColor: colors.border,
+                                }}
+                              >
+                                <Typography variant="body">
+                                  {entity.name}
+                                </Typography>
+                              </TouchableOpacity>
+                            ))}
+                          </>
+                        )}
+                      </>
+                    );
+                  })()}
+                </ScrollView>
+              </View>
+            )}
+
+            <View style={styles.modalButtons}>
+              <Button
+                title={STRINGS.common.cancel}
+                variant="ghost"
+                onPress={() => {
+                  if (typeof onSkip === "function") {
+                    onSkip();
+                  } else {
+                    onClose();
+                  }
+                }}
+                style={{ flex: 1, marginRight: Spacing.s }}
+              />
+              <Button
+                title={STRINGS.common.save}
+                loading={isSaving}
+                onPress={handleSave}
+                style={{
+                  flex: 1,
+                  marginLeft: Spacing.s,
+                  backgroundColor:
+                    type === "income" ? colors.success : colors.error,
+                }}
+              />
+            </View>
+          </TouchableOpacity>
+        </TouchableWithoutFeedback>
+      </TouchableOpacity>
+    </KeyboardAvoidingView>
+  );
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent>
+      {InnerContent}
     </Modal>
   );
 };
