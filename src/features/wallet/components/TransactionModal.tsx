@@ -9,6 +9,7 @@ import { fetchCategories } from "@/features/wallet/data/categoriesSlice";
 import STRINGS from "@/i18n/es.json";
 import { AppDispatch, RootState } from "@/store/store";
 import { formatAmountInput } from "@/utils/format";
+import { predictCategory } from "@/utils/smartCategorization";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -74,6 +75,8 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   const [description, setDescription] = useState("");
   const [type, setType] = useState<"income" | "expense">(initialType);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [manualCategorySelection, setManualCategorySelection] =
+    useState<boolean>(false);
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
   const [isEntityDropdownOpen, setIsEntityDropdownOpen] = useState(false);
@@ -91,6 +94,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       setAmount(initialAmount ?? "");
       setDescription(initialDescription ?? "");
       setSelectedCategory(initialCategory ?? null);
+      setManualCategorySelection(!!initialCategory);
       setSelectedEntityId(initialRelatedEntityId ?? null);
       setIsCategoryDropdownOpen(false);
       setIsEntityDropdownOpen(false);
@@ -103,6 +107,49 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     initialCategory,
     initialRelatedEntityId,
   ]);
+
+  // Transactions for frequent categories
+  const { transactions } = useSelector((state: RootState) => state.wallet);
+
+  const frequentCategories = React.useMemo(() => {
+    if (!transactions || transactions.length === 0) return [] as string[];
+    const categoryCounts: Record<string, number> = {};
+    transactions
+      .filter((t) => t.type === type)
+      .forEach((t) => {
+        if (t.category) {
+          categoryCounts[t.category] = (categoryCounts[t.category] || 0) + 1;
+        }
+      });
+    return Object.entries(categoryCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([cat]) => cat);
+  }, [transactions, type]);
+
+  // Smart categorization (local fallback only)
+  useEffect(() => {
+    if (manualCategorySelection) return;
+    if (!description || description.trim().length < 2) return;
+
+    const timeoutId = setTimeout(() => {
+      try {
+        const predicted = predictCategory(description);
+        if (predicted && selectedCategory !== predicted) {
+          setSelectedCategory(predicted);
+        }
+      } catch (err) {
+        console.log("Smart categorization (local) failed:", err);
+      }
+    }, 600);
+
+    return () => clearTimeout(timeoutId);
+  }, [description, manualCategorySelection, selectedCategory]);
+
+  const handleCategorySelect = (category: string | null) => {
+    setSelectedCategory(category);
+    setManualCategorySelection(true);
+  };
 
   const handleSave = async () => {
     const success = await onSave({
@@ -185,6 +232,40 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
             >
               {STRINGS.wallet.category}
             </Typography>
+
+            {frequentCategories.length > 0 && (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={{ marginBottom: Spacing.s }}
+                contentContainerStyle={{ gap: 8 }}
+              >
+                {frequentCategories.map((cat) => (
+                  <TouchableOpacity
+                    key={cat}
+                    onPress={() => handleCategorySelect(cat)}
+                    style={[
+                      styles.chip,
+                      {
+                        backgroundColor:
+                          selectedCategory === cat
+                            ? colors.primary
+                            : colors.surface,
+                      },
+                    ]}
+                  >
+                    <Typography
+                      variant="body"
+                      style={{
+                        color: selectedCategory === cat ? "white" : colors.text,
+                      }}
+                    >
+                      {cat}
+                    </Typography>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            )}
 
             <TouchableOpacity
               onPress={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
@@ -536,5 +617,12 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: BorderRadius.m,
     marginBottom: Spacing.m,
     maxHeight: 200,
+  },
+  chip: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "transparent",
   },
 });
