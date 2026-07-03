@@ -8,7 +8,6 @@ import STRINGS from "@/i18n/es.json";
 import { endpoints } from "@/services/api";
 import { RootState } from "@/store/store";
 import { fetchWithAuth } from "@/utils/apiClient";
-import { useHeaderHeight } from "@react-navigation/elements";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -59,8 +58,6 @@ export default function WalletScreen() {
     forecast,
   } = useWalletData();
 
-  const headerHeight = useHeaderHeight();
-  console.log("headerHeight", headerHeight);
   const { deleteTransaction, deleteMonthlyTransactions } =
     useWalletTransactions();
 
