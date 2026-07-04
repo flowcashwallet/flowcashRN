@@ -194,33 +194,49 @@ export async function scheduleCreditCardReminder(
   bankName: string,
   paymentDay: number,
 ) {
-  // Logic: 2 days before paymentDay
-  let reminderDay = paymentDay - 2;
-  if (reminderDay < 1) {
-    // Fallback for beginning of month: set to 28th to ensure it triggers
-    reminderDay = 28;
-  }
+  // Schedule 3 monthly reminders: payment day -2, -1, and 0.
+  // For payment days at the beginning of the month, wrap to late-month fallback days.
+  const normalizeReminderDay = (day: number) => {
+    if (day >= 1) return day;
+    return 28 + day;
+  };
 
-  const id = await Notifications.scheduleNotificationAsync({
-    content: {
-      title: "Pago de Tarjeta",
-      body: `¡Recuerda pagar tu tarjeta ${bankName}! Vence el día ${paymentDay}.`,
-      sound: true,
-      data: {
-        type: "credit_card",
-        bankName,
-        paymentDay,
-      },
-    },
-    trigger: {
-      type: Notifications.SchedulableTriggerInputTypes.CALENDAR,
-      day: reminderDay,
-      hour: 9, // Default to 9 AM
-      minute: 0,
-      repeats: true,
-    },
-  });
-  return id;
+  const reminderDays = [
+    normalizeReminderDay(paymentDay - 2),
+    normalizeReminderDay(paymentDay - 1),
+    paymentDay,
+  ];
+
+  const uniqueReminderDays = Array.from(
+    new Set(reminderDays.filter((day) => day >= 1 && day <= 31)),
+  );
+
+  const ids = await Promise.all(
+    uniqueReminderDays.map((day) =>
+      Notifications.scheduleNotificationAsync({
+        content: {
+          title: "Pago de Tarjeta",
+          body: `¡Recuerda pagar tu tarjeta ${bankName}! Vence el día ${paymentDay}.`,
+          sound: true,
+          data: {
+            type: "credit_card",
+            bankName,
+            paymentDay,
+            reminderDay: day,
+          },
+        },
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.CALENDAR,
+          day,
+          hour: 9,
+          minute: 0,
+          repeats: true,
+        },
+      }),
+    ),
+  );
+
+  return ids;
 }
 
 export async function getAllScheduledNotifications() {

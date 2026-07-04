@@ -120,7 +120,14 @@ export const EditNotificationModal: React.FC<EditNotificationModalProps> = ({
 
       // If editing, cancel the old one first
       if (notification) {
-        await cancelScheduledNotification(notification.identifier);
+        const data = (notification.content.data || {}) as any;
+        const groupedIds = Array.isArray(data?._groupIdentifiers)
+          ? (data._groupIdentifiers as string[])
+          : [notification.identifier];
+
+        await Promise.all(
+          groupedIds.map((id) => cancelScheduledNotification(id)),
+        );
       }
 
       if (type === "temporal") {

@@ -3,18 +3,18 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Spacing } from "@/constants/theme";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
-    cancelScheduledNotification,
-    getAllScheduledNotifications,
+  cancelScheduledNotification,
+  getAllScheduledNotifications,
 } from "@/services/notifications";
 import { NotificationRequest } from "expo-notifications";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
-    Alert,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    TouchableOpacity,
-    View,
+  Alert,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { EditNotificationModal } from "../components/EditNotificationModal";
 
@@ -52,7 +52,7 @@ export default function NotificationsScreen() {
     loadNotifications();
   };
 
-  const handleDelete = async (identifier: string) => {
+  const handleDelete = async (identifier: string | string[]) => {
     Alert.alert(
       "Eliminar recordatorio",
       "¿Estás seguro de que quieres eliminar este recordatorio?",
@@ -63,7 +63,10 @@ export default function NotificationsScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              await cancelScheduledNotification(identifier);
+              const ids = Array.isArray(identifier) ? identifier : [identifier];
+              await Promise.all(
+                ids.map((id) => cancelScheduledNotification(id)),
+              );
               loadNotifications();
             } catch (error) {
               console.error(error);
@@ -75,8 +78,26 @@ export default function NotificationsScreen() {
     );
   };
 
-  const handleEdit = (notification: NotificationRequest) => {
-    setSelectedNotification(notification);
+  const handleEdit = (
+    notification: NotificationRequest,
+    groupedIds?: string[],
+  ) => {
+    if (groupedIds && groupedIds.length > 0) {
+      const data = (notification.content.data || {}) as any;
+      const notificationWithGroupData = {
+        ...notification,
+        content: {
+          ...notification.content,
+          data: {
+            ...data,
+            _groupIdentifiers: groupedIds,
+          },
+        },
+      } as NotificationRequest;
+      setSelectedNotification(notificationWithGroupData);
+    } else {
+      setSelectedNotification(notification);
+    }
     setModalVisible(true);
   };
 
@@ -116,6 +137,31 @@ export default function NotificationsScreen() {
     // Fallback for legacy
     return n.content.title?.toLowerCase().includes("tarjeta");
   });
+
+  const groupedCardNotifications = useMemo(() => {
+    const groups = new Map<
+      string,
+      { representative: NotificationRequest; identifiers: string[] }
+    >();
+
+    cardNotifications.forEach((n) => {
+      const data = (n.content.data || {}) as any;
+      const bankName = data.bankName || n.content.title || "Tarjeta";
+      const paymentDay = data.paymentDay || "unknown";
+      const key = `${bankName}|${paymentDay}`;
+
+      if (!groups.has(key)) {
+        groups.set(key, {
+          representative: n,
+          identifiers: [n.identifier],
+        });
+      } else {
+        groups.get(key)!.identifiers.push(n.identifier);
+      }
+    });
+
+    return Array.from(groups.values());
+  }, [cardNotifications]);
 
   const temporalNotifications = notifications.filter((n) => {
     const data = n.content.data as any;
@@ -232,13 +278,79 @@ export default function NotificationsScreen() {
           </TouchableOpacity>
         </View>
 
-        {cardNotifications.length === 0 ? (
+        {groupedCardNotifications.length === 0 ? (
           <Typography variant="body" style={{ color: colors.textSecondary }}>
             No tienes recordatorios de tarjetas.
           </Typography>
         ) : (
-          cardNotifications.map((item) => (
-            <View key={item.identifier}>{renderItem({ item })}</View>
+          groupedCardNotifications.map((group) => (
+            <View key={group.representative.identifier}>
+              <View
+                style={[
+                  styles.item,
+                  {
+                    backgroundColor: colors.surfaceHighlight,
+                    borderColor: colors.border,
+                  },
+                ]}
+              >
+                <View style={{ flex: 1 }}>
+                  <Typography
+                    variant="body"
+                    weight="bold"
+                    style={{ color: colors.text }}
+                  >
+                    {group.representative.content.title || "Pago de Tarjeta"}
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    style={{ color: colors.textSecondary, marginTop: 4 }}
+                  >
+                    {group.representative.content.body}
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    style={{
+                      color: colors.primary,
+                      marginTop: 4,
+                      fontWeight: "600",
+                    }}
+                  >
+                    Desde 2 días antes hasta el día de pago
+                  </Typography>
+                </View>
+                <View style={styles.actions}>
+                  <TouchableOpacity
+                    onPress={() =>
+                      handleEdit(group.representative, group.identifiers)
+                    }
+                    style={[
+                      styles.actionButton,
+                      { backgroundColor: colors.surface },
+                    ]}
+                  >
+                    <IconSymbol
+                      name="pencil"
+                      size={18}
+                      color={colors.primary}
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => handleDelete(group.identifiers)}
+                    style={[
+                      styles.actionButton,
+                      { backgroundColor: colors.surface },
+                    ]}
+                  >
+                    <IconSymbol
+                      name="trash"
+                      size={18}
+                      color={colors.error || "#FF3B30"}
+                    />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
           ))
         )}
       </ScrollView>
