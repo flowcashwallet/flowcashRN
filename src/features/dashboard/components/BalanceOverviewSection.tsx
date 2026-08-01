@@ -1,4 +1,3 @@
-import { GlassCard } from "@/components/atoms/GlassCard";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { BorderRadius, Spacing } from "@/constants/theme";
 import STRINGS from "@/i18n/es.json";
@@ -26,7 +25,7 @@ export function BalanceOverviewSection({
 }: BalanceOverviewSectionProps) {
   return (
     <>
-      <GlassCard style={styles.card}>
+      <View style={styles.card}>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
           {STRINGS.dashboard.total}
         </Text>
@@ -38,7 +37,7 @@ export function BalanceOverviewSection({
         >
           {formatCurrency(balance)}
         </Text>
-      </GlassCard>
+      </View>
 
       <View style={{ gap: 12, marginBottom: Spacing.m }}>
         <View

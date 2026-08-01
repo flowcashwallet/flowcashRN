@@ -7,7 +7,7 @@
 // --- LIGHT THEME (Glacial Breeze) ---
 const lightPalette = {
   // Backgrounds
-  background: "#fff", // Ice/Mint 50
+  background: "#e8f4e4", // Ice/Mint 50
   surface: "#FFFFFF", // Pure White
   surfaceHighlight: "#E0F2FE", // Sky 100
   surfaceActive: "#CCFBF1", // Teal 100
@@ -17,8 +17,8 @@ const lightPalette = {
   textSecondary: "#475569", // Slate 600
 
   // Brand
-  primary: "#8EC5FC", // Teal 600
-  secondary: "#0284C7", // Sky 600
+  primary: "#78cf6c", // Teal 600
+  secondary: "#0233c7", // Sky 600
   accent: "#6366F1", // Indigo 500
 
   // Functional

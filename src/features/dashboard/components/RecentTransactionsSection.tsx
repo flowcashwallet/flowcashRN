@@ -1,4 +1,3 @@
-import { GlassCard } from "@/components/atoms/GlassCard";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Transaction } from "@/features/wallet/data/walletSlice";
 import STRINGS from "@/i18n/es.json";
@@ -17,7 +16,7 @@ export function RecentTransactionsSection({
   transactions,
 }: RecentTransactionsSectionProps) {
   return (
-    <GlassCard
+    <View
       style={{
         borderRadius: 20,
         padding: 20,
@@ -103,6 +102,6 @@ export function RecentTransactionsSection({
           </View>
         );
       })}
-    </GlassCard>
+    </View>
   );
 }

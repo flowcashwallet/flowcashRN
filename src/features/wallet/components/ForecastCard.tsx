@@ -42,32 +42,53 @@ export const ForecastCard: React.FC<ForecastCardProps> = ({ forecast }) => {
     }
   };
 
-  const remainingBudget = Math.max(0, forecast.remaining_budget);
+  const getTrendInfo = () => {
+    switch (forecast.spending_trend) {
+      case "accelerating":
+        return {
+          icon: "arrow.up.forward",
+          color: colors.error,
+          text: "Al alza",
+        };
+      case "decelerating":
+        return {
+          icon: "arrow.down.forward",
+          color: colors.success,
+          text: "A la baja",
+        };
+      case "stable":
+      default:
+        return {
+          icon: "arrow.forward",
+          color: colors.textSecondary,
+          text: "Estable",
+        };
+    }
+  };
+
+  const getConfidenceInfo = () => {
+    switch (forecast.confidence) {
+      case "high":
+        return { color: colors.success, text: "Confianza alta" };
+      case "medium":
+        return { color: colors.warning, text: "Confianza media" };
+      case "low":
+      default:
+        return { color: colors.textSecondary, text: "Confianza baja" };
+    }
+  };
+
   const daysLeftIncludingToday = Math.max(
     1,
-    forecast.days_left_including_today ??
-      (() => {
-        const today = new Date();
-        const startOfDay = new Date(
-          today.getFullYear(),
-          today.getMonth(),
-          today.getDate(),
-        );
-        const endOfMonth = new Date(
-          today.getFullYear(),
-          today.getMonth() + 1,
-          0,
-        );
-        const msPerDay = 24 * 60 * 60 * 1000;
-        return (
-          Math.ceil((endOfMonth.getTime() - startOfDay.getTime()) / msPerDay) +
-          1
-        );
-      })(),
+    forecast.days_left_including_today ?? 1,
   );
   const todayExpenses = Math.max(0, forecast.today_expenses ?? 0);
-  const dailyAllowance = remainingBudget / daysLeftIncludingToday;
   const todayIncome = Math.max(0, forecast.today_income ?? 0);
+  const dailyAllowance = Math.max(
+    0,
+    forecast.daily_allowance ??
+      forecast.remaining_budget / daysLeftIncludingToday,
+  );
   const remainingToday = Math.max(
     0,
     dailyAllowance + todayIncome - todayExpenses,
@@ -94,6 +115,17 @@ export const ForecastCard: React.FC<ForecastCardProps> = ({ forecast }) => {
         >
           Predicción Mensual
         </Typography>
+        {forecast.confidence && (
+          <Typography
+            variant="caption"
+            style={{
+              color: getConfidenceInfo().color,
+              fontWeight: "600",
+            }}
+          >
+            {getConfidenceInfo().text}
+          </Typography>
+        )}
       </View>
 
       <Typography
@@ -115,6 +147,21 @@ export const ForecastCard: React.FC<ForecastCardProps> = ({ forecast }) => {
           >
             {formatCurrency(forecast.daily_burn_rate)}
           </Typography>
+          {forecast.spending_trend && (
+            <View style={styles.trendRow}>
+              <IconSymbol
+                name={getTrendInfo().icon}
+                size={12}
+                color={getTrendInfo().color}
+              />
+              <Typography
+                variant="caption"
+                style={{ color: getTrendInfo().color, marginLeft: Spacing.xs }}
+              >
+                {getTrendInfo().text}
+              </Typography>
+            </View>
+          )}
         </View>
 
         <View style={styles.stat}>
@@ -136,23 +183,49 @@ export const ForecastCard: React.FC<ForecastCardProps> = ({ forecast }) => {
 
       <View
         style={[
-          styles.allowanceContainer,
+          styles.breakdownContainer,
           { backgroundColor: colors.surfaceHighlight },
         ]}
       >
-        <Typography variant="caption" style={{ color: colors.textSecondary }}>
-          Hoy te quedarían {formatCurrency(remainingToday)} por gastar para
-          llegar a fin de mes
-        </Typography>
-        <Typography variant="caption" style={{ color: colors.textSecondary }}>
-          Gastaste hoy: {formatCurrency(todayExpenses)}
-        </Typography>
-        <Typography variant="caption" style={{ color: colors.textSecondary }}>
-          Ingresos de hoy: {formatCurrency(todayIncome)}
-        </Typography>
-        <Typography variant="caption" style={{ color: colors.textSecondary }}>
-          Presupuesto diario sugerido: {formatCurrency(dailyAllowance)}
-        </Typography>
+        <View style={styles.breakdownRow}>
+          <Typography variant="caption" style={{ color: colors.textSecondary }}>
+            Ingresos del mes
+          </Typography>
+          <Typography variant="caption" style={{ color: colors.text }}>
+            {formatCurrency(forecast.disposable_budget)}
+          </Typography>
+        </View>
+        <View style={styles.breakdownRow}>
+          <Typography variant="caption" style={{ color: colors.textSecondary }}>
+            Gastos del mes
+          </Typography>
+          <Typography variant="caption" style={{ color: colors.text }}>
+            {formatCurrency(forecast.current_expenses)}
+          </Typography>
+        </View>
+        <View style={styles.breakdownRow}>
+          <Typography variant="caption" style={{ color: colors.textSecondary }}>
+            Saldo disponible (sin hoy)
+          </Typography>
+          <Typography variant="caption" style={{ color: colors.text }}>
+            {formatCurrency(
+              forecast.remaining_excluding_today ?? forecast.remaining_budget,
+            )}
+          </Typography>
+        </View>
+        <View style={styles.breakdownRow}>
+          <Typography variant="caption" style={{ color: colors.textSecondary }}>
+            Proyección ({daysLeftIncludingToday - 1} días ×{" "}
+            {formatCurrency(forecast.daily_burn_rate)})
+          </Typography>
+          <Typography variant="caption" style={{ color: colors.textSecondary }}>
+            -
+            {formatCurrency(
+              forecast.daily_burn_rate *
+                Math.max(0, daysLeftIncludingToday - 1),
+            )}
+          </Typography>
+        </View>
       </View>
 
       {forecast.tip && (
@@ -170,6 +243,70 @@ export const ForecastCard: React.FC<ForecastCardProps> = ({ forecast }) => {
           </Typography>
         </View>
       )}
+
+      <View style={styles.sectionDivider} />
+
+      <Typography
+        variant="caption"
+        weight="bold"
+        style={{ color: colors.textSecondary, marginBottom: Spacing.s }}
+      >
+        HOY
+      </Typography>
+
+      <View style={styles.todayMainRow}>
+        <Typography variant="caption" style={{ color: colors.textSecondary }}>
+          Te quedarían por gastar hoy
+        </Typography>
+        <Typography
+          variant="h3"
+          weight="bold"
+          style={{
+            color: remainingToday >= 0 ? colors.success : colors.error,
+          }}
+        >
+          {formatCurrency(remainingToday)}
+        </Typography>
+      </View>
+
+      <View style={styles.todayDetailsRow}>
+        <View style={styles.todayDetail}>
+          <Typography variant="caption" style={{ color: colors.textSecondary }}>
+            Gastaste
+          </Typography>
+          <Typography
+            variant="body"
+            weight="bold"
+            style={{ color: colors.text }}
+          >
+            {formatCurrency(todayExpenses)}
+          </Typography>
+        </View>
+        <View style={styles.todayDetail}>
+          <Typography variant="caption" style={{ color: colors.textSecondary }}>
+            Ingresos
+          </Typography>
+          <Typography
+            variant="body"
+            weight="bold"
+            style={{ color: colors.text }}
+          >
+            {formatCurrency(todayIncome)}
+          </Typography>
+        </View>
+        <View style={styles.todayDetail}>
+          <Typography variant="caption" style={{ color: colors.textSecondary }}>
+            Presupuesto diario
+          </Typography>
+          <Typography
+            variant="body"
+            weight="bold"
+            style={{ color: colors.text }}
+          >
+            {formatCurrency(dailyAllowance)}
+          </Typography>
+        </View>
+      </View>
     </View>
   );
 };
@@ -206,5 +343,35 @@ const styles = StyleSheet.create({
     padding: Spacing.s,
     borderRadius: BorderRadius.m,
     marginBottom: Spacing.s,
+  },
+  trendRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: Spacing.xs,
+  },
+  breakdownContainer: {
+    padding: Spacing.s,
+    borderRadius: BorderRadius.m,
+    marginBottom: Spacing.m,
+  },
+  breakdownRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: Spacing.xs,
+  },
+  sectionDivider: {
+    height: 1,
+    backgroundColor: "rgba(128,128,128,0.2)",
+    marginVertical: Spacing.m,
+  },
+  todayMainRow: {
+    marginBottom: Spacing.m,
+  },
+  todayDetailsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  todayDetail: {
+    flex: 1,
   },
 });

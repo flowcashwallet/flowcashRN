@@ -30,7 +30,17 @@ export interface Forecast {
   disposable_budget: number;
   current_expenses: number;
   remaining_budget: number;
+  current_remaining?: number;
+  remaining_excluding_today?: number;
   daily_burn_rate: number;
+  daily_burn_rate_7d?: number;
+  daily_burn_rate_30d?: number;
+  daily_burn_rate_60d?: number;
+  spending_trend?: "accelerating" | "stable" | "decelerating";
+  confidence?: "high" | "medium" | "low";
+  confidence_history_days?: number;
+  confidence_expense_days?: number;
+  daily_allowance?: number;
   status: "safe" | "warning" | "danger";
   forecast_date: string | null;
   message: string;
@@ -41,6 +51,7 @@ export interface Forecast {
   days_left_including_today?: number;
   weather_status?: "sunny" | "cloudy" | "stormy";
   weather_message?: string;
+  spending_change_vs_last_month?: number | null;
 }
 
 interface WalletState {
@@ -243,7 +254,8 @@ export const updateTransaction = createAsyncThunk(
         payload.date = new Date(updates.date).toISOString();
       if (updates.paymentType !== undefined)
         payload.payment_type = updates.paymentType;
-      if (updates.isRecurring !== undefined) payload.is_recurring = updates.isRecurring;
+      if (updates.isRecurring !== undefined)
+        payload.is_recurring = updates.isRecurring;
       if (updates.recurrenceFrequency !== undefined)
         payload.recurrence_frequency = updates.recurrenceFrequency;
       if (updates.recurrenceMonths !== undefined)

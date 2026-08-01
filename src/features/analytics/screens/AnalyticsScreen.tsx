@@ -1,4 +1,3 @@
-import { GlassCard } from "@/components/atoms/GlassCard";
 import { Typography } from "@/components/atoms/Typography";
 import { ThemedView } from "@/components/themed-view";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -149,7 +148,7 @@ export default function AnalyticsScreen() {
             Consejos para ti
           </Text>
           {financialTips.map((tip, index) => (
-            <GlassCard key={index} style={styles.tipCard}>
+            <View key={index} style={styles.tipCard}>
               <IconSymbol
                 name="lightbulb.fill"
                 size={24}
@@ -158,7 +157,7 @@ export default function AnalyticsScreen() {
               <Text style={[styles.tipText, { color: colors.text }]}>
                 {tip}
               </Text>
-            </GlassCard>
+            </View>
           ))}
         </View>
         {/* Top Categorías */}
@@ -179,7 +178,7 @@ export default function AnalyticsScreen() {
             </Text>
           ) : (
             topCategories.map((category, index) => (
-              <GlassCard key={index} style={styles.categoryCard}>
+              <View key={index} style={styles.categoryCard}>
                 <TouchableOpacity
                   style={styles.categoryHeader}
                   onPress={() => handleCategoryPress(category.category)}
@@ -276,7 +275,7 @@ export default function AnalyticsScreen() {
                     )}
                   </View>
                 )}
-              </GlassCard>
+              </View>
             ))
           )}
         </View>
@@ -298,7 +297,7 @@ export default function AnalyticsScreen() {
             </Text>
           ) : (
             recurringExpenses.map((expense, index) => (
-              <GlassCard key={index} style={styles.expenseCard}>
+              <View key={index} style={styles.expenseCard}>
                 <View style={styles.expenseHeader}>
                   <Text style={[styles.expenseName, { color: colors.text }]}>
                     {expense.description}
@@ -315,7 +314,7 @@ export default function AnalyticsScreen() {
                 >
                   Total del mes
                 </Text>
-              </GlassCard>
+              </View>
             ))
           )}
         </View>
@@ -362,6 +361,8 @@ const styles = StyleSheet.create({
     gap: Spacing.m,
     marginBottom: Spacing.s,
     padding: Spacing.m,
+    borderWidth: 1,
+    borderRadius: 12,
   },
   tipText: {
     flex: 1,
@@ -370,6 +371,8 @@ const styles = StyleSheet.create({
   expenseCard: {
     marginBottom: Spacing.s,
     padding: Spacing.m,
+    borderWidth: 1,
+    borderRadius: 12,
   },
   expenseHeader: {
     flexDirection: "row",
@@ -391,6 +394,8 @@ const styles = StyleSheet.create({
   categoryCard: {
     marginBottom: Spacing.s,
     padding: Spacing.m,
+    borderWidth: 1,
+    borderRadius: 12,
   },
   categoryHeader: {
     flexDirection: "row",

@@ -28,8 +28,6 @@ jest.mock("@/contexts/ThemeContext", () => ({
 jest.mock("@react-navigation/elements", () => ({
   useHeaderHeight: () => 100,
 }));
-jest.mock("expo-linear-gradient", () => ({ LinearGradient: "LinearGradient" }));
-jest.mock("expo-blur", () => ({ BlurView: "BlurView" }));
 jest.mock("@/components/molecules/FloatingActionMenu", () => ({
   FloatingActionMenu: () => "FloatingActionMenu",
 }));

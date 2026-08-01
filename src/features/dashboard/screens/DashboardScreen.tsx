@@ -12,10 +12,8 @@ import { MonthYearPickerModal } from "@/features/wallet/components/MonthYearPick
 import { useWalletData } from "@/features/wallet/hooks/useWalletData";
 import STRINGS from "@/i18n/es.json";
 import { formatCurrency } from "@/utils/format";
-import { BlurView } from "expo-blur";
-import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useMemo, useState } from "react";
-import { ScrollView, StyleSheet } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
 
 export default function DashboardScreen() {
   const { colors } = useTheme();
@@ -473,17 +471,7 @@ export default function DashboardScreen() {
   }, [allocationBreakdown]);
 
   return (
-    <LinearGradient
-      collapsable={false}
-      colors={colors.gradients.background}
-      style={[styles.container, { backgroundColor: colors.background }]}
-    >
-      <BlurView
-        intensity={80}
-        tint={colors.background.toLowerCase() === "#fff" ? "light" : "dark"}
-        style={StyleSheet.absoluteFill}
-      />
-
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={{ padding: Spacing.m, paddingBottom: 100 }}
@@ -569,7 +557,7 @@ export default function DashboardScreen() {
         onSelect={setSelectedDate}
         mode={periodView}
       />
-    </LinearGradient>
+    </View>
   );
 }
 

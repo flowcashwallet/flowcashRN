@@ -25,7 +25,7 @@ export default function TabLayout() {
     <>
       <NativeTabs>
         <NativeTabs.Trigger name="wallet">
-          <NativeTabs.Trigger.Icon sf="wallet.bifold.fill" md="wallet" />
+          <NativeTabs.Trigger.Icon sf="house" md="wallet" />
           <NativeTabs.Trigger.Label>Wallet</NativeTabs.Trigger.Label>
         </NativeTabs.Trigger>
         <NativeTabs.Trigger name="dashboard">

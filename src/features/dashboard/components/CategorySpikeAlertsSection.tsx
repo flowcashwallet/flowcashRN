@@ -1,4 +1,3 @@
-import { GlassCard } from "@/components/atoms/GlassCard";
 import React from "react";
 import { Text, View } from "react-native";
 import { CategorySpikeAlert, DashboardColors } from "./types";
@@ -17,7 +16,7 @@ export function CategorySpikeAlertsSection({
   formatWeeklyValue,
 }: CategorySpikeAlertsSectionProps) {
   return (
-    <GlassCard
+    <View
       style={{
         borderRadius: 20,
         padding: 20,
@@ -106,6 +105,6 @@ export function CategorySpikeAlertsSection({
           ))}
         </View>
       )}
-    </GlassCard>
+    </View>
   );
 }

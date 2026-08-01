@@ -1,4 +1,3 @@
-import { GlassCard } from "@/components/atoms/GlassCard";
 import React from "react";
 import { Text, View } from "react-native";
 import { AnomalousMovement, DashboardColors } from "./types";
@@ -15,7 +14,7 @@ export function AnomalousMovementsSection({
   formatWeeklyValue,
 }: AnomalousMovementsSectionProps) {
   return (
-    <GlassCard
+    <View
       style={{
         borderRadius: 20,
         padding: 20,
@@ -105,6 +104,6 @@ export function AnomalousMovementsSection({
           ))}
         </View>
       )}
-    </GlassCard>
+    </View>
   );
 }

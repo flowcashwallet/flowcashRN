@@ -1,4 +1,3 @@
-import { GlassCard } from "@/components/atoms/GlassCard";
 import React from "react";
 import { Text, View } from "react-native";
 import { DashboardColors, UpcomingFixedPaymentsSummary } from "./types";
@@ -15,7 +14,7 @@ export function UpcomingFixedPaymentsSection({
   formatWeeklyValue,
 }: UpcomingFixedPaymentsSectionProps) {
   return (
-    <GlassCard
+    <View
       style={{
         borderRadius: 20,
         padding: 20,
@@ -147,6 +146,6 @@ export function UpcomingFixedPaymentsSection({
           ))}
         </View>
       )}
-    </GlassCard>
+    </View>
   );
 }

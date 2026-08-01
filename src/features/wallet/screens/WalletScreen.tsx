@@ -8,8 +8,6 @@ import STRINGS from "@/i18n/es.json";
 import { endpoints } from "@/services/api";
 import { RootState } from "@/store/store";
 import { fetchWithAuth } from "@/utils/apiClient";
-import { BlurView } from "expo-blur";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import {
@@ -371,16 +369,7 @@ export default function WalletScreen() {
 
   return (
     <>
-      <LinearGradient
-        collapsable={false}
-        colors={colors.gradients.background}
-        style={styles.container}
-      >
-        <BlurView
-          intensity={80}
-          tint={colors.background.toLowerCase() === "#fff" ? "light" : "dark"}
-          style={StyleSheet.absoluteFill}
-        />
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         {/* Removed Stack.Toolbar due to conflict with NativeTabs */}
         <FloatingActionMenu
           actions={[
@@ -524,7 +513,7 @@ export default function WalletScreen() {
             </View>
           )}
         </View>
-      </LinearGradient>
+      </View>
     </>
   );
 }

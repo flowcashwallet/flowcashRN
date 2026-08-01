@@ -1,6 +1,4 @@
 import { useTheme } from "@/contexts/ThemeContext";
-import { BlurView } from "expo-blur";
-import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import { StyleProp, StyleSheet, View, ViewStyle } from "react-native";
 
@@ -13,18 +11,11 @@ export function GradientBackground({
 }) {
   const { colors } = useTheme();
   return (
-    <LinearGradient
-      collapsable={false}
-      colors={colors.gradients.background}
-      style={[styles.container, style]}
+    <View
+      style={[styles.container, { backgroundColor: colors.background }, style]}
     >
-      <BlurView
-        intensity={80}
-        tint={colors.background.toLowerCase() === "#fff" ? "light" : "dark"}
-        style={StyleSheet.absoluteFill}
-      />
-      <View style={styles.content}>{children}</View>
-    </LinearGradient>
+      {children}
+    </View>
   );
 }
 
@@ -32,8 +23,4 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  content: {
-    flex: 1,
-  },
 });
-

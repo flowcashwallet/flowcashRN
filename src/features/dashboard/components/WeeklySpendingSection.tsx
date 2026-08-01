@@ -1,4 +1,3 @@
-import { GlassCard } from "@/components/atoms/GlassCard";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import STRINGS from "@/i18n/es.json";
 import React from "react";
@@ -36,7 +35,7 @@ export function WeeklySpendingSection({
   onToggleExpandedWeek,
 }: WeeklySpendingSectionProps) {
   return (
-    <GlassCard
+    <View
       style={{
         borderRadius: 20,
         padding: 20,
@@ -512,6 +511,6 @@ export function WeeklySpendingSection({
             : STRINGS.dashboard.noWeeklySpending}
         </Text>
       )}
-    </GlassCard>
+    </View>
   );
 }

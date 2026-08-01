@@ -1,4 +1,3 @@
-import { GlassCard } from "@/components/atoms/GlassCard";
 import STRINGS from "@/i18n/es.json";
 import { formatCurrency } from "@/utils/format";
 import React from "react";
@@ -34,7 +33,7 @@ export function AllocationSection({
   pieData,
 }: AllocationSectionProps) {
   return (
-    <GlassCard
+    <View
       style={{
         borderRadius: 20,
         padding: 20,
@@ -135,6 +134,6 @@ export function AllocationSection({
           No hay gastos en este mes.
         </Text>
       )}
-    </GlassCard>
+    </View>
   );
 }
