@@ -305,6 +305,14 @@ export const ForecastCard: React.FC<ForecastCardProps> = ({ forecast }) => {
           >
             {formatCurrency(dailyAllowance)}
           </Typography>
+          {(forecast.unpaid_fixed ?? 0) > 0 && (
+            <Typography
+              variant="caption"
+              style={{ color: colors.textSecondary, fontSize: 10 }}
+            >
+              {formatCurrency(forecast.unpaid_fixed ?? 0)} en fijos por pagar
+            </Typography>
+          )}
         </View>
       </View>
     </View>

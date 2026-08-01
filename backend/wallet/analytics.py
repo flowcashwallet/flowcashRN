@@ -286,10 +286,44 @@ def predict_runway(user):
     # Projection base: money left for days after today
     remaining_excluding_today = current_remaining - today_net
 
-    # Daily allowance: equal share of the true current balance across all remaining days
+    # --- Improved daily allowance -----------------------------------------
+    # Use the configured budget to reserve committed fixed expenses that
+    # haven't been paid yet, so the daily number stops being just
+    # "income minus expenses ÷ days".
+    try:
+        budget = user.budget
+    except Exception:
+        budget = None
+
+    fixed_total = 0.0
+    fixed_paid = 0.0
+    if budget:
+        fixed_total = float(
+            budget.fixed_expenses.aggregate(Sum("amount"))["amount__sum"] or 0
+        )
+        fixed_categories = [
+            c
+            for c in budget.fixed_expenses.values_list("category", flat=True).distinct()
+            if c
+        ]
+        if fixed_categories:
+            fixed_paid = float(
+                month_txs.filter(
+                    type="expense", category__in=fixed_categories
+                ).aggregate(Sum("amount"))["amount__sum"] or 0
+            )
+
+    unpaid_fixed = max(0.0, fixed_total - fixed_paid)
+    spendable_remaining = current_remaining - unpaid_fixed
+
+    # Daily allowance: equal share of the money actually free to spend
+    # after reserving the fixed expenses that are still due this month.
     daily_allowance = (
-        current_remaining / days_left_including_today if days_left_including_today > 0 else 0.0
+        spendable_remaining / days_left_including_today
+        if days_left_including_today > 0
+        else 0.0
     )
+    daily_allowance = max(0.0, daily_allowance)
 
     # 5. Projected balance at end of month
     projected_spending_rest_of_month = daily_burn_rate * days_after_today
@@ -363,11 +397,11 @@ def predict_runway(user):
             )
 
             if days_after_today > 0:
-                max_daily_spend = remaining_excluding_today / days_after_today
-                reduction_needed = daily_burn_rate - max_daily_spend
+                safe_daily = daily_allowance
+                reduction_needed = max(0.0, daily_burn_rate - safe_daily)
                 tip = (
-                    f"Tip: Para llegar a fin de mes, intenta reducir tu gasto diario "
-                    f"en ${reduction_needed:,.2f} (Límite: ${max_daily_spend:,.2f}/día)."
+                    f"Tip: Para llegar a fin de mes, mantén tu gasto diario alrededor de "
+                    f"${safe_daily:,.2f}/día. Estás gastando ${reduction_needed:,.2f} más de lo recomendado."
                 )
         else:
             status = "safe"
@@ -376,7 +410,9 @@ def predict_runway(user):
             potential_savings_10_percent = projected_spending_rest_of_month * 0.10
             final_with_reduction = projected_balance + potential_savings_10_percent
             tip = (
-                f"Tip: Si reduces tu gasto diario un 10%, podrías terminar el mes "
+                f"Tip: Tu presupuesto diario disponible es ~${daily_allowance:,.2f}/día "
+                f"(después de reservar ${unpaid_fixed:,.2f} en gastos fijos). "
+                f"Si reduces tu gasto diario un 10%, podrías terminar el mes "
                 f"con un extra de ${final_with_reduction:,.2f}."
             )
 
@@ -405,6 +441,9 @@ def predict_runway(user):
         "confidence_history_days": confidence_info["history_days"],
         "confidence_expense_days": confidence_info["expense_days"],
         "daily_allowance": daily_allowance,
+        "fixed_expenses_total": fixed_total,
+        "fixed_expenses_paid": fixed_paid,
+        "unpaid_fixed": unpaid_fixed,
         "status": status,
         "forecast_date": forecast_date,
         "message": message,

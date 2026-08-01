@@ -41,6 +41,9 @@ export interface Forecast {
   confidence_history_days?: number;
   confidence_expense_days?: number;
   daily_allowance?: number;
+  fixed_expenses_total?: number;
+  fixed_expenses_paid?: number;
+  unpaid_fixed?: number;
   status: "safe" | "warning" | "danger";
   forecast_date: string | null;
   message: string;
