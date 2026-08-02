@@ -123,16 +123,15 @@ def _is_fixed_like_expense(
 
     # Collect budget-only signatures separately for the frequency-guarded rule
     budget_cat_amount_signatures = {
-        (_normalize_text(fe.category), float(fe.amount))
+        (cat, amount)
         for _, cat, amount in fixed_signatures
     }
 
     # Count how many times this (category, amount) pair appears in the period.
-    # We iterate the frequency map once to build this helper.
     cat_amount_frequency = {}
-    for desc, cat, amount in recurring_frequency:
+    for (desc, cat, amount), count in recurring_frequency.items():
         key = (cat, amount)
-        cat_amount_frequency[key] = cat_amount_frequency.get(key, 0) + recurring_frequency[(desc, cat, amount)]
+        cat_amount_frequency[key] = cat_amount_frequency.get(key, 0) + count
 
     # 1. Exact signature match (budget or explicit recurring)
     if exact_key in fixed_signatures:
