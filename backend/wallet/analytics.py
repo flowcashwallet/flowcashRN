@@ -65,15 +65,51 @@ def get_fixed_expense_signatures(user):
     return signatures
 
 
-def _is_fixed_like_expense(tx, fixed_signatures):
+def _build_recurring_frequency_map(user, start_date, end_date):
+    """
+    Build a frequency map of (description, category, amount) occurrences
+    over the given date range. Used to detect de-facto recurring expenses
+    without relying on explicit recurring flags.
+
+    Returns a dict: {(description, category, amount): count}
+    """
+    transactions = Transaction.objects.filter(
+        user=user,
+        type='expense',
+        date__range=[start_date, end_date],
+    ).values('description', 'category', 'amount')
+
+    frequency = {}
+    for tx in transactions:
+        key = (
+            _normalize_text(tx['description']),
+            _normalize_text(tx['category']),
+            float(tx['amount'] or 0),
+        )
+        frequency[key] = frequency.get(key, 0) + 1
+
+    return frequency
+
+
+def _is_fixed_like_expense(
+    tx,
+    fixed_signatures,
+    recurring_frequency,
+    min_recurring_occurrences=3,
+):
     """
     Decide whether a transaction looks like a fixed/recurring expense.
 
     Matching logic (in order of strictness):
       1. The transaction itself is recurring.
-      2. Exact signature match: same normalized description + category + amount.
-      3. Amount + category match against a budget FixedExpense (allows for
-         generated children that lost the recurring flag).
+      2. Exact signature match: same normalized description + category + amount
+         against a budget FixedExpense or an explicit recurring transaction.
+      3. De-facto recurrence: same description + category + amount appears at
+         least `min_recurring_occurrences` times in the period.
+      4. Amount + category match against a budget FixedExpense, but only if
+         that (category, amount) pair appears multiple times (prevents a
+         one-off purchase from being treated as fixed just because it shares
+         price and category).
     """
     if tx.get('is_recurring'):
         return True
@@ -82,12 +118,33 @@ def _is_fixed_like_expense(tx, fixed_signatures):
     tx_cat = _normalize_text(tx.get('category'))
     tx_amount = float(tx.get('amount') or 0)
 
-    for desc, cat, amount in fixed_signatures:
-        # Exact match on all three fields
-        if desc and desc == tx_desc and cat == tx_cat and amount == tx_amount:
-            return True
-        # Match on amount + category (covers generated recurring children)
-        if amount == tx_amount and cat and cat == tx_cat:
+    exact_key = (tx_desc, tx_cat, tx_amount)
+    cat_amount_key = (tx_cat, tx_amount)
+
+    # Collect budget-only signatures separately for the frequency-guarded rule
+    budget_cat_amount_signatures = {
+        (_normalize_text(fe.category), float(fe.amount))
+        for _, cat, amount in fixed_signatures
+    }
+
+    # Count how many times this (category, amount) pair appears in the period.
+    # We iterate the frequency map once to build this helper.
+    cat_amount_frequency = {}
+    for desc, cat, amount in recurring_frequency:
+        key = (cat, amount)
+        cat_amount_frequency[key] = cat_amount_frequency.get(key, 0) + recurring_frequency[(desc, cat, amount)]
+
+    # 1. Exact signature match (budget or explicit recurring)
+    if exact_key in fixed_signatures:
+        return True
+
+    # 2. De-facto recurrence: appears multiple times with identical metadata
+    if recurring_frequency.get(exact_key, 0) >= min_recurring_occurrences:
+        return True
+
+    # 3. Budget-defined (category, amount) only if it repeats in reality
+    if cat_amount_key in budget_cat_amount_signatures:
+        if cat_amount_frequency.get(cat_amount_key, 0) >= min_recurring_occurrences:
             return True
 
     return False
@@ -140,6 +197,7 @@ def get_adjusted_expenses_sum(user, start_date, end_date):
     """
     exclusion_filter = get_exclusion_filter()
     fixed_signatures = get_fixed_expense_signatures(user)
+    recurring_frequency = _build_recurring_frequency_map(user, start_date, end_date)
 
     transactions = list(
         Transaction.objects.filter(
@@ -157,7 +215,7 @@ def get_adjusted_expenses_sum(user, start_date, end_date):
     # Remove fixed/recurring-like expenses first
     variable_amounts = []
     for tx in transactions:
-        if _is_fixed_like_expense(tx, fixed_signatures):
+        if _is_fixed_like_expense(tx, fixed_signatures, recurring_frequency):
             continue
         variable_amounts.append(float(tx['amount']))
 
