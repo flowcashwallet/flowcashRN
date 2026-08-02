@@ -1,67 +1,21 @@
 from django.core.management.base import BaseCommand
-from django.utils import timezone
-from wallet.models import Transaction
-from dateutil.relativedelta import relativedelta
+from wallet.recurrence import process_recurring_transactions
 
 class Command(BaseCommand):
     help = 'Process recurring transactions and generate new ones if due'
 
     def handle(self, *args, **options):
-        now = timezone.now()
-        recurring_transactions = Transaction.objects.filter(is_recurring=True)
-        
-        count = 0
-        for tx in recurring_transactions:
-            if not tx.recurrence_frequency:
-                continue
+        result = process_recurring_transactions()
 
-            start_date = tx.date
-            end_date = (
-                start_date + relativedelta(months=tx.recurrence_months)
-                if tx.recurrence_months
-                else None
+        for item in result["generated"]:
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f'Generated recurring transaction for: {item["description"]} ({item["date"]})'
+                )
             )
 
-            # Determine the last processed date (or original date if never processed)
-            base_date = tx.last_recurrence_date if tx.last_recurrence_date else tx.date
-            
-            # Calculate next occurrence
-            if tx.recurrence_frequency == 'weekly':
-                next_date = base_date + relativedelta(weeks=1)
-            elif tx.recurrence_frequency == 'monthly':
-                next_date = base_date + relativedelta(months=1)
-            elif tx.recurrence_frequency == 'yearly':
-                next_date = base_date + relativedelta(years=1)
-            else:
-                continue
-
-            if end_date and next_date > end_date:
-                tx.is_recurring = False
-                tx.save(update_fields=["is_recurring"])
-                continue
-
-            # Check if it's due
-            if next_date <= now:
-                # Create new transaction
-                Transaction.objects.create(
-                    user=tx.user,
-                    amount=tx.amount,
-                    type=tx.type,
-                    description=tx.description,
-                    category=tx.category,
-                    related_entity_id=tx.related_entity_id,
-                    transfer_related_entity_id=tx.transfer_related_entity_id,
-                    date=next_date,
-                    payment_type=tx.payment_type,
-                    is_recurring=False, # Child is not recurring by default (prevents exponential loop)
-                    recurrence_frequency=None
-                )
-                
-                # Update parent
-                tx.last_recurrence_date = next_date
-                tx.save()
-                
-                count += 1
-                self.stdout.write(self.style.SUCCESS(f'Generated recurring transaction for: {tx.description} ({next_date.date()})'))
-
-        self.stdout.write(self.style.SUCCESS(f'Successfully processed {count} recurring transactions'))
+        self.stdout.write(
+            self.style.SUCCESS(
+                f'Successfully processed {result["processed"]} recurring transactions'
+            )
+        )

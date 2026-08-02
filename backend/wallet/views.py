@@ -7,8 +7,8 @@ from .serializers import TransactionSerializer, BudgetSerializer, CategorySerial
 from .ml import predict_category_for_user
 from .nlp import parse_voice_command
 from .analytics import predict_runway
+from .recurrence import process_recurring_transactions
 from django.utils import timezone
-from dateutil.relativedelta import relativedelta
 from django.conf import settings
 import os
 import json
@@ -46,62 +46,8 @@ class CronViewSet(viewsets.ViewSet):
                 status=status.HTTP_401_UNAUTHORIZED,
             )
 
-        now = timezone.now()
-        recurring_transactions = Transaction.objects.filter(is_recurring=True)
-        count = 0
-        
-        for tx in recurring_transactions:
-            if not tx.recurrence_frequency:
-                continue
-
-            start_date = tx.date
-            end_date = (
-                start_date + relativedelta(months=tx.recurrence_months)
-                if tx.recurrence_months
-                else None
-            )
-
-            # Determine the last processed date (or original date if never processed)
-            base_date = tx.last_recurrence_date if tx.last_recurrence_date else tx.date
-            
-            # Calculate next occurrence
-            if tx.recurrence_frequency == 'weekly':
-                next_date = base_date + relativedelta(weeks=1)
-            elif tx.recurrence_frequency == 'monthly':
-                next_date = base_date + relativedelta(months=1)
-            elif tx.recurrence_frequency == 'yearly':
-                next_date = base_date + relativedelta(years=1)
-            else:
-                continue
-
-            if end_date and next_date > end_date:
-                tx.is_recurring = False
-                tx.save(update_fields=["is_recurring"])
-                continue
-
-            # Check if it's due
-            if next_date <= now:
-                # Create new transaction
-                Transaction.objects.create(
-                    user=tx.user,
-                    amount=tx.amount,
-                    type=tx.type,
-                    description=tx.description,
-                    category=tx.category,
-                    related_entity_id=tx.related_entity_id,
-                    transfer_related_entity_id=tx.transfer_related_entity_id,
-                    date=next_date,
-                    payment_type=tx.payment_type,
-                    is_recurring=False, 
-                    recurrence_frequency=None
-                )
-                
-                # Update parent
-                tx.last_recurrence_date = next_date
-                tx.save()
-                count += 1
-
-        return Response({"status": "success", "processed": count})
+        result = process_recurring_transactions()
+        return Response({"status": "success", **result})
 
 class DevicePushTokenViewSet(viewsets.ModelViewSet):
     serializer_class = DevicePushTokenSerializer
