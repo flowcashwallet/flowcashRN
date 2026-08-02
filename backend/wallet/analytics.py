@@ -14,6 +14,85 @@ def get_exclusion_filter():
     )
 
 
+def _normalize_text(value):
+    """Lowercase and strip whitespace for loose comparison."""
+    if not value:
+        return ''
+    return str(value).strip().lower()
+
+
+def get_fixed_expense_signatures(user):
+    """
+    Returns fixed-expense signatures from the user's budget and from
+    explicit recurring transactions.
+
+    A "signature" is a (description, category, amount) tuple that identifies
+    predictable, recurring spending. We use it instead of category-only
+    matching because a category like 'Housing' could also include one-off
+    repairs, while a FixedExpense called 'Rent' with the same amount every
+    month should be excluded from variable spending analysis.
+    """
+    signatures = set()
+
+    # 1. Fixed expenses from the budget module
+    try:
+        budget = user.budget
+    except Exception:
+        budget = None
+
+    if budget:
+        for fe in budget.fixed_expenses.all():
+            signatures.add((
+                _normalize_text(fe.name),
+                _normalize_text(fe.category),
+                float(fe.amount),
+            ))
+
+    # 2. Explicit recurring transactions (the parent templates)
+    recurring = Transaction.objects.filter(
+        user=user,
+        type='expense',
+        is_recurring=True,
+    ).values('description', 'category', 'amount')
+
+    for tx in recurring:
+        signatures.add((
+            _normalize_text(tx['description']),
+            _normalize_text(tx['category']),
+            float(tx['amount']),
+        ))
+
+    return signatures
+
+
+def _is_fixed_like_expense(tx, fixed_signatures):
+    """
+    Decide whether a transaction looks like a fixed/recurring expense.
+
+    Matching logic (in order of strictness):
+      1. The transaction itself is recurring.
+      2. Exact signature match: same normalized description + category + amount.
+      3. Amount + category match against a budget FixedExpense (allows for
+         generated children that lost the recurring flag).
+    """
+    if tx.get('is_recurring'):
+        return True
+
+    tx_desc = _normalize_text(tx.get('description'))
+    tx_cat = _normalize_text(tx.get('category'))
+    tx_amount = float(tx.get('amount') or 0)
+
+    for desc, cat, amount in fixed_signatures:
+        # Exact match on all three fields
+        if desc and desc == tx_desc and cat == tx_cat and amount == tx_amount:
+            return True
+        # Match on amount + category (covers generated recurring children)
+        if amount == tx_amount and cat and cat == tx_cat:
+            return True
+
+    return False
+
+
 def _percentile(values, p):
     """
     Linear-interpolation percentile (Excel / NumPy default method).
@@ -52,43 +131,71 @@ def get_total_expenses_sum(user, start_date, end_date):
 
 def get_adjusted_expenses_sum(user, start_date, end_date):
     """
-    Returns the total sum of expenses for a period, excluding:
+    Returns the total VARIABLE sum of expenses for a period, excluding:
     1. Explicit transfers/keywords
-    2. Statistical outliers (IQR method) like massive mislabeled transfers
-    
+    2. Fixed/recurring expenses (predictable, already budgeted separately)
+    3. Statistical outliers (IQR method) like one-time emergencies or trips
+
     Used for 'What is my typical spending speed?' (Trend Analysis).
     """
     exclusion_filter = get_exclusion_filter()
-    
-    transactions = Transaction.objects.filter(
-        user=user,
-        type='expense',
-        date__range=[start_date, end_date]
-    ).exclude(exclusion_filter).values('amount', 'date')
-    
+    fixed_signatures = get_fixed_expense_signatures(user)
+
+    transactions = list(
+        Transaction.objects.filter(
+            user=user,
+            type='expense',
+            date__range=[start_date, end_date]
+        )
+        .exclude(exclusion_filter)
+        .values('amount', 'date', 'description', 'category', 'is_recurring')
+    )
+
     if not transactions:
         return 0.0
-        
+
+    # Remove fixed/recurring-like expenses first
+    variable_amounts = []
+    for tx in transactions:
+        if _is_fixed_like_expense(tx, fixed_signatures):
+            continue
+        variable_amounts.append(float(tx['amount']))
+
+    if not variable_amounts:
+        return 0.0
+
+    # --- Outlier detection at transaction level --------------------------
+    # One-time big expenses (emergency, travel, etc.) should not skew the
+    # daily average. Use a conservative upper fence (3.0 * IQR).
+    cleaned_amounts = variable_amounts
+    if len(variable_amounts) >= 5:
+        q1 = _percentile(variable_amounts, 25)
+        q3 = _percentile(variable_amounts, 75)
+        iqr = q3 - q1
+        upper_fence = q3 + (3.0 * iqr)
+        cleaned_amounts = [a for a in variable_amounts if a <= upper_fence]
+
     # Group by day
     daily_totals = {}
-    for tx in transactions:
+    for tx, amount in zip(transactions, variable_amounts):
+        if amount not in cleaned_amounts:
+            continue
         date_key = tx['date'].date()
-        amount = float(tx['amount'])
         daily_totals[date_key] = daily_totals.get(date_key, 0) + amount
-        
+
     daily_values = list(daily_totals.values())
-    
-    # Apply IQR Outlier Detection
+
+    # --- Secondary daily-level outlier filter ----------------------------
+    # A day where multiple "normal" expenses coincided can still be atypical.
     if len(daily_values) >= 5:
         q1 = _percentile(daily_values, 25)
         q3 = _percentile(daily_values, 75)
         iqr = q3 - q1
-        upper_fence = q3 + (1.5 * iqr)
-
+        upper_fence = q3 + (3.0 * iqr)
         cleaned_values = [v for v in daily_values if v <= upper_fence]
         return sum(cleaned_values)
-    else:
-        return sum(daily_values)
+
+    return sum(daily_values)
 
 def calculate_burn_rate(user, days=180):
     """
@@ -121,11 +228,11 @@ def calculate_burn_rate(user, days=180):
         
     start_date = end_date - datetime.timedelta(days=effective_days)
     
-    # Use smart adjusted expenses (excludes transfers/outliers)
+    # Use smart adjusted expenses (excludes transfers, fixed expenses and outliers)
     total_expenses = get_adjusted_expenses_sum(user, start_date, end_date)
-    
+
     daily_burn_rate = float(total_expenses) / effective_days
-        
+
     return daily_burn_rate
 
 def calculate_forecast_confidence(user):
