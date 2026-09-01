@@ -1,128 +1,32 @@
-import { Button } from "@/components/atoms/Button";
-import { Card } from "@/components/atoms/Card";
-import { Input } from "@/components/atoms/Input";
-import { Typography } from "@/components/atoms/Typography";
 import { ThemedView } from "@/components/themed-view";
-import { IconSymbol } from "@/components/ui/icon-symbol";
-import { Spacing } from "@/constants/theme";
-import { useTheme } from "@/contexts/ThemeContext";
-import {
-  addCategory,
-  deleteCategory,
-  fetchCategories,
-  updateCategory,
-} from "@/features/wallet/data/categoriesSlice";
-import { AppDispatch, RootState } from "@/store/store";
-import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  Keyboard,
-  Modal,
-  Pressable,
-  StyleSheet,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  View,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useDispatch, useSelector } from "react-redux";
+import React from "react";
+import { ActivityIndicator, StyleSheet } from "react-native";
+import { CategoriesHeader } from "../components/categories/CategoriesHeader";
+import { CategoriesList } from "../components/categories/CategoriesList";
+import { CategoryFormModal } from "../components/categories/modals/CategoryFormModal";
+import { useCategoriesScreen } from "../hooks/useCategoriesScreen";
 
 export default function CategoriesScreen() {
-  const router = useRouter();
-  const insets = useSafeAreaInsets();
-  const dispatch = useDispatch<AppDispatch>();
-  const { user } = useSelector((state: RootState) => state.auth);
-  const { categories, loading } = useSelector(
-    (state: RootState) => state.categories,
-  );
-  const { colors } = useTheme();
-
-  const [newCategoryName, setNewCategoryName] = useState("");
-  const [editingCategory, setEditingCategory] = useState<{
-    id: string;
-    name: string;
-  } | null>(null);
-  const [isModalVisible, setIsModalVisible] = useState(false);
-
-  useEffect(() => {
-    if (user?.id) {
-      dispatch(fetchCategories(user.id.toString()));
-    }
-  }, [dispatch, user]);
-
-  const handleAddCategory = async () => {
-    console.log("Add category:", newCategoryName);
-    console.log("User:", user);
-    if (!newCategoryName.trim() || !user?.id) return;
-    try {
-      await dispatch(
-        addCategory({
-          userId: user.id.toString(),
-          name: newCategoryName.trim(),
-        }),
-      ).unwrap();
-      setNewCategoryName("");
-      setIsModalVisible(false);
-    } catch {
-      Alert.alert("Error", "No se pudo agregar la categoría");
-    }
-  };
-
-  const handleUpdateCategory = async () => {
-    if (!editingCategory || !editingCategory.name.trim()) return;
-    try {
-      await dispatch(
-        updateCategory({
-          id: editingCategory.id,
-          name: editingCategory.name.trim(),
-        }),
-      ).unwrap();
-      setEditingCategory(null);
-      setIsModalVisible(false);
-    } catch {
-      Alert.alert("Error", "No se pudo actualizar la categoría");
-    }
-  };
-
-  const handleDeleteCategory = (id: string) => {
-    Alert.alert(
-      "Eliminar Categoría",
-      "¿Estás seguro? Las transacciones asociadas no se eliminarán, pero perderán su categoría.",
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Eliminar",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await dispatch(deleteCategory(id)).unwrap();
-            } catch {
-              Alert.alert("Error", "No se pudo eliminar la categoría");
-            }
-          },
-        },
-      ],
-    );
-  };
-
-  const openAddModal = () => {
-    setNewCategoryName("");
-    setEditingCategory(null);
-    setIsModalVisible(true);
-  };
-
-  const openEditModal = (category: { id: string; name: string }) => {
-    setEditingCategory(category);
-    setNewCategoryName(category.name);
-    setIsModalVisible(true);
-  };
+  const {
+    colors,
+    insets,
+    categories,
+    loading,
+    newCategoryName,
+    editingCategory,
+    isModalVisible,
+    handleGoBack,
+    openAddModal,
+    openEditModal,
+    handleDeleteCategory,
+    closeModal,
+    handleChangeCategoryName,
+    handleSubmitModal,
+  } = useCategoriesScreen();
 
   if (loading && categories.length === 0) {
     return (
-      <ThemedView style={[styles.container, { justifyContent: "center" }]}>
+      <ThemedView style={[styles.container, styles.centered]}>
         <ActivityIndicator size="large" color={colors.primary} />
       </ThemedView>
     );
@@ -130,149 +34,28 @@ export default function CategoriesScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <View
-        style={{
-          paddingTop: insets.top,
-          backgroundColor: colors.surfaceHighlight,
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-          paddingHorizontal: Spacing.s,
-          paddingBottom: Spacing.s,
-          borderBottomWidth: StyleSheet.hairlineWidth,
-          borderBottomColor: colors.border,
-        }}
-      >
-        <Pressable
-          onPress={() => router.back()}
-          hitSlop={20}
-          style={({ pressed }) => ({
-            width: 44,
-            height: 44,
-            justifyContent: "center",
-            alignItems: "center",
-            opacity: pressed ? 0.6 : 1,
-          })}
-        >
-          <IconSymbol name="arrow.left" size={24} color={colors.text} />
-        </Pressable>
-
-        <Typography variant="h3" weight="bold" style={{ color: colors.text }}>
-          Categorías
-        </Typography>
-
-        <Pressable
-          onPress={openAddModal}
-          hitSlop={20}
-          style={({ pressed }) => ({
-            width: 44,
-            height: 44,
-            justifyContent: "center",
-            alignItems: "center",
-            opacity: pressed ? 0.6 : 1,
-          })}
-        >
-          <IconSymbol name="plus" size={24} color={colors.primary} />
-        </Pressable>
-      </View>
-
-      <FlatList
-        contentInsetAdjustmentBehavior="automatic"
-        data={categories}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={{ padding: Spacing.m }}
-        renderItem={({ item }) => (
-          <Card
-            style={{
-              marginBottom: Spacing.s,
-              flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "center",
-              paddingVertical: Spacing.m,
-            }}
-          >
-            <Typography variant="body">{item.name}</Typography>
-            <View style={{ flexDirection: "row", gap: Spacing.m }}>
-              <TouchableOpacity onPress={() => openEditModal(item)}>
-                <IconSymbol name="pencil" size={20} color={colors.primary} />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => handleDeleteCategory(item.id)}>
-                <IconSymbol name="trash" size={20} color={colors.error} />
-              </TouchableOpacity>
-            </View>
-          </Card>
-        )}
-        ListEmptyComponent={
-          <Typography
-            style={{
-              textAlign: "center",
-              marginTop: Spacing.xl,
-              color: colors.textSecondary,
-            }}
-          >
-            No tienes categorías personalizadas.
-          </Typography>
-        }
+      <CategoriesHeader
+        insets={insets}
+        colors={colors}
+        onGoBack={handleGoBack}
+        onAdd={openAddModal}
       />
 
-      <Modal
+      <CategoriesList
+        categories={categories}
+        colors={colors}
+        onEdit={openEditModal}
+        onDelete={handleDeleteCategory}
+      />
+
+      <CategoryFormModal
         visible={isModalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setIsModalVisible(false)}
-      >
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <View style={styles.modalOverlay}>
-            <View
-              style={[
-                styles.modalContent,
-                { backgroundColor: colors.surface, shadowColor: "#000" },
-              ]}
-            >
-              <Typography
-                variant="h3"
-                weight="bold"
-                style={{ marginBottom: Spacing.m }}
-              >
-                {editingCategory ? "Editar Categoría" : "Nueva Categoría"}
-              </Typography>
-
-              <Input
-                placeholder="Nombre de la categoría"
-                value={editingCategory ? editingCategory.name : newCategoryName}
-                onChangeText={(text) =>
-                  editingCategory
-                    ? setEditingCategory({ ...editingCategory, name: text })
-                    : setNewCategoryName(text)
-                }
-                autoFocus
-              />
-
-              <View
-                style={{
-                  flexDirection: "row",
-                  gap: Spacing.m,
-                  marginTop: Spacing.l,
-                }}
-              >
-                <Button
-                  title="Cancelar"
-                  variant="outline"
-                  onPress={() => setIsModalVisible(false)}
-                  style={{ flex: 1 }}
-                />
-                <Button
-                  title="Guardar"
-                  onPress={
-                    editingCategory ? handleUpdateCategory : handleAddCategory
-                  }
-                  style={{ flex: 1 }}
-                />
-              </View>
-            </View>
-          </View>
-        </TouchableWithoutFeedback>
-      </Modal>
+        editingCategory={editingCategory}
+        newCategoryName={newCategoryName}
+        onChangeName={handleChangeCategoryName}
+        onClose={closeModal}
+        onSubmit={handleSubmitModal}
+      />
     </ThemedView>
   );
 }
@@ -281,24 +64,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: Spacing.m,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
+  centered: {
     justifyContent: "center",
-    padding: Spacing.l,
-  },
-  modalContent: {
-    borderRadius: Spacing.m,
-    padding: Spacing.l,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
   },
 });

@@ -1,12 +1,12 @@
-import { Typography } from "@/components/atoms/Typography";
+import { Button } from "@/components/atoms/Button";
+import { BottomSheet } from "@/components/molecules/BottomSheet";
 import { Spacing } from "@/constants/theme";
-import { useTheme } from "@/contexts/ThemeContext";
 import { VisionEntity } from "@/features/vision/data/visionSlice";
 import { useWalletTransactions } from "@/features/wallet/hooks/useWalletTransactions";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import React, { useEffect, useRef, useState } from "react";
-import { Modal, StyleSheet, TouchableOpacity, View } from "react-native";
-import { EntitySelectionModal } from "./EntitySelectionModal";
+import { StyleSheet, View } from "react-native";
+import { EntitySelectionModal } from "./transaction-form/EntitySelectionModal";
 import { TransactionModal } from "./TransactionModal";
 
 interface ManualMultiTransactionModalProps {
@@ -18,7 +18,6 @@ interface ManualMultiTransactionModalProps {
 export const ManualMultiTransactionModal: React.FC<
   ManualMultiTransactionModalProps
 > = ({ visible, onClose, visionEntities }) => {
-  const { colors } = useTheme();
   const { addTransaction } = useWalletTransactions();
 
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
@@ -100,6 +99,12 @@ export const ManualMultiTransactionModal: React.FC<
     return success;
   };
 
+  /** Cancelar el paso de fecha aborta el lote entero, como antes. */
+  const cancelDateStep = () => {
+    setShowDateModal(false);
+    onClose();
+  };
+
   return (
     <>
       <EntitySelectionModal
@@ -124,71 +129,37 @@ export const ManualMultiTransactionModal: React.FC<
         selectedEntityId={selectedEntityId}
       />
 
-      {visible && showDateModal && (
-        <Modal transparent animationType="fade" visible>
-          <View style={styles.dateOverlay}>
-            <View
-              style={[styles.dateCard, { backgroundColor: colors.background }]}
-            >
-              <Typography
-                variant="h3"
-                weight="bold"
-                style={{ marginBottom: Spacing.m }}
-              >
-                Selecciona fecha
-              </Typography>
+      <BottomSheet
+        visible={visible && showDateModal}
+        onClose={cancelDateStep}
+        title="Selecciona fecha"
+      >
+        <DateTimePicker
+          value={new Date(selectedDate)}
+          mode="date"
+          display="default"
+          onChange={(_, d) => {
+            if (d) setSelectedDate(d.getTime());
+          }}
+        />
 
-              <DateTimePicker
-                value={new Date(selectedDate)}
-                mode="date"
-                display="default"
-                onChange={(_, d) => {
-                  if (d) setSelectedDate(d.getTime());
-                }}
-              />
-
-              <View style={styles.dateButtons}>
-                <TouchableOpacity
-                  onPress={() => {
-                    setShowDateModal(false);
-                    onClose();
-                  }}
-                  style={[
-                    styles.dateButton,
-                    {
-                      borderWidth: 1,
-                      borderColor: colors.border,
-                      backgroundColor: "transparent",
-                    },
-                  ]}
-                >
-                  <Typography variant="body" style={{ color: colors.text }}>
-                    Cancelar
-                  </Typography>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={() => {
-                    setShowDateModal(false);
-                    setShowTransactionModal(true);
-                  }}
-                  style={[
-                    styles.dateButton,
-                    { backgroundColor: colors.primary },
-                  ]}
-                >
-                  <Typography
-                    variant="body"
-                    style={{ color: "white", fontWeight: "600" }}
-                  >
-                    Aceptar
-                  </Typography>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>
-      )}
+        <View style={styles.dateButtons}>
+          <Button
+            title="Cancelar"
+            variant="outline"
+            onPress={cancelDateStep}
+            style={styles.dateButton}
+          />
+          <Button
+            title="Aceptar"
+            onPress={() => {
+              setShowDateModal(false);
+              setShowTransactionModal(true);
+            }}
+            style={styles.dateButton}
+          />
+        </View>
+      </BottomSheet>
 
       {visible && showTransactionModal && (
         <TransactionModal
@@ -215,27 +186,12 @@ export const ManualMultiTransactionModal: React.FC<
 };
 
 const styles = StyleSheet.create({
-  dateOverlay: {
-    flex: 1,
-    justifyContent: "center",
-    padding: Spacing.m,
-    backgroundColor: "rgba(0,0,0,0.45)",
-  },
-  dateCard: {
-    borderRadius: 12,
-    padding: Spacing.l,
-  },
   dateButtons: {
     marginTop: Spacing.m,
     flexDirection: "row",
-    justifyContent: "flex-end",
     gap: Spacing.s,
   },
   dateButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
+    flex: 1,
   },
 });

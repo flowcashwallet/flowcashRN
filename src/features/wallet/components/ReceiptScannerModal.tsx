@@ -1,15 +1,15 @@
-import { Typography } from "@/components/atoms/Typography";
+import { Button } from "@/components/atoms/Button";
+import { BottomSheet } from "@/components/molecules/BottomSheet";
 import { Spacing } from "@/constants/theme";
-import { useTheme } from "@/contexts/ThemeContext";
 import { VisionEntity } from "@/features/vision/data/visionSlice";
-import { EntitySelectionModal } from "@/features/wallet/components/EntitySelectionModal";
+import { EntitySelectionModal } from "@/features/wallet/components/transaction-form/EntitySelectionModal";
 import TransactionCarouselModal from "@/features/wallet/components/TransactionCarouselModal";
 import { useWalletTransactions } from "@/features/wallet/hooks/useWalletTransactions";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import * as ImagePicker from "expo-image-picker";
 import { getTextFromFrame } from "expo-text-recognition";
 import React, { useState } from "react";
-import { Alert, Modal, StyleSheet, TouchableOpacity, View } from "react-native";
+import { Alert, StyleSheet, View } from "react-native";
 
 interface ReceiptScannerModalProps {
   visible: boolean;
@@ -22,7 +22,6 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
   onClose,
   visionEntities,
 }) => {
-  const { colors } = useTheme();
   const { addTransaction } = useWalletTransactions();
 
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
@@ -205,187 +204,104 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
     return filtered;
   };
 
+  /**
+   * Aceptar y Cancelar hacen exactamente lo mismo en este paso (ambos avanzan
+   * al carrusel). Se conserva tal cual: es lógica del flujo, no del envoltorio.
+   * Anotado en `docs/refactor-plan.md` para que lo revise `arch-refactor`.
+   */
+  const leaveDateStep = () => {
+    setShowDatePicker(false);
+    setTransactionCarouselVisible(true);
+  };
+
   return (
-    <Modal visible={visible} animationType="fade" transparent>
-      <View style={styles.modalOverlay}>
-        <View
-          style={[styles.modalCard, { backgroundColor: colors.background }]}
-        >
-          <View style={{ padding: Spacing.m }}>
-            <Typography variant="h3" weight="bold">
-              Escanear recibo
-            </Typography>
-          </View>
+    <BottomSheet visible={visible} onClose={onClose} title="Escanear recibo">
+      <View style={styles.actions}>
+        <Button title="Seleccionar foto" onPress={pickImage} />
+        <Button
+          title="Seleccionar entidad (opcional)"
+          variant="ghost"
+          onPress={() => setEntityModalVisible(true)}
+        />
+        <Button title="Cerrar" variant="ghost" onPress={onClose} />
+      </View>
 
-          <View style={{ padding: Spacing.m }}>
-            <TouchableOpacity
-              onPress={pickImage}
-              style={{
-                padding: Spacing.m,
-                backgroundColor: colors.primary,
-                borderRadius: 8,
-              }}
-            >
-              <Typography variant="body" style={{ color: "white" }}>
-                Seleccionar foto
-              </Typography>
-            </TouchableOpacity>
+      <EntitySelectionModal
+        visible={entityModalVisible}
+        onClose={() => setEntityModalVisible(false)}
+        onSelect={(id) => {
+          setSelectedEntityId(id);
+          setEntityModalVisible(false);
+          setShowDatePicker(true);
+        }}
+        visionEntities={visionEntities}
+        selectedEntityId={selectedEntityId}
+      />
 
-            <TouchableOpacity
-              onPress={() => setEntityModalVisible(true)}
-              style={{ marginTop: Spacing.s }}
-            >
-              <Typography variant="body">
-                Seleccionar entidad (opcional)
-              </Typography>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={onClose}
-              style={{ marginTop: Spacing.l }}
-            >
-              <Typography
-                variant="caption"
-                style={{ color: colors.textSecondary }}
-              >
-                Cerrar
-              </Typography>
-            </TouchableOpacity>
-          </View>
-
-          <EntitySelectionModal
-            visible={entityModalVisible}
-            onClose={() => setEntityModalVisible(false)}
-            onSelect={(id) => {
-              setSelectedEntityId(id);
-              setEntityModalVisible(false);
-              setShowDatePicker(true);
-            }}
-            visionEntities={visionEntities}
-            selectedEntityId={selectedEntityId}
+      <BottomSheet
+        visible={showDatePicker}
+        onClose={leaveDateStep}
+        title="Selecciona fecha"
+      >
+        <DateTimePicker
+          value={new Date(selectedDate)}
+          mode="date"
+          display="default"
+          onChange={(_, d) => {
+            if (d) setSelectedDate(d.getTime());
+          }}
+        />
+        <View style={styles.dateButtons}>
+          <Button
+            title="Cancelar"
+            variant="outline"
+            onPress={leaveDateStep}
+            style={styles.dateButton}
           />
-
-          {showDatePicker && (
-            <Modal visible={showDatePicker} transparent animationType="fade">
-              <View style={{ flex: 1, justifyContent: "center" }}>
-                <View
-                  style={{
-                    margin: 20,
-                    backgroundColor: colors.background,
-                    padding: Spacing.l,
-                    borderRadius: 12,
-                  }}
-                >
-                  <DateTimePicker
-                    value={new Date(selectedDate)}
-                    mode="date"
-                    display="default"
-                    onChange={(_, d) => {
-                      if (d) setSelectedDate(d.getTime());
-                    }}
-                  />
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      justifyContent: "flex-end",
-                      marginTop: Spacing.m,
-                    }}
-                  >
-                    <TouchableOpacity
-                      onPress={() => {
-                        setShowDatePicker(false);
-                        setTransactionCarouselVisible(true);
-                      }}
-                      style={[
-                        styles.dateButton,
-                        {
-                          marginRight: Spacing.s,
-                          backgroundColor: colors.primary,
-                        },
-                      ]}
-                    >
-                      <Typography
-                        variant="body"
-                        style={{ color: "white", fontWeight: "600" }}
-                      >
-                        Aceptar
-                      </Typography>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => {
-                        setShowDatePicker(false);
-                        setTransactionCarouselVisible(true);
-                      }}
-                      style={[
-                        styles.dateButton,
-                        {
-                          borderWidth: 1,
-                          borderColor: colors.border,
-                          backgroundColor: "transparent",
-                        },
-                      ]}
-                    >
-                      <Typography variant="body" style={{ color: colors.text }}>
-                        Cancelar
-                      </Typography>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </View>
-            </Modal>
-          )}
-
-          <TransactionCarouselModal
-            visible={transactionCarouselVisible}
-            onClose={() => {
-              setTransactionCarouselVisible(false);
-              onClose();
-            }}
-            candidates={candidates}
-            visionEntities={visionEntities}
-            initialRelatedEntityId={selectedEntityId}
-            initialDate={selectedDate}
-            onSaveCandidate={async (data: any) => {
-              const success = await addTransaction({
-                amount: data.amount,
-                description: data.description,
-                type: data.type,
-                category: data.category || null,
-                relatedEntityId: data.relatedEntityId || null,
-                date: data.date || selectedDate,
-              });
-              return success;
-            }}
+          <Button
+            title="Aceptar"
+            onPress={leaveDateStep}
+            style={styles.dateButton}
           />
         </View>
-      </View>
-    </Modal>
+      </BottomSheet>
+
+      <TransactionCarouselModal
+        visible={transactionCarouselVisible}
+        onClose={() => {
+          setTransactionCarouselVisible(false);
+          onClose();
+        }}
+        candidates={candidates}
+        visionEntities={visionEntities}
+        initialRelatedEntityId={selectedEntityId}
+        initialDate={selectedDate}
+        onSaveCandidate={async (data: any) => {
+          const success = await addTransaction({
+            amount: data.amount,
+            description: data.description,
+            type: data.type,
+            category: data.category || null,
+            relatedEntityId: data.relatedEntityId || null,
+            date: data.date || selectedDate,
+          });
+          return success;
+        }}
+      />
+    </BottomSheet>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  actions: {
+    gap: Spacing.s,
   },
-  modalOverlay: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.5)",
-    padding: Spacing.m,
-  },
-  modalCard: {
-    width: "100%",
-    maxWidth: 720,
-    maxHeight: "90%",
-    borderRadius: 12,
-    overflow: "hidden",
+  dateButtons: {
+    marginTop: Spacing.m,
+    flexDirection: "row",
+    gap: Spacing.s,
   },
   dateButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
+    flex: 1,
   },
 });

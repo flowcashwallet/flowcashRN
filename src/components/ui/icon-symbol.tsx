@@ -51,6 +51,23 @@ const MAPPING = {
   "calendar": "calendar-today",
   "list.bullet.rectangle.portrait": "list",
   "wallet.pass": "account-balance-wallet",
+  // Añadidos en el pase visual de Wallet: se usaban en la feature sin estar
+  // mapeados, por lo que en Android/web no pintaban nada. Ver la sección
+  // "Iconografía" de `docs/refactor-plan.md`: si falta un símbolo se añade aquí,
+  // no se importa otra familia de iconos.
+  "arrow.left": "arrow-back",
+  "chevron.up": "keyboard-arrow-up",
+  checkmark: "check",
+  trash: "delete-outline",
+  camera: "photo-camera",
+  "square.and.pencil": "note-add",
+  "line.3.horizontal.decrease.circle": "filter-list",
+  "line.3.horizontal.decrease.circle.fill": "filter-alt",
+  "flame.fill": "local-fire-department",
+  snowflake: "ac-unit",
+  "lock.open": "lock-open",
+  "info.circle": "info-outline",
+  "square.and.arrow.up": "ios-share",
 } as Record<string, ComponentProps<typeof MaterialIcons>["name"]>;
 
 /**

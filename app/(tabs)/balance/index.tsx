@@ -1,10 +1,10 @@
+import { ScreenBackground } from "@/components/layout/ScreenBackground";
 import VisionScreen from "@/features/vision/screens/VisionScreen";
-import { GradientBackground } from "@/components/layout/GradientBackground";
 
 export default function Vision() {
   return (
-    <GradientBackground>
+    <ScreenBackground>
       <VisionScreen />
-    </GradientBackground>
+    </ScreenBackground>
   );
 }

@@ -1,11 +1,11 @@
-import { BorderRadius } from "@/constants/theme";
+import { Typography } from "@/components/atoms/Typography";
+import { BorderRadius, Spacing } from "@/constants/theme";
 import { useTheme } from "@/contexts/ThemeContext";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
   StyleProp,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
   ViewStyle,
@@ -58,14 +58,11 @@ export function GlassSegmentedControl<T extends string>({
   return (
     <View
       style={[
+        styles.container,
         {
           width,
-          borderRadius: BorderRadius.round,
-          overflow: "hidden",
-          backgroundColor: colors.glass.cardBg,
-          borderWidth: 1,
-          borderColor: colors.glass.cardBorder,
-          padding: 2,
+          backgroundColor: colors.surfaceHighlight,
+          borderColor: colors.border,
         },
         style,
       ]}
@@ -78,7 +75,6 @@ export function GlassSegmentedControl<T extends string>({
             styles.indicator,
             {
               width: segmentWidth,
-              borderRadius: BorderRadius.round,
               backgroundColor: colors.primary,
               transform: [{ translateX }],
             },
@@ -86,51 +82,54 @@ export function GlassSegmentedControl<T extends string>({
         />
       ) : null}
 
-      <View style={{ flexDirection: "row" }}>
-        <TouchableOpacity
-          onPress={() => onChange(options[0].value)}
-          activeOpacity={0.85}
-          style={{ flex: 1, paddingVertical: 8, alignItems: "center" }}
-        >
-          <Text
-            style={{
-              color: selectedIndex === 0 ? "#FFFFFF" : colors.textSecondary,
-              fontWeight: "800",
-              fontSize: 12,
-              letterSpacing: 0.2,
-            }}
-          >
-            {options[0].label}
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => onChange(options[1].value)}
-          activeOpacity={0.85}
-          style={{ flex: 1, paddingVertical: 8, alignItems: "center" }}
-        >
-          <Text
-            style={{
-              color: selectedIndex === 1 ? "#FFFFFF" : colors.textSecondary,
-              fontWeight: "800",
-              fontSize: 12,
-              letterSpacing: 0.2,
-            }}
-          >
-            {options[1].label}
-          </Text>
-        </TouchableOpacity>
+      <View style={styles.row}>
+        {options.map((option, index) => {
+          const selected = selectedIndex === index;
+          return (
+            <TouchableOpacity
+              key={option.value}
+              onPress={() => onChange(option.value)}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityState={{ selected }}
+              style={styles.segment}
+            >
+              <Typography
+                variant="overline"
+                muted={!selected}
+                // `onPrimary` respeta el aviso de contraste sobre `primary`.
+                style={selected ? { color: colors.onPrimary } : undefined}
+              >
+                {option.label}
+              </Typography>
+            </TouchableOpacity>
+          );
+        })}
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    borderRadius: BorderRadius.round,
+    overflow: "hidden",
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: 2,
+  },
   indicator: {
     position: "absolute",
     top: 2,
     bottom: 2,
     left: 2,
-    borderWidth: 1,
-    overflow: "hidden",
+    borderRadius: BorderRadius.round,
+  },
+  row: {
+    flexDirection: "row",
+  },
+  segment: {
+    flex: 1,
+    paddingVertical: Spacing.s,
+    alignItems: "center",
   },
 });

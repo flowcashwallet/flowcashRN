@@ -1,6 +1,8 @@
+import { IconSymbol } from "@/components/ui/icon-symbol";
+import { Spacing } from "@/constants/theme";
+import { useTheme } from "@/contexts/ThemeContext";
 import { endpoints } from "@/services/api";
 import { RootState } from "@/store/store";
-import { Ionicons } from "@expo/vector-icons";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import React, { useState } from "react";
@@ -21,6 +23,7 @@ export const ExportButton = ({
 }) => {
   const [isExporting, setIsExporting] = useState(false);
   const { token } = useSelector((state: RootState) => state.auth);
+  const { colors } = useTheme();
 
   const handleExport = async (format: "excel" | "pdf") => {
     if (!token) return;
@@ -116,12 +119,14 @@ export const ExportButton = ({
     <TouchableOpacity
       onPress={showExportOptions}
       disabled={isExporting}
+      accessibilityRole="button"
+      accessibilityLabel="Exportar"
       style={styles.button}
     >
       {isExporting ? (
-        <ActivityIndicator size="small" color="#4F46E5" />
+        <ActivityIndicator size="small" color={colors.primary} />
       ) : (
-        <Ionicons name="share-outline" size={24} color="#4F46E5" />
+        <IconSymbol name="square.and.arrow.up" size={24} color={colors.icon} />
       )}
     </TouchableOpacity>
   );
@@ -129,7 +134,7 @@ export const ExportButton = ({
 
 const styles = StyleSheet.create({
   button: {
-    padding: 8,
-    marginRight: 8,
+    padding: Spacing.s,
+    marginRight: Spacing.s,
   },
 });

@@ -1,4 +1,4 @@
-import { BorderRadius, Spacing } from "@/constants/theme";
+import { BorderRadius, Spacing, TypographyScale } from "@/constants/theme";
 import { useTheme } from "@/contexts/ThemeContext";
 import React, { useState } from "react";
 import {
@@ -33,10 +33,7 @@ export function Input({
   return (
     <View style={styles.container}>
       {label && (
-        <Typography
-          variant="caption"
-          style={{ marginBottom: Spacing.xs, color: colors.text }}
-        >
+        <Typography variant="caption" muted style={styles.label}>
           {label}
         </Typography>
       )}
@@ -81,7 +78,7 @@ export function Input({
       {error && (
         <Typography
           variant="caption"
-          style={{ marginTop: Spacing.xs, color: colors.error }}
+          style={[styles.error, { color: colors.error }]}
         >
           {error}
         </Typography>
@@ -94,6 +91,12 @@ const styles = StyleSheet.create({
   container: {
     marginBottom: Spacing.m,
   },
+  label: {
+    marginBottom: Spacing.xs,
+  },
+  error: {
+    marginTop: Spacing.xs,
+  },
   inputContainer: {
     height: 48,
     borderWidth: 1,
@@ -105,7 +108,8 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     height: "100%",
-    fontSize: 16,
+    // `TextInput` no puede usar `Typography`; se toma el tamaño de la escala.
+    fontSize: TypographyScale.body.fontSize,
   },
   rightIcon: {
     marginLeft: Spacing.s,

@@ -1,67 +1,30 @@
-import { Button } from "@/components/atoms/Button";
-import { HeaderButton } from "@/components/atoms/HeaderButton";
 import { Input } from "@/components/atoms/Input";
-import { Typography } from "@/components/atoms/Typography";
-import { IconSymbol } from "@/components/ui/icon-symbol";
-import { BorderRadius, Spacing } from "@/constants/theme";
+import { Spacing } from "@/constants/theme";
 import { useTheme } from "@/contexts/ThemeContext";
 import STRINGS from "@/i18n/es.json";
-import { RootState } from "@/store/store";
-import { formatAmountInput } from "@/utils/format";
-import * as Haptics from "expo-haptics";
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import { Stack, useLocalSearchParams } from "expo-router";
+import React from "react";
 import {
   Keyboard,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   StyleSheet,
-  Switch,
-  TextInput,
-  TouchableOpacity,
   TouchableWithoutFeedback,
   View,
 } from "react-native";
-import { useDispatch, useSelector } from "react-redux";
-import { EntitySelectionModal } from "../components/EntitySelectionModal";
-import { clearCategoryPickerSelection } from "../data/walletUiSlice";
+import { AmountInput } from "../components/transaction-form/AmountInput";
+import { CategorySelector } from "../components/transaction-form/CategorySelector";
+import { DateField } from "../components/transaction-form/DateField";
+import { DeleteHeaderButton } from "../components/transaction-form/DeleteHeaderButton";
+import { EntitySelectorField } from "../components/transaction-form/EntitySelectorField";
+import { FormFooterActions } from "../components/transaction-form/FormFooterActions";
+import { PaymentTypeDropdown } from "../components/transaction-form/PaymentTypeDropdown";
+import { RecurrenceSection } from "../components/transaction-form/RecurrenceSection";
+import { TransactionTypeSelector } from "../components/transaction-form/TransactionTypeSelector";
 import { useTransactionForm } from "../hooks/useTransactionForm";
 
-const NativeDateTimePicker = ({
-  value,
-  themeVariant,
-  onChange,
-  maximumDate,
-  backgroundColor,
-}: {
-  value: Date;
-  themeVariant: "light" | "dark" | undefined;
-  onChange: (selectedDate?: Date) => void;
-  maximumDate?: Date;
-  backgroundColor: string;
-}) => {
-  if (Platform.OS === "web") return null;
-  const DateTimePicker =
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    require("@react-native-community/datetimepicker").default;
-  return (
-    <DateTimePicker
-      value={value}
-      mode="date"
-      display={Platform.OS === "ios" ? "inline" : "default"}
-      themeVariant={themeVariant}
-      onChange={(_: any, selectedDate?: Date) => onChange(selectedDate)}
-      maximumDate={maximumDate}
-      style={Platform.OS === "ios" ? { backgroundColor } : undefined}
-    />
-  );
-};
-
 export default function TransactionFormScreen() {
-  const router = useRouter();
-  const dispatch = useDispatch();
-  const params = useLocalSearchParams();
   const {
     id,
     initialType,
@@ -69,7 +32,7 @@ export default function TransactionFormScreen() {
     description: paramDescription,
     category: paramCategory,
     relatedEntityId,
-  } = params;
+  } = useLocalSearchParams();
 
   const {
     type,
@@ -112,28 +75,6 @@ export default function TransactionFormScreen() {
 
   const { colors, theme } = useTheme();
 
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [isPaymentTypeDropdownOpen, setIsPaymentTypeDropdownOpen] =
-    useState(false);
-  const [isEntityModalVisible, setIsEntityModalVisible] = useState(false);
-  const [isDestEntityModalVisible, setIsDestEntityModalVisible] =
-    useState(false);
-
-  const categoryPickerSelection = useSelector(
-    (state: RootState) => state.walletUi.categoryPickerSelection,
-  );
-
-  useEffect(() => {
-    if (!categoryPickerSelection) return;
-    if (categoryPickerSelection.target !== "transactionForm") return;
-    setSelectedCategory(categoryPickerSelection.value);
-    dispatch(clearCategoryPickerSelection());
-  }, [categoryPickerSelection, dispatch, setSelectedCategory]);
-
-  const dateInputValue = `${date.getFullYear()}-${String(
-    date.getMonth() + 1,
-  ).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Stack.Screen
@@ -141,31 +82,19 @@ export default function TransactionFormScreen() {
           headerShown: true,
           headerTransparent: true,
           headerTitle: isEditing ? "Editar" : "Agregar",
-          headerRight: () =>
-            isEditing ? (
-              <HeaderButton
-                imageProps={{
-                  systemName: "trash",
-                  name: "trash-outline",
-                  color: colors.error,
-                }}
-                buttonProps={{
-                  onPress: () => {
-                    Haptics.notificationAsync(
-                      Haptics.NotificationFeedbackType.Warning,
-                    );
-                    handleDelete();
-                  },
-                }}
-              />
-            ) : null,
+          headerRight: () => (
+            <DeleteHeaderButton
+              visible={isEditing}
+              color={colors.error}
+              onDelete={handleDelete}
+            />
+          ),
         }}
       />
-      {/* Header */}
 
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={{ flex: 1 }}
+        style={styles.flex}
         keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
       >
         <ScrollView contentContainerStyle={styles.content}>
@@ -173,874 +102,102 @@ export default function TransactionFormScreen() {
             onPress={Platform.OS === "web" ? undefined : Keyboard.dismiss}
           >
             <View>
-              {/* Amount Input */}
-              <View style={{ marginVertical: Spacing.l }}>
-                <Typography
-                  variant="caption"
-                  style={{
-                    color: colors.textSecondary,
-                    marginBottom: Spacing.xs,
-                    textAlign: "center",
-                  }}
-                >
-                  {STRINGS.wallet.amount}
-                </Typography>
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    backgroundColor: colors.surface,
-                    borderRadius: BorderRadius.m,
-                    borderWidth: 1,
-                    borderColor: colors.border,
-                    paddingVertical: Spacing.s,
-                    paddingHorizontal: Spacing.m,
-                  }}
-                >
-                  <Typography
-                    variant="h2"
-                    style={{
-                      color: type === "income" ? colors.success : colors.error,
-                      marginRight: Spacing.s,
-                    }}
-                  >
-                    {type === "income" ? "+" : "-"}
-                  </Typography>
-                  <TextInput
-                    value={amount}
-                    onChangeText={(text) => setAmount(formatAmountInput(text))}
-                    placeholder="0.00"
-                    placeholderTextColor={colors.textSecondary}
-                    keyboardType="numeric"
-                    style={{
-                      fontSize: 36,
-                      fontWeight: "bold",
-                      color: colors.text,
-                      textAlign: "center",
-                      minWidth: 100,
-                      padding: 0,
-                    }}
-                  />
-                </View>
-              </View>
-
-              {/* Type Selector (if creating) */}
+              <AmountInput
+                type={type}
+                amount={amount}
+                onChangeAmount={setAmount}
+                colors={colors}
+              />
               {!isEditing && (
-                <View
-                  style={{
-                    flexDirection: "row",
-                    marginBottom: Spacing.l,
-                    backgroundColor: colors.surfaceHighlight,
-                    borderRadius: BorderRadius.m,
-                    padding: 4,
-                  }}
-                >
-                  <TouchableOpacity
-                    style={{
-                      flex: 1,
-                      padding: Spacing.s,
-                      alignItems: "center",
-                      backgroundColor:
-                        type === "expense" ? colors.surface : "transparent",
-                      borderRadius: BorderRadius.s,
-                    }}
-                    onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      setType("expense");
-                    }}
-                  >
-                    <Typography
-                      weight="bold"
-                      style={{
-                        color:
-                          type === "expense"
-                            ? colors.error
-                            : colors.textSecondary,
-                      }}
-                    >
-                      Gasto
-                    </Typography>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={{
-                      flex: 1,
-                      padding: Spacing.s,
-                      alignItems: "center",
-                      backgroundColor:
-                        type === "income" ? colors.surface : "transparent",
-                      borderRadius: BorderRadius.s,
-                    }}
-                    onPress={() => setType("income")}
-                  >
-                    <Typography
-                      weight="bold"
-                      style={{
-                        color:
-                          type === "income"
-                            ? colors.success
-                            : colors.textSecondary,
-                      }}
-                    >
-                      Ingreso
-                    </Typography>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={{
-                      flex: 1,
-                      padding: Spacing.s,
-                      alignItems: "center",
-                      backgroundColor:
-                        type === "transfer" ? colors.surface : "transparent",
-                      borderRadius: BorderRadius.s,
-                    }}
-                    onPress={() => setType("transfer")}
-                  >
-                    <Typography
-                      weight="bold"
-                      style={{
-                        color:
-                          type === "transfer"
-                            ? colors.text
-                            : colors.textSecondary,
-                      }}
-                    >
-                      Transf.
-                    </Typography>
-                  </TouchableOpacity>
-                </View>
+                <TransactionTypeSelector
+                  type={type}
+                  onSelectType={setType}
+                  colors={colors}
+                />
               )}
-
-              {/* Description */}
               <Input
                 label={STRINGS.wallet.description}
                 placeholder={STRINGS.wallet.descriptionPlaceholder}
                 value={description}
                 onChangeText={setDescription}
               />
-
-              {/* Date Picker */}
-              <View style={{ marginBottom: Spacing.m, marginTop: Spacing.m }}>
-                <Typography
-                  variant="caption"
-                  style={{
-                    color: colors.textSecondary,
-                    marginBottom: Spacing.xs,
-                  }}
-                >
-                  Fecha
-                </Typography>
-                {Platform.OS === "web" ? (
-                  <Input
-                    label=""
-                    placeholder="YYYY-MM-DD"
-                    value={dateInputValue}
-                    onChangeText={(text) => {
-                      const trimmed = text.trim();
-                      const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
-                      if (!match) return;
-                      const y = Number(match[1]);
-                      const m = Number(match[2]);
-                      const d = Number(match[3]);
-                      if (m < 1 || m > 12) return;
-                      if (d < 1 || d > 31) return;
-                      const next = new Date(y, m - 1, d);
-                      if (Number.isNaN(next.getTime())) return;
-                      if (next > new Date()) return;
-                      setDate(next);
-                    }}
-                  />
-                ) : (
-                  <>
-                    <TouchableOpacity
-                      onPress={() => setShowDatePicker(true)}
-                      style={{
-                        backgroundColor: colors.surface,
-                        padding: Spacing.m,
-                        borderRadius: BorderRadius.m,
-                        borderWidth: 1,
-                        borderColor: colors.border,
-                        flexDirection: "row",
-                        alignItems: "center",
-                      }}
-                    >
-                      <IconSymbol
-                        name="calendar"
-                        size={20}
-                        color={colors.text}
-                        style={{ marginRight: Spacing.s }}
-                      />
-                      <Typography>
-                        {date.toLocaleDateString("es-ES", {
-                          weekday: "long",
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        })}
-                      </Typography>
-                    </TouchableOpacity>
-                    {showDatePicker ? (
-                      <NativeDateTimePicker
-                        value={date}
-                        themeVariant={theme}
-                        onChange={(selectedDate?: Date) => {
-                          const currentDate = selectedDate || date;
-                          setShowDatePicker(false);
-                          setDate(currentDate);
-                        }}
-                        maximumDate={new Date()}
-                        backgroundColor={colors.surface}
-                      />
-                    ) : null}
-                  </>
-                )}
-              </View>
-
-              {/* Payment Type Selector */}
-              <View style={{ marginBottom: Spacing.m }}>
-                <Typography
-                  variant="caption"
-                  style={{ marginBottom: Spacing.xs, color: colors.text }}
-                >
-                  Tipo de pago
-                </Typography>
-                <TouchableOpacity
-                  onPress={() =>
-                    setIsPaymentTypeDropdownOpen(!isPaymentTypeDropdownOpen)
-                  }
-                  style={[
-                    styles.dropdown,
-                    {
-                      backgroundColor: colors.surface,
-                      borderColor: colors.border,
-                      marginBottom: isPaymentTypeDropdownOpen ? 0 : Spacing.m,
-                    },
-                  ]}
-                >
-                  <View style={styles.dropdownHeader}>
-                    <Typography
-                      style={{
-                        color: selectedPaymentType
-                          ? colors.text
-                          : colors.textSecondary,
-                      }}
-                    >
-                      {selectedPaymentType
-                        ? selectedPaymentType === "credit_card"
-                          ? "Tarjeta de crédito"
-                          : selectedPaymentType === "debit_card"
-                            ? "Tarjeta de débito"
-                            : selectedPaymentType === "cash"
-                              ? "Efectivo"
-                              : selectedPaymentType === "transfer"
-                                ? "Transferencia"
-                                : "Nómina"
-                        : "Seleccionar tipo de pago (opcional)"}
-                    </Typography>
-                    <IconSymbol
-                      name="chevron.down"
-                      size={16}
-                      color={colors.text}
-                    />
-                  </View>
-                </TouchableOpacity>
-
-                {isPaymentTypeDropdownOpen && (
-                  <View
-                    style={[
-                      styles.dropdownList,
-                      {
-                        borderColor: colors.border,
-                        backgroundColor: colors.surface,
-                      },
-                    ]}
-                  >
-                    {[
-                      { id: "credit_card", label: "Tarjeta de crédito" },
-                      { id: "debit_card", label: "Tarjeta de débito" },
-                      { id: "cash", label: "Efectivo" },
-                      { id: "transfer", label: "Transferencia" },
-                      { id: "payroll", label: "Nómina" },
-                    ].map((pt, index) => (
-                      <TouchableOpacity
-                        key={pt.id}
-                        onPress={() => {
-                          setSelectedPaymentType(pt.id as any);
-                          setIsPaymentTypeDropdownOpen(false);
-                        }}
-                        style={{
-                          padding: Spacing.m,
-                          borderTopWidth: index > 0 ? 1 : 0,
-                          borderTopColor: colors.border,
-                        }}
-                      >
-                        <Typography variant="body">{pt.label}</Typography>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                )}
-              </View>
-
-              {/* Category Selector */}
+              <DateField
+                date={date}
+                onChangeDate={setDate}
+                colors={colors}
+                theme={theme}
+              />
+              <PaymentTypeDropdown
+                selectedPaymentType={selectedPaymentType}
+                onSelectPaymentType={setSelectedPaymentType}
+                colors={colors}
+              />
               {type !== "transfer" && (
-                <View style={{ marginBottom: Spacing.m }}>
-                  <Typography
-                    variant="caption"
-                    style={{ marginBottom: Spacing.xs, color: colors.text }}
-                  >
-                    {STRINGS.wallet.category}
-                  </Typography>
-
-                  {/* Quick Category Chips */}
-                  {frequentCategories.length > 0 && (
-                    <ScrollView
-                      horizontal
-                      showsHorizontalScrollIndicator={false}
-                      style={{ marginBottom: Spacing.s }}
-                      contentContainerStyle={{ gap: 8 }}
-                    >
-                      {frequentCategories.map((cat) => (
-                        <TouchableOpacity
-                          key={cat}
-                          onPress={() => {
-                            setSelectedCategory(cat);
-                            Haptics.selectionAsync();
-                          }}
-                          style={{
-                            backgroundColor:
-                              selectedCategory === cat
-                                ? colors.primary
-                                : colors.surface,
-                            paddingHorizontal: Spacing.m,
-                            paddingVertical: 6,
-                            borderRadius: BorderRadius.l,
-                            borderWidth: 1,
-                            borderColor:
-                              selectedCategory === cat
-                                ? colors.primary
-                                : colors.border,
-                          }}
-                        >
-                          <Typography
-                            style={{
-                              color:
-                                selectedCategory === cat
-                                  ? "#FFFFFF"
-                                  : colors.text,
-                              fontWeight:
-                                selectedCategory === cat ? "bold" : "normal",
-                              fontSize: 13,
-                            }}
-                          >
-                            {cat}
-                          </Typography>
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
-                  )}
-
-                  <TouchableOpacity
-                    onPress={() =>
-                      router.push({
-                        pathname: "/wallet/category-picker",
-                        params: {
-                          target: "transactionForm",
-                          includeAll: "0",
-                          selected: selectedCategory || "",
-                        },
-                      })
-                    }
-                    style={[
-                      styles.dropdown,
-                      {
-                        backgroundColor: colors.surface,
-                        borderColor: colors.border,
-                        marginBottom: Spacing.m,
-                      },
-                    ]}
-                  >
-                    <View style={styles.dropdownHeader}>
-                      <Typography
-                        style={{
-                          color: selectedCategory
-                            ? colors.text
-                            : colors.textSecondary,
-                        }}
-                      >
-                        {selectedCategory || STRINGS.wallet.selectCategory}
-                      </Typography>
-                      <IconSymbol
-                        name="chevron.right"
-                        size={16}
-                        color={colors.text}
-                      />
-                    </View>
-                  </TouchableOpacity>
-                </View>
-              )}
-
-              {/* Entity Selector */}
-              <View style={{ marginBottom: Spacing.xl }}>
-                <Typography
-                  variant="caption"
-                  style={{ marginBottom: Spacing.xs, color: colors.text }}
-                >
-                  {type === "transfer"
-                    ? "Cuenta de Origen"
-                    : STRINGS.vision.selectEntity}
-                </Typography>
-
-                {/* Quick Entity Chips */}
-                {frequentEntities.length > 0 && (
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    style={{ marginBottom: Spacing.s }}
-                    contentContainerStyle={{ gap: 8 }}
-                  >
-                    {frequentEntities.map((entity) => (
-                      <TouchableOpacity
-                        key={entity!.id}
-                        onPress={() => {
-                          setSelectedEntityId(entity!.id);
-                          Haptics.selectionAsync();
-                        }}
-                        style={{
-                          backgroundColor:
-                            selectedEntityId === entity!.id
-                              ? colors.primary
-                              : colors.surface,
-                          paddingHorizontal: Spacing.m,
-                          paddingVertical: 6,
-                          borderRadius: BorderRadius.l,
-                          borderWidth: 1,
-                          borderColor:
-                            selectedEntityId === entity!.id
-                              ? colors.primary
-                              : colors.border,
-                        }}
-                      >
-                        <Typography
-                          style={{
-                            color:
-                              selectedEntityId === entity!.id
-                                ? "#FFFFFF"
-                                : colors.text,
-                            fontWeight:
-                              selectedEntityId === entity!.id
-                                ? "bold"
-                                : "normal",
-                            fontSize: 13,
-                          }}
-                        >
-                          {entity!.name}
-                        </Typography>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                )}
-
-                <TouchableOpacity
-                  onPress={() => setIsEntityModalVisible(true)}
-                  style={[
-                    styles.dropdown,
-                    {
-                      backgroundColor: colors.surface,
-                      borderColor: colors.border,
-                    },
-                  ]}
-                >
-                  <View style={styles.dropdownHeader}>
-                    <Typography
-                      style={{
-                        color: selectedEntityId
-                          ? colors.text
-                          : colors.textSecondary,
-                      }}
-                    >
-                      {selectedEntityId
-                        ? entities.find((e) => e.id === selectedEntityId)
-                            ?.name || STRINGS.vision.entityPlaceholder
-                        : STRINGS.vision.entityPlaceholder}
-                    </Typography>
-                    <IconSymbol
-                      name="chevron.down"
-                      size={16}
-                      color={colors.text}
-                    />
-                  </View>
-                </TouchableOpacity>
-              </View>
-
-              {type === "transfer" && (
-                <View style={{ marginBottom: Spacing.xl }}>
-                  <Typography
-                    variant="caption"
-                    style={{ marginBottom: Spacing.xs, color: colors.text }}
-                  >
-                    Cuenta de Destino
-                  </Typography>
-
-                  <TouchableOpacity
-                    onPress={() => setIsDestEntityModalVisible(true)}
-                    style={[
-                      styles.dropdown,
-                      {
-                        backgroundColor: colors.surface,
-                        borderColor: colors.border,
-                      },
-                    ]}
-                  >
-                    <View style={styles.dropdownHeader}>
-                      <Typography
-                        style={{
-                          color: transferRelatedEntityId
-                            ? colors.text
-                            : colors.textSecondary,
-                        }}
-                      >
-                        {transferRelatedEntityId
-                          ? entities.find(
-                              (e) => e.id === transferRelatedEntityId,
-                            )?.name || "Seleccionar cuenta destino"
-                          : "Seleccionar cuenta destino"}
-                      </Typography>
-                      <IconSymbol
-                        name="chevron.down"
-                        size={16}
-                        color={colors.text}
-                      />
-                    </View>
-                  </TouchableOpacity>
-                </View>
-              )}
-
-              {/* Recurrence Option */}
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  marginBottom: Spacing.m,
-                  padding: Spacing.m,
-                  backgroundColor: colors.surface,
-                  borderRadius: BorderRadius.l,
-                }}
-              >
-                <View>
-                  <Typography
-                    variant="body"
-                    weight="bold"
-                    style={{ color: colors.text }}
-                  >
-                    ¿Es recurrente?
-                  </Typography>
-                  <Typography
-                    variant="caption"
-                    style={{ color: colors.textSecondary, marginTop: 4 }}
-                  >
-                    Se repetirá automáticamente
-                  </Typography>
-                </View>
-                <Switch
-                  value={isRecurring}
-                  onValueChange={setIsRecurring}
-                  trackColor={{ false: colors.border, true: colors.primary }}
-                  thumbColor={"#FFFFFF"}
+                <CategorySelector
+                  selectedCategory={selectedCategory}
+                  onSelectCategory={setSelectedCategory}
+                  frequentCategories={frequentCategories}
+                  colors={colors}
                 />
-              </View>
-
-              {isRecurring && (
-                <View style={{ marginBottom: Spacing.l }}>
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      gap: Spacing.s,
-                      marginBottom: Spacing.m,
-                    }}
-                  >
-                    {(["weekly", "monthly", "yearly"] as const).map((freq) => (
-                      <TouchableOpacity
-                        key={freq}
-                        onPress={() => setRecurrenceFrequency(freq)}
-                        style={{
-                          flex: 1,
-                          padding: Spacing.s,
-                          borderRadius: BorderRadius.m,
-                          backgroundColor:
-                            recurrenceFrequency === freq
-                              ? colors.primary
-                              : colors.surface,
-                          alignItems: "center",
-                          borderWidth: 1,
-                          borderColor:
-                            recurrenceFrequency === freq
-                              ? colors.primary
-                              : colors.border,
-                        }}
-                      >
-                        <Typography
-                          variant="body"
-                          weight={
-                            recurrenceFrequency === freq ? "bold" : "regular"
-                          }
-                          style={{
-                            color:
-                              recurrenceFrequency === freq
-                                ? "#FFFFFF"
-                                : colors.textSecondary,
-                            textTransform: "capitalize",
-                          }}
-                        >
-                          {freq === "weekly"
-                            ? "Semanal"
-                            : freq === "monthly"
-                              ? "Mensual"
-                              : "Anual"}
-                        </Typography>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-
-                  <View
-                    style={{
-                      padding: Spacing.m,
-                      backgroundColor: colors.surface,
-                      borderRadius: BorderRadius.l,
-                    }}
-                  >
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                      }}
-                    >
-                      <View style={{ flex: 1, paddingRight: Spacing.m }}>
-                        <Typography
-                          variant="body"
-                          weight="bold"
-                          style={{ color: colors.text }}
-                        >
-                          Duración
-                        </Typography>
-                        <Typography
-                          variant="caption"
-                          style={{ color: colors.textSecondary, marginTop: 4 }}
-                        >
-                          De 1 a 36 meses o indefinido
-                        </Typography>
-                      </View>
-                      <View style={{ alignItems: "flex-end" }}>
-                        <Typography
-                          variant="caption"
-                          style={{
-                            color: colors.textSecondary,
-                            marginBottom: 4,
-                          }}
-                        >
-                          Indefinido
-                        </Typography>
-                        <Switch
-                          value={recurrenceMonths === null}
-                          onValueChange={(value) => {
-                            if (value) {
-                              setRecurrenceMonths(null);
-                              return;
-                            }
-                            setRecurrenceMonths(12);
-                          }}
-                          trackColor={{
-                            false: colors.border,
-                            true: colors.primary,
-                          }}
-                          thumbColor={"#FFFFFF"}
-                        />
-                      </View>
-                    </View>
-
-                    {recurrenceMonths !== null && (
-                      <View
-                        style={{
-                          flexDirection: "row",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          marginTop: Spacing.m,
-                        }}
-                      >
-                        <TouchableOpacity
-                          onPress={() => {
-                            Haptics.selectionAsync();
-                            setRecurrenceMonths(
-                              Math.max(1, recurrenceMonths - 1),
-                            );
-                          }}
-                          disabled={recurrenceMonths <= 1}
-                          style={{
-                            opacity: recurrenceMonths <= 1 ? 0.5 : 1,
-                          }}
-                        >
-                          <View
-                            style={{
-                              width: 40,
-                              height: 40,
-                              borderRadius: 20,
-                              backgroundColor: colors.surfaceHighlight,
-                              alignItems: "center",
-                              justifyContent: "center",
-                              borderWidth: 1,
-                              borderColor: colors.border,
-                            }}
-                          >
-                            <Typography
-                              variant="body"
-                              weight="bold"
-                              style={{ color: colors.text }}
-                            >
-                              -
-                            </Typography>
-                          </View>
-                        </TouchableOpacity>
-
-                        <View style={{ alignItems: "center" }}>
-                          <Typography
-                            variant="h3"
-                            weight="bold"
-                            style={{ color: colors.text }}
-                          >
-                            {recurrenceMonths}
-                          </Typography>
-                          <Typography
-                            variant="caption"
-                            style={{
-                              color: colors.textSecondary,
-                              marginTop: 2,
-                            }}
-                          >
-                            {recurrenceMonths === 1 ? "mes" : "meses"}
-                          </Typography>
-                        </View>
-
-                        <TouchableOpacity
-                          onPress={() => {
-                            Haptics.selectionAsync();
-                            setRecurrenceMonths(
-                              Math.min(36, recurrenceMonths + 1),
-                            );
-                          }}
-                          disabled={recurrenceMonths >= 36}
-                          style={{
-                            opacity: recurrenceMonths >= 36 ? 0.5 : 1,
-                          }}
-                        >
-                          <View
-                            style={{
-                              width: 40,
-                              height: 40,
-                              borderRadius: 20,
-                              backgroundColor: colors.surfaceHighlight,
-                              alignItems: "center",
-                              justifyContent: "center",
-                              borderWidth: 1,
-                              borderColor: colors.border,
-                            }}
-                          >
-                            <Typography
-                              variant="body"
-                              weight="bold"
-                              style={{ color: colors.text }}
-                            >
-                              +
-                            </Typography>
-                          </View>
-                        </TouchableOpacity>
-                      </View>
-                    )}
-                  </View>
-                </View>
               )}
-
-              <View style={{ flexDirection: "row", gap: Spacing.m }}>
-                <View style={{ flex: 1 }}>
-                  <Button
-                    title={STRINGS.common.save}
-                    onPress={() => handleSave(true)}
-                    loading={isSaving}
-                    variant="primary"
-                  />
-                </View>
-                {!isEditing && (
-                  <View style={{ flex: 1 }}>
-                    <Button
-                      title="Guardar y otro"
-                      onPress={() => handleSave(false)}
-                      loading={isSaving}
-                      variant="outline"
-                    />
-                  </View>
-                )}
-              </View>
+              <EntitySelectorField
+                label={
+                  type === "transfer"
+                    ? "Cuenta de Origen"
+                    : STRINGS.vision.selectEntity
+                }
+                entities={entities}
+                selectedEntityId={selectedEntityId}
+                onSelect={setSelectedEntityId}
+                placeholder={STRINGS.vision.entityPlaceholder}
+                frequentEntities={frequentEntities}
+                colors={colors}
+              />
+              {type === "transfer" && (
+                <EntitySelectorField
+                  label="Cuenta de Destino"
+                  entities={entities}
+                  selectedEntityId={transferRelatedEntityId}
+                  onSelect={setTransferRelatedEntityId}
+                  placeholder="Seleccionar cuenta destino"
+                  colors={colors}
+                />
+              )}
+              <RecurrenceSection
+                isRecurring={isRecurring}
+                onChangeIsRecurring={setIsRecurring}
+                recurrenceFrequency={recurrenceFrequency}
+                onChangeRecurrenceFrequency={setRecurrenceFrequency}
+                recurrenceMonths={recurrenceMonths}
+                onChangeRecurrenceMonths={setRecurrenceMonths}
+                colors={colors}
+              />
+              <FormFooterActions
+                isEditing={isEditing}
+                isSaving={isSaving}
+                onSave={handleSave}
+              />
             </View>
           </TouchableWithoutFeedback>
         </ScrollView>
       </KeyboardAvoidingView>
-
-      <EntitySelectionModal
-        visible={isEntityModalVisible}
-        onClose={() => setIsEntityModalVisible(false)}
-        onSelect={(id) => setSelectedEntityId(id)}
-        visionEntities={entities}
-        selectedEntityId={selectedEntityId}
-      />
-
-      <EntitySelectionModal
-        visible={isDestEntityModalVisible}
-        onClose={() => setIsDestEntityModalVisible(false)}
-        onSelect={(id) => setTransferRelatedEntityId(id)}
-        visionEntities={entities}
-        selectedEntityId={transferRelatedEntityId}
-      />
     </View>
   );
 }
 
+/** El header de `Stack.Screen` es transparente: el contenido arranca por debajo. */
+const HEADER_OFFSET = Spacing.xxl;
+/** Aire bajo el CTA de cierre para que no lo tape la barra inferior. */
+const FOOTER_OFFSET = Spacing.xxl * 2;
+
 const styles = StyleSheet.create({
   container: {},
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: Spacing.m,
-    paddingTop: Platform.OS === "ios" ? 60 : 20,
-    paddingBottom: Spacing.m,
-  },
-  headerButton: {
-    width: 40,
-    height: 40,
-    justifyContent: "center",
-    alignItems: "center",
+  flex: {
+    flex: 1,
   },
   content: {
     padding: Spacing.m,
-    paddingBottom: 100,
-    paddingTop: 50,
-  },
-  dropdown: {
-    borderRadius: BorderRadius.m,
-    borderWidth: 1,
-  },
-  dropdownHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: Spacing.m,
-  },
-  dropdownList: {
-    marginTop: -1,
-    borderBottomLeftRadius: BorderRadius.m,
-    borderBottomRightRadius: BorderRadius.m,
-    borderWidth: 1,
-    borderTopWidth: 0,
-    overflow: "hidden",
+    paddingTop: HEADER_OFFSET,
+    paddingBottom: FOOTER_OFFSET,
   },
 });

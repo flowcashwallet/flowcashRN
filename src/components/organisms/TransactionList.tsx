@@ -122,15 +122,8 @@ export function TransactionList({
     return (
       <View>
         {listHeaderComponent}
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: Spacing.s,
-          }}
-        >
-          <Typography variant="h3" weight="bold">
+        <View style={styles.listHeaderRow}>
+          <Typography variant="heading">
             {STRINGS.wallet.recentTransactions}
           </Typography>
           {headerRight}
@@ -147,38 +140,37 @@ export function TransactionList({
         sections={sections}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
+        ItemSeparatorComponent={() => <View style={{ height: Spacing.s }} />}
         renderSectionHeader={({ section: { title, dayBalance } }) => (
           <View
             style={[
               styles.sectionHeader,
               {
-                backgroundColor: "transparent",
-                flexDirection: "row",
-                justifyContent: "space-between",
-                alignItems: "center",
+                backgroundColor: colors.background,
               },
             ]}
           >
-            <Typography
-              variant="caption"
-              weight="bold"
-              style={{
-                color: colors.textSecondary,
-                textTransform: "capitalize",
-              }}
-            >
+            <Typography variant="overline" muted style={styles.sectionTitle}>
               {title}
             </Typography>
+            {/*
+              El saldo del día es un importe con signo, así que sigue la misma
+              regla que las filas de debajo: `success` si el día cierra en
+              positivo, `expense` si cierra en negativo (tinta roja contable,
+              **no** `error`), `text` si cierra en cero. Antes iba en `text`
+              porque el único rojo disponible era `error`, que sí habría hecho
+              parecer una emergencia un mes normal; con el token `expense` ese
+              motivo desaparece y la columna queda coherente al hacer scroll.
+            */}
             <Typography
-              variant="caption"
-              weight="bold"
+              variant="number"
               style={{
                 color:
                   dayBalance > 0
                     ? colors.success
                     : dayBalance < 0
-                      ? colors.error
-                      : colors.textSecondary,
+                      ? colors.expense
+                      : colors.text,
               }}
             >
               {dayBalance > 0 ? "+" : ""}
@@ -193,7 +185,7 @@ export function TransactionList({
         refreshControl={refreshControl}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Typography variant="body" style={{ opacity: 0.6 }}>
+            <Typography variant="body" muted>
               {STRINGS.wallet.noRecentTransactions}
             </Typography>
           </View>
@@ -207,11 +199,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  title: {
-    marginBottom: Spacing.m,
+  listHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: Spacing.s,
+    marginHorizontal: Spacing.m,
   },
   emptyContainer: {
-    padding: Spacing.l,
+    padding: Spacing.xxl,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -219,8 +215,16 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.s,
   },
   sectionHeader: {
-    paddingVertical: Spacing.m,
-    marginBottom: Spacing.s,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: Spacing.s,
+    paddingTop: Spacing.l,
+    paddingBottom: Spacing.s,
     paddingHorizontal: Spacing.s,
+    marginHorizontal: Spacing.m,
+  },
+  sectionTitle: {
+    flexShrink: 1,
   },
 });

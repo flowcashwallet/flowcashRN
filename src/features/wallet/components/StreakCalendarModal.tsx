@@ -1,5 +1,6 @@
 import { Button } from "@/components/atoms/Button";
 import { Typography } from "@/components/atoms/Typography";
+import { BottomSheet } from "@/components/molecules/BottomSheet";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { BorderRadius, Spacing } from "@/constants/theme";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -8,7 +9,7 @@ import { Transaction } from "@/features/wallet/data/walletSlice";
 import STRINGS from "@/i18n/es.json";
 import { AppDispatch, RootState } from "@/store/store";
 import React, { useMemo } from "react";
-import { Alert, Modal, Pressable, StyleSheet, View } from "react-native";
+import { Alert, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 
 interface StreakCalendarModalProps {
@@ -85,7 +86,7 @@ export const StreakCalendarModal: React.FC<StreakCalendarModalProps> = ({
               await dispatch(
                 consumeStreakFreeze({ date: dateStr }),
               ).unwrap();
-            } catch (error) {
+            } catch {
               Alert.alert(STRINGS.common.error, STRINGS.streak.restoreError);
             }
           },
@@ -94,7 +95,12 @@ export const StreakCalendarModal: React.FC<StreakCalendarModalProps> = ({
     );
   };
 
-  const statusColor = streakFreezes > 0 ? "#FF9500" : "#8E8E93";
+  /**
+   * El fuego de la racha es el único acento de este sheet: `warning` cuando
+   * quedan restauraciones (recurso limitado), apagado a `textSecondary` cuando
+   * no quedan. No se usa `error`: quedarse sin restauraciones no es un fallo.
+   */
+  const statusColor = streakFreezes > 0 ? colors.warning : colors.textSecondary;
 
   const today = new Date();
   const yesterday = new Date(today);
@@ -129,172 +135,123 @@ export const StreakCalendarModal: React.FC<StreakCalendarModalProps> = ({
     previousStreak > 3;
 
   return (
-    <Modal visible={visible} animationType="slide" transparent>
-      <Pressable style={styles.overlay} onPress={onClose}>
-        <Pressable
-          style={[styles.content, { backgroundColor: colors.surface }]}
-          onPress={(e) => e.stopPropagation()}
+    <BottomSheet
+      visible={visible}
+      onClose={onClose}
+      title={STRINGS.streak.yourStreak}
+    >
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <View
+          style={[
+            styles.statsContainer,
+            { backgroundColor: colors.surfaceHighlight },
+          ]}
         >
-          <View style={styles.header}>
-            <Typography
-              variant="h3"
-              weight="bold"
-              style={{ color: colors.text }}
-            >
-              {STRINGS.streak.yourStreak}
+          <IconSymbol name="flame.fill" size={32} color={statusColor} />
+          <View>
+            <Typography variant="caption" muted>
+              {STRINGS.streak.availableRestores}
             </Typography>
-            <Pressable onPress={onClose}>
-              <IconSymbol name="xmark" size={24} color={colors.textSecondary} />
-            </Pressable>
+            <Typography variant="heading">{streakFreezes}</Typography>
           </View>
+        </View>
 
-          <View
-            style={[
-              styles.statsContainer,
-              { backgroundColor: statusColor + "20" },
-            ]}
-          >
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <IconSymbol name="flame.fill" size={32} color={statusColor} />
-              <View style={{ marginLeft: Spacing.m }}>
-                <Typography
-                  variant="caption"
-                  style={{ color: colors.textSecondary }}
-                >
-                  {STRINGS.streak.availableRestores}
-                </Typography>
-                <Typography
-                  variant="h2"
-                  weight="bold"
-                  style={{ color: colors.text }}
-                >
-                  {streakFreezes}
-                </Typography>
-              </View>
-            </View>
-          </View>
+        <Typography variant="overline" muted style={styles.sectionLabel}>
+          {STRINGS.streak.last30Days}
+        </Typography>
 
-          <Typography
-            variant="body"
-            weight="bold"
-            style={{ marginBottom: Spacing.m, color: colors.text }}
-          >
-            {STRINGS.streak.last30Days}
-          </Typography>
+        <View style={styles.calendarGrid}>
+          {calendarDays.map((day) => {
+            // El estado del día se codifica en el color del dígito y del icono,
+            // no en un relleno translúcido: la superficie es plana y única.
+            const dayColor = day.isActive
+              ? day.isRepaired
+                ? colors.secondary
+                : colors.success
+              : colors.textSecondary;
 
-          <View style={styles.calendarGrid}>
-            {calendarDays.map((day) => (
+            return (
               <Pressable
                 key={day.date}
+                accessibilityRole="button"
+                accessibilityLabel={`Día ${day.dayOfMonth}`}
                 onPress={() =>
                   !day.isActive && !day.isToday ? handleRepair(day.date) : null
                 }
                 style={[
                   styles.dayCell,
                   {
-                    backgroundColor: day.isActive
-                      ? day.isRepaired
-                        ? "#5AC8FA20" // Light blue for repaired
-                        : "#34C75920" // Light green for active
-                      : colors.surfaceHighlight,
+                    backgroundColor: colors.surfaceHighlight,
                     borderColor: day.isToday ? colors.primary : "transparent",
-                    borderWidth: day.isToday ? 2 : 0,
                   },
                 ]}
               >
-                <Typography
-                  variant="caption"
-                  style={{
-                    color: day.isActive
-                      ? day.isRepaired
-                        ? "#5AC8FA"
-                        : "#34C759"
-                      : colors.textSecondary,
-                  }}
-                >
+                <Typography variant="caption" style={{ color: dayColor }}>
                   {day.dayOfMonth}
                 </Typography>
                 {day.isActive ? (
                   <IconSymbol
                     name={day.isRepaired ? "snowflake" : "flame.fill"}
                     size={16}
-                    color={day.isRepaired ? "#5AC8FA" : "#34C759"}
+                    color={dayColor}
                   />
                 ) : (
                   !day.isToday && (
-                    <IconSymbol
-                      name="lock.open" // Or something indicating clickable to repair
-                      size={12}
-                      color={colors.textSecondary + "40"}
-                    />
+                    <IconSymbol name="lock.open" size={16} color={colors.border} />
                   )
                 )}
               </Pressable>
-            ))}
-          </View>
+            );
+          })}
+        </View>
 
+        <View style={styles.footer}>
           {canRestore && (
             <Button
               title={STRINGS.streak.restoreAction}
               onPress={() => handleRepair(yesterdayStr)}
-              style={{ marginTop: Spacing.xl, backgroundColor: "#FF9500" }}
             />
           )}
 
           <Button
             title={STRINGS.common.close}
             onPress={onClose}
-            style={{
-              marginTop: canRestore ? Spacing.s : Spacing.xl,
-              backgroundColor: canRestore ? "transparent" : colors.primary,
-              borderWidth: canRestore ? 1 : 0,
-              borderColor: canRestore ? colors.textSecondary : "transparent",
-            }}
-            textStyle={canRestore ? { color: colors.text } : undefined}
+            variant={canRestore ? "outline" : "primary"}
           />
-        </Pressable>
-      </Pressable>
-    </Modal>
+        </View>
+      </ScrollView>
+    </BottomSheet>
   );
 };
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "flex-end",
-  },
-  content: {
-    borderTopLeftRadius: BorderRadius.xl,
-    borderTopRightRadius: BorderRadius.xl,
-    padding: Spacing.l,
-    paddingBottom: 40,
-    maxHeight: "80%",
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: Spacing.l,
-  },
   statsContainer: {
     flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.m,
     marginBottom: Spacing.l,
     padding: Spacing.m,
-    borderRadius: BorderRadius.m,
-    backgroundColor: "rgba(255, 149, 0, 0.1)", // Light orange bg
+    borderRadius: BorderRadius.l,
+  },
+  sectionLabel: {
+    marginBottom: Spacing.sm,
   },
   calendarGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 8,
+    gap: Spacing.s,
     justifyContent: "center",
   },
   dayCell: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: BorderRadius.round,
     justifyContent: "center",
     alignItems: "center",
+    borderWidth: 2,
+  },
+  footer: {
+    marginTop: Spacing.xl,
+    gap: Spacing.s,
   },
 });

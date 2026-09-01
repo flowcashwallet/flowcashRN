@@ -9,6 +9,19 @@ jest.mock("../../hooks/useTransactionForm");
 jest.mock("expo-router", () => ({
   useRouter: jest.fn(),
   useLocalSearchParams: jest.fn(),
+  // Stack.Screen only configures native header options; it doesn't render
+  // into the app's own tree. Render `headerRight` here so tests can still
+  // reach it (e.g. the delete button rendered via `options.headerRight`).
+  Stack: {
+    Screen: ({ options }: any) =>
+      typeof options?.headerRight === "function" ? options.headerRight() : null,
+  },
+}));
+jest.mock("@/contexts/ThemeContext", () => ({
+  useTheme: () => ({
+    theme: "light",
+    colors: jest.requireActual("@/constants/theme").Colors.light,
+  }),
 }));
 
 // Mock complex child components
@@ -28,7 +41,7 @@ jest.mock("@react-native-community/datetimepicker", () => {
   return MockDateTimePicker;
 });
 
-jest.mock("../../components/EntitySelectionModal", () => ({
+jest.mock("../../components/transaction-form/EntitySelectionModal", () => ({
   EntitySelectionModal: () => "EntitySelectionModal",
 }));
 

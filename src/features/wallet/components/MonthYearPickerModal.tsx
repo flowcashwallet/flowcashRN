@@ -1,10 +1,12 @@
+import { Button } from "@/components/atoms/Button";
 import { Typography } from "@/components/atoms/Typography";
+import { BottomSheet } from "@/components/molecules/BottomSheet";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { BorderRadius, Colors, Spacing } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { BorderRadius, Spacing } from "@/constants/theme";
+import { useTheme } from "@/contexts/ThemeContext";
 import STRINGS from "@/i18n/es.json";
 import React, { useEffect, useState } from "react";
-import { Modal, StyleSheet, TouchableOpacity, View } from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 interface MonthYearPickerModalProps {
   visible: boolean;
@@ -14,6 +16,21 @@ interface MonthYearPickerModalProps {
   mode?: "month" | "year";
 }
 
+const FALLBACK_MONTHS = [
+  "Enero",
+  "Febrero",
+  "Marzo",
+  "Abril",
+  "Mayo",
+  "Junio",
+  "Julio",
+  "Agosto",
+  "Septiembre",
+  "Octubre",
+  "Noviembre",
+  "Diciembre",
+];
+
 export const MonthYearPickerModal: React.FC<MonthYearPickerModalProps> = ({
   visible,
   onClose,
@@ -21,28 +38,14 @@ export const MonthYearPickerModal: React.FC<MonthYearPickerModalProps> = ({
   onSelect,
   mode = "month",
 }) => {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme === "dark" ? "dark" : "light"];
+  const { colors } = useTheme();
 
   const [year, setYear] = useState(selectedDate.getFullYear());
   useEffect(() => {
     if (visible) setYear(selectedDate.getFullYear());
   }, [selectedDate, visible]);
 
-  const months = STRINGS.wallet.months || [
-    "Enero",
-    "Febrero",
-    "Marzo",
-    "Abril",
-    "Mayo",
-    "Junio",
-    "Julio",
-    "Agosto",
-    "Septiembre",
-    "Octubre",
-    "Noviembre",
-    "Diciembre",
-  ];
+  const months = STRINGS.wallet.months || FALLBACK_MONTHS;
 
   const handleMonthSelect = (monthIndex: number) => {
     const newDate = new Date(year, monthIndex, 1);
@@ -61,138 +64,82 @@ export const MonthYearPickerModal: React.FC<MonthYearPickerModalProps> = ({
   };
 
   return (
-    <Modal
+    <BottomSheet
       visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
+      onClose={onClose}
+      title={
+        mode === "year" ? STRINGS.wallet.selectYear : STRINGS.wallet.selectDate
+      }
     >
-      <View style={styles.overlay}>
-        <View style={[styles.container, { backgroundColor: colors.surface }]}>
-          <View style={styles.header}>
-            <Typography
-              variant="h3"
-              weight="bold"
-              style={{ color: colors.text }}
-            >
-              {mode === "year"
-                ? STRINGS.wallet.selectYear
-                : STRINGS.wallet.selectDate}
-            </Typography>
-            <TouchableOpacity onPress={onClose}>
-              <IconSymbol name="xmark" size={24} color={colors.textSecondary} />
-            </TouchableOpacity>
-          </View>
+      {/* Selector de año */}
+      <View style={styles.yearSelector}>
+        <TouchableOpacity
+          onPress={() => changeYear(-1)}
+          hitSlop={Spacing.s}
+          accessibilityRole="button"
+          accessibilityLabel="Año anterior"
+        >
+          <IconSymbol name="chevron.left" size={24} color={colors.primary} />
+        </TouchableOpacity>
 
-          {/* Year Selector */}
-          <View style={styles.yearSelector}>
-            <TouchableOpacity
-              onPress={() => changeYear(-1)}
-              style={styles.yearButton}
-            >
-              <IconSymbol
-                name="chevron.left"
-                size={24}
-                color={colors.primary}
-              />
-            </TouchableOpacity>
+        <Typography variant="heading">{year}</Typography>
 
-            <Typography
-              variant="h2"
-              weight="bold"
-              style={{ color: colors.text }}
-            >
-              {year}
-            </Typography>
-
-            <TouchableOpacity
-              onPress={() => changeYear(1)}
-              style={styles.yearButton}
-            >
-              <IconSymbol
-                name="chevron.right"
-                size={24}
-                color={colors.primary}
-              />
-            </TouchableOpacity>
-          </View>
-
-          {/* Months Grid */}
-          {mode === "month" ? (
-            <View style={styles.monthsGrid}>
-              {months.map((month, index) => {
-                const isSelected =
-                  selectedDate.getMonth() === index &&
-                  selectedDate.getFullYear() === year;
-
-                return (
-                  <TouchableOpacity
-                    key={index}
-                    style={[
-                      styles.monthButton,
-                      {
-                        backgroundColor: isSelected
-                          ? colors.primary
-                          : "transparent",
-                        borderColor: colors.border,
-                      },
-                    ]}
-                    onPress={() => handleMonthSelect(index)}
-                  >
-                    <Typography
-                      variant="body"
-                      weight={isSelected ? "bold" : "regular"}
-                      style={{ color: isSelected ? "#FFFFFF" : colors.text }}
-                    >
-                      {month.substring(0, 3)}
-                    </Typography>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          ) : (
-            <TouchableOpacity
-              onPress={handleYearSelect}
-              style={[
-                styles.selectYearButton,
-                { backgroundColor: colors.primary },
-              ]}
-            >
-              <Typography
-                variant="body"
-                weight="bold"
-                style={{ color: "#FFFFFF" }}
-              >
-                {STRINGS.wallet.viewYear} {year}
-              </Typography>
-            </TouchableOpacity>
-          )}
-        </View>
+        <TouchableOpacity
+          onPress={() => changeYear(1)}
+          hitSlop={Spacing.s}
+          accessibilityRole="button"
+          accessibilityLabel="Año siguiente"
+        >
+          <IconSymbol name="chevron.right" size={24} color={colors.primary} />
+        </TouchableOpacity>
       </View>
-    </Modal>
+
+      {/* Rejilla de meses */}
+      {mode === "month" ? (
+        <View style={styles.monthsGrid}>
+          {months.map((month, index) => {
+            const isSelected =
+              selectedDate.getMonth() === index &&
+              selectedDate.getFullYear() === year;
+
+            return (
+              <TouchableOpacity
+                key={month}
+                accessibilityRole="button"
+                accessibilityState={{ selected: isSelected }}
+                style={[
+                  styles.monthButton,
+                  {
+                    backgroundColor: isSelected
+                      ? colors.primary
+                      : colors.surfaceHighlight,
+                    borderColor: isSelected ? colors.primary : colors.border,
+                  },
+                ]}
+                onPress={() => handleMonthSelect(index)}
+              >
+                <Typography
+                  variant="button"
+                  // `onPrimary` respeta el aviso de contraste sobre `primary`.
+                  style={isSelected ? { color: colors.onPrimary } : undefined}
+                >
+                  {month.substring(0, 3)}
+                </Typography>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      ) : (
+        <Button
+          title={`${STRINGS.wallet.viewYear} ${year}`}
+          onPress={handleYearSelect}
+        />
+      )}
+    </BottomSheet>
   );
 };
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "center",
-    padding: Spacing.m,
-  },
-  container: {
-    borderRadius: BorderRadius.l,
-    padding: Spacing.l,
-    width: "100%",
-    maxWidth: 400,
-    alignSelf: "center",
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: Spacing.l,
-  },
   yearSelector: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -200,29 +147,19 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.l,
     paddingHorizontal: Spacing.m,
   },
-  yearButton: {
-    padding: Spacing.s,
-  },
   monthsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    justifyContent: "space-between",
     gap: Spacing.s,
   },
   monthButton: {
-    width: "30%", // 3 columns
-    paddingVertical: Spacing.m,
+    // 3 columnas: (100% - 2 huecos) / 3.
+    flexBasis: "30%",
+    flexGrow: 1,
+    paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.m,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "transparent",
-    marginBottom: Spacing.s,
-  },
-  selectYearButton: {
-    paddingVertical: Spacing.m,
-    borderRadius: BorderRadius.m,
-    alignItems: "center",
-    justifyContent: "center",
+    borderWidth: StyleSheet.hairlineWidth,
   },
 });

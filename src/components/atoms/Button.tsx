@@ -55,19 +55,23 @@ export function Button({
     }
   };
 
+  /**
+   * `onPrimary` codifica el aviso de contraste de la dirección estética: en claro
+   * `primary` es un verde claro sobre el que el blanco no pasa AA, así que el
+   * contenido va oscuro; en oscuro sí es blanco. `secondary` es un azul saturado
+   * en ambos temas y admite blanco, pero se usa el mismo token por consistencia
+   * de "contenido sobre relleno de marca".
+   */
   const getTextColor = () => {
-    if (disabled) return "#fff";
+    // Deshabilitado el relleno es `colors.icon` (gris); `surface` es el token que
+    // contrasta contra él en ambos temas.
+    if (disabled) return colors.surface;
     switch (variant) {
-      case "primary":
-        return "#fff";
-      case "secondary":
-        return "#fff";
       case "outline":
-        return colors.primary;
       case "ghost":
         return colors.primary;
       default:
-        return "#fff";
+        return colors.onPrimary;
     }
   };
 
@@ -90,7 +94,6 @@ export function Button({
           {icon}
           <Typography
             variant="button"
-            weight="medium"
             style={[
               { color: getTextColor(), marginLeft: icon ? Spacing.s : 0 },
               textStyle,
@@ -147,7 +150,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.s,
   },
   medium: {
-    paddingVertical: 12,
+    paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.m,
   },
   large: {

@@ -1,10 +1,10 @@
+import { ScreenBackground } from "@/components/layout/ScreenBackground";
 import AnalyticsScreen from "@/features/analytics/screens/AnalyticsScreen";
-import { GradientBackground } from "@/components/layout/GradientBackground";
 
 export default function StatisticsTab() {
   return (
-    <GradientBackground>
+    <ScreenBackground>
       <AnalyticsScreen />
-    </GradientBackground>
+    </ScreenBackground>
   );
 }

@@ -12,6 +12,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Alert } from "react-native";
 import { useDispatch, useSelector, useStore } from "react-redux";
 import { fetchCategories } from "../data/categoriesSlice";
+import { clearCategoryPickerSelection } from "../data/walletUiSlice";
 import { useWalletTransactions } from "./useWalletTransactions";
 
 export interface UseTransactionFormProps {
@@ -111,6 +112,19 @@ export const useTransactionForm = ({
       dispatch(fetchCategories(user.id.toString()));
     }
   }, [user, dispatch, categories.length]);
+
+  // Sync category selected from the shared category-picker screen
+  const categoryPickerSelection = useSelector(
+    (state: RootState) => state.walletUi.categoryPickerSelection,
+  );
+
+  useEffect(() => {
+    if (!categoryPickerSelection) return;
+    if (categoryPickerSelection.target !== "transactionForm") return;
+    setSelectedCategory(categoryPickerSelection.value);
+    setManualCategorySelection(true);
+    dispatch(clearCategoryPickerSelection());
+  }, [categoryPickerSelection, dispatch]);
 
   // Update default payment type
   useEffect(() => {
