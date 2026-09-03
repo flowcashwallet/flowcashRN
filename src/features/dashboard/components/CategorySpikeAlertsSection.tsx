@@ -1,5 +1,9 @@
+import { GlassSurface } from "@/components/atoms/GlassSurface";
+import { Typography } from "@/components/atoms/Typography";
+import { BorderRadius, Spacing } from "@/constants/theme";
 import React from "react";
-import { Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
+import { DashboardCard } from "./DashboardCard";
 import { CategorySpikeAlert, DashboardColors } from "./types";
 
 interface CategorySpikeAlertsSectionProps {
@@ -9,6 +13,20 @@ interface CategorySpikeAlertsSectionProps {
   formatWeeklyValue: (value: number) => string;
 }
 
+/**
+ * Categorías que se dispararon frente al promedio del año.
+ *
+ * El porcentaje va en `warning`, no en `error`: es una advertencia real sobre el
+ * dato —"esto subió"— pero nada ha fallado. `error` sigue reservado para
+ * sobregiro / vencido / fallo, según la tabla de paleta del plan.
+ *
+ * La caja de cada alerta vive **dentro** de la card, que en iOS 26+ ya es
+ * cristal, así que el guard de anidamiento la aplanaría. Aquí se pide cristal
+ * igual con `forceGlass`: no es una lista de contenido repetido sino el
+ * elemento destacado de la sección — es literalmente lo único que la card
+ * enseña, y plano se leía como una caja blanca pegada encima del cristal
+ * (retrofit 2026-09-02, pedido tras verlo en dispositivo).
+ */
 export function CategorySpikeAlertsSection({
   colors,
   periodView,
@@ -16,95 +34,95 @@ export function CategorySpikeAlertsSection({
   formatWeeklyValue,
 }: CategorySpikeAlertsSectionProps) {
   return (
-    <View
-      style={{
-        borderRadius: 20,
-        padding: 20,
-        marginBottom: 16,
-        borderWidth: 1,
-      }}
-    >
-      <Text
-        style={{
-          fontSize: 16,
-          fontWeight: "700",
-          marginBottom: 12,
-          color: colors.text,
-        }}
-      >
+    <DashboardCard>
+      <Typography variant="subheading" style={styles.title}>
         Alertas de categorias en alza
-      </Text>
-      <Text
-        style={{ color: colors.textSecondary, fontSize: 12, marginBottom: 10 }}
-      >
+      </Typography>
+      <Typography variant="caption" muted style={styles.help}>
         Mes seleccionado con +30% o mas vs promedio de los otros meses del ano
         seleccionado
-      </Text>
+      </Typography>
 
       {periodView !== "month" ? (
-        <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
+        <Typography variant="bodySmall" muted>
           Cambia a vista mensual para comparar el mes seleccionado contra el
           resto del ano.
-        </Text>
+        </Typography>
       ) : alerts.length === 0 ? (
-        <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
+        <Typography variant="bodySmall" muted>
           Sin categorias con aumento significativo frente al promedio anual
           restante.
-        </Text>
+        </Typography>
       ) : (
-        <View style={{ gap: 10 }}>
+        <View style={styles.list}>
           {alerts.map((alert) => (
-            <View
+            <GlassSurface
               key={`${alert.weekLabel}-${alert.category}`}
-              style={{
-                borderWidth: 1,
-                borderColor: colors.border,
-                borderRadius: 12,
-                padding: 10,
-                backgroundColor: colors.surface,
-              }}
+              forceGlass
+              style={styles.alert}
+              fallbackStyle={[
+                styles.flatAlert,
+                {
+                  backgroundColor: colors.surface,
+                  borderColor: colors.border,
+                },
+              ]}
             >
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                }}
-              >
-                <Text
-                  style={{
-                    color: colors.text,
-                    fontSize: 13,
-                    fontWeight: "700",
-                    flex: 1,
-                  }}
+              <View style={styles.alertHeader}>
+                <Typography
+                  variant="bodySmall"
+                  weight="semibold"
+                  style={styles.alertCategory}
                   numberOfLines={1}
                 >
                   {alert.category}
-                </Text>
-                <Text
-                  style={{
-                    color: colors.error,
-                    fontSize: 13,
-                    fontWeight: "700",
-                  }}
-                >
+                </Typography>
+                <Typography variant="number" style={{ color: colors.warning }}>
                   +{alert.increasePct.toFixed(0)}%
-                </Text>
+                </Typography>
               </View>
-              <Text
-                style={{
-                  color: colors.textSecondary,
-                  fontSize: 12,
-                  marginTop: 4,
-                }}
-              >
+              <Typography variant="caption" muted style={styles.alertDetail}>
                 Mes actual: {formatWeeklyValue(alert.currentAmount)} vs Promedio
                 anual restante: {formatWeeklyValue(alert.averageAmount)}
-              </Text>
-            </View>
+              </Typography>
+            </GlassSurface>
           ))}
         </View>
       )}
-    </View>
+    </DashboardCard>
   );
 }
+
+const styles = StyleSheet.create({
+  title: {
+    marginBottom: Spacing.s,
+  },
+  help: {
+    marginBottom: Spacing.sm,
+  },
+  list: {
+    gap: Spacing.s,
+  },
+  /** Layout de la caja de alerta, con y sin cristal. */
+  alert: {
+    borderRadius: BorderRadius.m,
+    padding: Spacing.sm,
+    overflow: "hidden",
+  },
+  /** Fondo opaco + hairline: solo cuando no hay cristal. */
+  flatAlert: {
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  alertHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: Spacing.s,
+  },
+  alertCategory: {
+    flex: 1,
+  },
+  alertDetail: {
+    marginTop: Spacing.xs,
+  },
+});

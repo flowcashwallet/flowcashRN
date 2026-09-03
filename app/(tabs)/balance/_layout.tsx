@@ -23,8 +23,10 @@ export default function BalanceLayout() {
         options={{
           headerShown: true,
           headerTransparent: false,
+          headerStyle: { backgroundColor: colors.background },
+          headerShadowVisible: false,
           headerTitle: "Pagos",
-          presentation: "formSheet",
+          presentation: "pageSheet",
           sheetAllowedDetents: [0.9],
           contentStyle: {
             backgroundColor: colors.background,
@@ -35,9 +37,11 @@ export default function BalanceLayout() {
         name="liability-payments-management"
         options={{
           headerShown: true,
-          headerTransparent: true,
+          headerTransparent: false,
+          headerStyle: { backgroundColor: colors.background },
+          headerShadowVisible: false,
           headerTitle: "Gestión de pagos",
-          presentation: "formSheet",
+          presentation: "pageSheet",
           sheetAllowedDetents: [0.9],
           contentStyle: {
             backgroundColor: colors.background,

@@ -4,9 +4,16 @@ export interface DashboardColors {
   border: string;
   surface: string;
   surfaceHighlight: string;
+  /** Color por defecto de un icono que no codifica estado. */
+  icon: string;
   primary: string;
   success: string;
+  /** Solo para lo que de verdad está mal (p. ej. balance proyectado negativo). */
   error: string;
+  /** Advertencia real sobre el dato (p. ej. categoría disparada). */
+  warning: string;
+  /** Importe de gasto/débito. No es `error`: ver "Dirección estética" en el plan. */
+  expense: string;
 }
 
 export interface ExpenseTrendPoint {

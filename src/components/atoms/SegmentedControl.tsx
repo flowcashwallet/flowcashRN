@@ -1,3 +1,4 @@
+import { GlassSurface } from "@/components/atoms/GlassSurface";
 import { Typography } from "@/components/atoms/Typography";
 import { BorderRadius, Spacing } from "@/constants/theme";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -16,7 +17,7 @@ type SegmentedOption<T extends string> = {
   label: string;
 };
 
-type GlassSegmentedControlProps<T extends string> = {
+type SegmentedControlProps<T extends string> = {
   value: T;
   options: readonly [SegmentedOption<T>, SegmentedOption<T>];
   onChange: (value: T) => void;
@@ -24,13 +25,28 @@ type GlassSegmentedControlProps<T extends string> = {
   style?: StyleProp<ViewStyle>;
 };
 
-export function GlassSegmentedControl<T extends string>({
+/**
+ * Control segmentado de dos opciones.
+ *
+ * Se llamaba `GlassSegmentedControl`. Renombrado en el pase visual de Dashboard
+ * (2026-09-02): el material no es asunto del componente. En iOS 26+ su fondo es
+ * Liquid Glass **nativo** vía `GlassSurface` y en Android/web es
+ * `surfaceHighlight` + hairline — quien decide eso es el primitivo, no este
+ * nombre, y si mañana se monta dentro de otra superficie de cristal el guard de
+ * anidamiento lo aplana solo. Ver "Liquid Glass nativo en iOS" en
+ * `docs/refactor-plan.md`.
+ *
+ * El indicador del segmento activo se queda opaco (`primary`) a propósito: es un
+ * control **dentro** de una superficie de cristal, y no se apila cristal sobre
+ * cristal. Su texto va en `onPrimary` por el aviso de contraste.
+ */
+export function SegmentedControl<T extends string>({
   value,
   options,
   onChange,
   width = 140,
   style,
-}: GlassSegmentedControlProps<T>) {
+}: SegmentedControlProps<T>) {
   const { colors } = useTheme();
   const [containerWidth, setContainerWidth] = useState(0);
   const translateX = useRef(new Animated.Value(0)).current;
@@ -56,15 +72,14 @@ export function GlassSegmentedControl<T extends string>({
   }, [segmentWidth, selectedIndex, translateX]);
 
   return (
-    <View
-      style={[
-        styles.container,
+    <GlassSurface
+      style={[styles.container, { width }, style]}
+      fallbackStyle={[
+        styles.flatContainer,
         {
-          width,
           backgroundColor: colors.surfaceHighlight,
           borderColor: colors.border,
         },
-        style,
       ]}
       onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)}
     >
@@ -106,16 +121,24 @@ export function GlassSegmentedControl<T extends string>({
           );
         })}
       </View>
-    </View>
+    </GlassSurface>
   );
 }
 
 const styles = StyleSheet.create({
+  /** Layout del control, común a la variante con cristal y a la plana. */
   container: {
     borderRadius: BorderRadius.round,
     overflow: "hidden",
-    borderWidth: StyleSheet.hairlineWidth,
     padding: 2,
+  },
+  /**
+   * Tratamiento de fondo **sin** cristal: relleno suave + hairline, que es lo
+   * que ve Android/web y lo que había antes de recuperar el vidrio nativo. Con
+   * `GlassView` activo el material del sistema los sustituye a los dos.
+   */
+  flatContainer: {
+    borderWidth: StyleSheet.hairlineWidth,
   },
   indicator: {
     position: "absolute",

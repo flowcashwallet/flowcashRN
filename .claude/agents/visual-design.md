@@ -73,22 +73,48 @@ instead of making ad-hoc per-screen calls.
   `colors.success` for income. Never `colors.text` and never `colors.error` for a normal
   expense — `error` is reserved for a real error state (overdue, overdraft, failed). This is a
   standing rule, not a per-screen choice.
-- **Liquid Glass on iOS for a screen's floating surfaces (standing rule, permanent):** every
-  floating/elevated component you touch — list rows, headers/toolbars, search bars, segmented
-  controls, FABs, and `BottomSheet` panels, in every feature — gets native `GlassView`
-  treatment on iOS via the shared `src/components/atoms/GlassSurface.tsx` primitive (+
-  `.ios.tsx`), on top of the flat/hairline baseline that's the cross-platform identity. Full
-  contract — package (`expo-glass-effect`, already installed), the `.ios.tsx`-file split so the
-  import never reaches Android/web bundles, the mandatory `isGlassEffectAPIAvailable()` +
-  `isReduceTransparencyEnabled()` runtime gates with fallback to the plain surface,
-  `glassEffectStyle="regular"`, tint from theme tokens — is written out in full in
-  `docs/refactor-plan.md` under "### Liquid Glass nativo en iOS — toda la superficie flotante
-  de la pantalla". Read it before touching any such component, especially the "Qué NO lleva
-  vidrio" list: the screen's own background/canvas stays flat (glass needs an opaque backdrop
-  to read against — it's a layer that floats over content, never the content itself), and never
-  stack glass inside glass (a plain input inside an already-glass `BottomSheet` stays plain).
-  Reuse `GlassSurface` for every new glass surface — don't reimplement the two gates per
-  component.
+- **Liquid Glass on iOS, by default, for every component with its own surface (standing rule,
+  permanent):** this started scoped to list rows, then to "floating/elevated chrome", then
+  (2026-09-02, explicit user request after seeing Dashboard) to **every component that has its
+  own surface** — list rows, headers/toolbars, search bars, segmented controls, FABs,
+  `BottomSheet` panels, AND cards/section panels (anything with its own `colors.surface`
+  background sitting on the screen canvas). The default is now "glass it" unless it hits one of
+  exactly two exceptions. Full contract in `docs/refactor-plan.md` under "### Liquid Glass
+  nativo en iOS — toda la superficie flotante de la pantalla" — read it before touching any
+  surfaced component. The two exceptions, and only these two:
+  1. The screen's own root background/canvas — glass needs an opaque backdrop to read against.
+  2. Anything nested inside another component that's already glass — never stack glass on
+     glass.
+  Exception 2 is enforced by `GlassSurface` itself via React Context, not by you manually
+  reasoning about each screen's tree: its iOS variant provides "glass is active above me" to
+  its children, and a nested `GlassSurface` that finds that context already `true` renders its
+  flat fallback automatically. If you're implementing a new glass surface and this
+  context-based nesting guard isn't wired up yet in `GlassSurface.ios.tsx`, add it — don't
+  hand-reason per screen about what's nested in what, that doesn't scale.
+  Escape hatch: `forceGlass` prop on `GlassSurface` opts one instance out of the auto-flatten
+  (still respects the two runtime gates). There is no more "repeated content stays flat"
+  exception — that was tried and explicitly overturned by the user. The only two exceptions
+  left are structural: the screen's root canvas, and the nesting guard itself (which
+  `forceGlass` opts out of when glass is actually wanted there). For a group of several
+  repeated glass elements (list rows, a set of alert/payment boxes), check whether
+  `GlassContainer` (also exported by `expo-glass-effect`, meant for merging nearby glass views
+  into one effect) is a better fit than N individual `GlassSurface forceGlass` instances —
+  look up its real API in `node_modules/expo-glass-effect`'s types before using it, don't
+  guess its props. Individual `forceGlass` per row is still a valid fallback where
+  `GlassContainer` doesn't fit. See `docs/refactor-plan.md`'s nesting-mechanism section
+  (2026-09-02 updates, most recent one first) for the full reasoning and worked examples.
+  Package: `expo-glass-effect`. The `.ios.tsx`-file split so the import never reaches
+  Android/web bundles, `isGlassEffectAPIAvailable()` + `isReduceTransparencyEnabled()` gates,
+  `glassEffectStyle="regular"`, tint from theme tokens — all already implemented in
+  `src/components/atoms/GlassSurface.tsx`/`.ios.tsx`. Reuse it for every new surface — don't
+  reimplement the gates per component.
+  **Never `presentation: "formSheet"` on a route with `GlassSurface` content — use
+  `"pageSheet"`.** Confirmed root cause on-device (2026-09-02, "Fix ronda 5" in the plan's
+  verification log) of a bug where a `formSheet`-presented screen's glass content silently
+  failed to render/look right — `formSheet` is iOS's compact/restricted sheet and limits how
+  `UIGlassEffect` renders; `pageSheet` behaves like a normal screen for this. If you're touching
+  a route's `Stack.Screen` options and see `formSheet` on a screen with any `GlassSurface`
+  content, change it to `pageSheet`.
 - Do not touch files under that feature's `hooks/` folder, and do not move JSX between files
   for structural reasons — if a screen still needs decomposition, that's `arch-refactor`'s job,
   flag it instead of doing it yourself.

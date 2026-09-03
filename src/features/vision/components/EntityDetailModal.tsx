@@ -1,7 +1,8 @@
 import { Button } from "@/components/atoms/Button";
-import { Card } from "@/components/atoms/Card";
+import { GlassSurface } from "@/components/atoms/GlassSurface";
 import { Input } from "@/components/atoms/Input";
 import { Typography } from "@/components/atoms/Typography";
+import { BottomSheet } from "@/components/molecules/BottomSheet";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { BorderRadius, Spacing } from "@/constants/theme";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -13,7 +14,6 @@ import { router } from "expo-router";
 import React, { useState } from "react";
 import {
   FlatList,
-  Modal,
   Pressable,
   StyleSheet,
   TouchableOpacity,
@@ -37,6 +37,22 @@ interface EntityDetailModalProps {
   isSaving: boolean;
 }
 
+/**
+ * Detalle de un activo/pasivo.
+ *
+ * Migrado a `BottomSheet` en el pase visual de Vision: antes era un `Modal`
+ * propio con backdrop `rgba(0,0,0,0.5)` y un botón "Cerrar" de texto que ahora
+ * pone la primitiva (la X del header). Las acciones de editar/borrar/pagos
+ * viven en el slot `headerRight`.
+ *
+ * Su historial usa la misma fila del libro contable que `TransactionItem`, por
+ * pedido explícito del usuario: `GlassSurface` con `forceGlass` (la fila está
+ * dentro del panel del sheet, que ya es cristal, y desde el 2026-09-02 el
+ * contenido repetido con superficie propia también se vidria), importe en
+ * `variant="number"`, y el signo en `success` para lo que entra a la entidad y
+ * `expense` para lo que sale. Antes lo saliente iba en `colors.error`, que la
+ * dirección estética reserva para un fallo real.
+ */
 export const EntityDetailModal: React.FC<EntityDetailModalProps> = ({
   visible,
   onClose,
@@ -82,6 +98,7 @@ export const EntityDetailModal: React.FC<EntityDetailModalProps> = ({
     : [];
 
   if (!entity) return null;
+
   const onPressTransaction = (transaction: Transaction) => {
     onClose();
     router.push({
@@ -89,282 +106,340 @@ export const EntityDetailModal: React.FC<EntityDetailModalProps> = ({
       params: { id: transaction.id },
     });
   };
-  return (
-    <Modal
-      animationType="slide"
-      transparent={true}
-      visible={visible}
-      onRequestClose={onClose}
-    >
-      <View style={styles.modalOverlay}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-        <View
-          style={[
-            styles.modalContent,
-            { backgroundColor: colors.background, height: "85%" },
-          ]}
+
+  const headerActions = (
+    <View style={styles.headerActions}>
+      {entity.type === "liability" && (
+        <TouchableOpacity
+          onPress={() => {
+            onClose();
+            router.push({
+              pathname: "/balance/liability-payments",
+              params: { id: entity.id },
+            });
+          }}
+          accessibilityRole="button"
+          accessibilityLabel="Ver pagos"
         >
-          <View style={{ flex: 1, padding: Spacing.m }}>
-            {/* Header with actions */}
-            <View style={styles.header}>
-              <TouchableOpacity onPress={onClose}>
-                <Typography variant="body" style={{ color: colors.primary }}>
-                  {STRINGS.common.close}
-                </Typography>
-              </TouchableOpacity>
+          <IconSymbol
+            name="calendar.badge.checkmark"
+            size={24}
+            color={colors.primary}
+          />
+        </TouchableOpacity>
+      )}
+      <TouchableOpacity
+        onPress={onEdit}
+        accessibilityRole="button"
+        accessibilityLabel={STRINGS.common.edit}
+      >
+        <IconSymbol name="pencil" size={24} color={colors.primary} />
+      </TouchableOpacity>
+      <TouchableOpacity
+        onPress={onDelete}
+        accessibilityRole="button"
+        accessibilityLabel={STRINGS.common.delete}
+      >
+        <IconSymbol name="trash.fill" size={24} color={colors.error} />
+      </TouchableOpacity>
+      {/*
+        `headerRight` sustituye al botón de cerrar por defecto de la primitiva,
+        así que la X se repone aquí: el sheet no puede quedarse sin afordancia
+        de cierre (antes era un botón de texto "Cerrar" a la izquierda).
+      */}
+      <TouchableOpacity
+        onPress={onClose}
+        accessibilityRole="button"
+        accessibilityLabel={STRINGS.common.close}
+        style={[
+          styles.closeButton,
+          { backgroundColor: colors.surfaceHighlight },
+        ]}
+      >
+        <IconSymbol name="xmark" size={14} color={colors.icon} />
+      </TouchableOpacity>
+    </View>
+  );
 
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
-                {entity.type === "liability" && (
-                  <TouchableOpacity
-                    onPress={() => {
-                      onClose();
-                      router.push({
-                        pathname: "/balance/liability-payments",
-                        params: { id: entity.id },
-                      });
-                    }}
-                    style={{ marginRight: Spacing.m }}
-                  >
-                    <IconSymbol
-                      name="calendar.badge.checkmark"
-                      size={24}
-                      color={colors.primary}
-                    />
-                  </TouchableOpacity>
-                )}
-                <TouchableOpacity
-                  onPress={onEdit}
-                  style={{ marginRight: Spacing.m }}
-                >
-                  <IconSymbol name="pencil" size={24} color={colors.primary} />
-                </TouchableOpacity>
+  return (
+    <BottomSheet
+      visible={visible}
+      onClose={onClose}
+      title={entity.name}
+      headerRight={headerActions}
+      contentStyle={styles.sheetContent}
+    >
+      {/*
+        La cifra de la entidad es la protagonista del sheet: `display`, y en
+        `expense` si es un pasivo (sale del patrimonio), nunca en `error`.
+      */}
+      <Typography
+        variant="display"
+        style={{
+          color: entity.type === "liability" ? colors.expense : colors.text,
+        }}
+      >
+        {entity.type === "liability" ? "−" : ""}
+        {formatCurrency(entity.amount)}
+      </Typography>
 
-                <TouchableOpacity onPress={onDelete}>
-                  <IconSymbol
-                    name="trash.fill"
-                    size={24}
-                    color={colors.error}
-                  />
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* Entity Info */}
-            <Typography variant="h1" weight="bold">
-              {entity.name}
-            </Typography>
-            <Typography variant="h2" style={{ color: colors.primary }}>
-              {formatCurrency(entity.amount)}
-            </Typography>
-
-            {entity.isCrypto && entity.cryptoAmount && entity.cryptoSymbol ? (
-              <View style={{ alignItems: "flex-start", marginTop: Spacing.s }}>
-                <Typography variant="body" weight="bold">
-                  {entity.cryptoAmount} {entity.cryptoSymbol}
-                </Typography>
-                <Button
-                  title="Actualizar Precio"
-                  variant="outline"
-                  onPress={() => onUpdateCryptoPrice(entity)}
-                  loading={isSaving}
-                  style={{ marginTop: Spacing.xs, alignSelf: "flex-start" }}
-                />
-              </View>
-            ) : null}
-
-            {entity.description ? (
-              <Typography variant="body" style={{ marginTop: Spacing.xs }}>
-                {entity.description}
-              </Typography>
-            ) : null}
-
-            {/* Transaction History Section */}
-            <View style={{ marginTop: Spacing.l, flex: 1 }}>
-              <View style={styles.sectionHeader}>
-                <Typography variant="h3" weight="bold">
-                  {STRINGS.vision.transactionHistory}
-                </Typography>
-                <TouchableOpacity
-                  onPress={() => setShowAddTransaction(!showAddTransaction)}
-                >
-                  <IconSymbol
-                    name={
-                      showAddTransaction
-                        ? "minus.circle.fill"
-                        : "plus.circle.fill"
-                    }
-                    size={24}
-                    color={colors.primary}
-                  />
-                </TouchableOpacity>
-              </View>
-
-              {showAddTransaction && (
-                <Card style={{ marginBottom: Spacing.m }}>
-                  <Typography
-                    variant="caption"
-                    weight="bold"
-                    style={{ marginBottom: Spacing.s }}
-                  >
-                    Nueva Transacción para {entity.name}
-                  </Typography>
-                  <View
-                    style={{ flexDirection: "row", marginBottom: Spacing.s }}
-                  >
-                    {entity.type === "asset" ? (
-                      <Button
-                        title={STRINGS.wallet.income}
-                        variant={
-                          transactionType === "income" ? "primary" : "outline"
-                        }
-                        onPress={() => setTransactionType("income")}
-                        style={{ flex: 1, marginRight: Spacing.xs }}
-                      />
-                    ) : (
-                      <Button
-                        title={STRINGS.wallet.expense}
-                        variant={
-                          transactionType === "expense" ? "primary" : "outline"
-                        }
-                        onPress={() => setTransactionType("expense")}
-                        style={{ flex: 1, marginRight: Spacing.xs }}
-                      />
-                    )}
-                    {/* Reverse logic buttons if needed, but for simplicity let's stick to simple type selection */}
-                    {entity.type === "asset" && (
-                      <Button
-                        title={STRINGS.wallet.expense}
-                        variant={
-                          transactionType === "expense" ? "primary" : "outline"
-                        }
-                        onPress={() => setTransactionType("expense")}
-                        style={{ flex: 1, marginLeft: Spacing.xs }}
-                      />
-                    )}
-                    {entity.type === "liability" && (
-                      <Button
-                        title={STRINGS.wallet.income}
-                        variant={
-                          transactionType === "income" ? "primary" : "outline"
-                        }
-                        onPress={() => setTransactionType("income")}
-                        style={{ flex: 1, marginLeft: Spacing.xs }}
-                      />
-                    )}
-                  </View>
-                  <Input
-                    placeholder={STRINGS.wallet.amount}
-                    value={transactionAmount}
-                    onChangeText={(t) =>
-                      setTransactionAmount(formatAmountInput(t))
-                    }
-                    keyboardType="numeric"
-                  />
-                  <Input
-                    placeholder={STRINGS.wallet.description}
-                    value={transactionDescription}
-                    onChangeText={setTransactionDescription}
-                  />
-                  <Button
-                    title={STRINGS.common.save}
-                    onPress={handleAddTransaction}
-                    loading={isSaving}
-                  />
-                </Card>
-              )}
-
-              <FlatList
-                data={entityTransactions}
-                keyExtractor={(item) => item.id}
-                style={{ flex: 1 }}
-                contentContainerStyle={{
-                  flexGrow: 1,
-                  paddingBottom: Spacing.xl,
-                }}
-                keyboardShouldPersistTaps="handled"
-                renderItem={({ item }) => (
-                  <Pressable onPress={() => onPressTransaction(item)}>
-                    <Card
-                      style={{ marginBottom: Spacing.xs, padding: Spacing.s }}
-                    >
-                      <View
-                        style={{
-                          flexDirection: "row",
-                          justifyContent: "space-between",
-                        }}
-                      >
-                        <View>
-                          <Typography variant="body" weight="bold">
-                            {item.description}
-                          </Typography>
-                          <Typography variant="caption">
-                            {new Date(item.date).toLocaleDateString()}
-                          </Typography>
-                        </View>
-                        <Typography
-                          variant="body"
-                          weight="bold"
-                          style={{
-                            color: (() => {
-                              const isIncoming =
-                                item.type === "income" ||
-                                (item.type === "transfer" &&
-                                  item.transferRelatedEntityId === entity.id);
-                              return isIncoming ? colors.success : colors.error;
-                            })(),
-                          }}
-                        >
-                          {(() => {
-                            const isIncoming =
-                              item.type === "income" ||
-                              (item.type === "transfer" &&
-                                item.transferRelatedEntityId === entity.id);
-                            return isIncoming ? "+" : "-";
-                          })()}{" "}
-                          {formatCurrency(item.amount)}
-                        </Typography>
-                      </View>
-                    </Card>
-                  </Pressable>
-                )}
-                ListEmptyComponent={
-                  <Typography
-                    variant="caption"
-                    style={{ textAlign: "center", marginTop: Spacing.m }}
-                  >
-                    {STRINGS.wallet.noRecentTransactions}
-                  </Typography>
-                }
-              />
-            </View>
-          </View>
+      {entity.isCrypto && entity.cryptoAmount && entity.cryptoSymbol ? (
+        <View style={styles.cryptoBlock}>
+          <Typography variant="body" weight="semibold">
+            {entity.cryptoAmount} {entity.cryptoSymbol}
+          </Typography>
+          <Button
+            title="Actualizar precio"
+            variant="outline"
+            onPress={() => onUpdateCryptoPrice(entity)}
+            loading={isSaving}
+            style={styles.cryptoButton}
+          />
         </View>
+      ) : null}
+
+      {entity.description ? (
+        <Typography variant="bodySmall" muted style={styles.description}>
+          {entity.description}
+        </Typography>
+      ) : null}
+
+      <View style={styles.history}>
+        <View style={styles.sectionHeader}>
+          <Typography variant="overline" muted>
+            {STRINGS.vision.transactionHistory}
+          </Typography>
+          <TouchableOpacity
+            onPress={() => setShowAddTransaction(!showAddTransaction)}
+            accessibilityRole="button"
+            accessibilityLabel="Nueva transacción"
+          >
+            <IconSymbol
+              name={
+                showAddTransaction ? "minus.circle.fill" : "plus.circle.fill"
+              }
+              size={24}
+              color={colors.primary}
+            />
+          </TouchableOpacity>
+        </View>
+
+        {showAddTransaction && (
+          <View
+            style={[
+              styles.addForm,
+              {
+                backgroundColor: colors.surfaceHighlight,
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            <Typography variant="caption" muted style={styles.addFormTitle}>
+              Nueva transacción para {entity.name}
+            </Typography>
+            <View style={styles.addFormTypes}>
+              {entity.type === "asset" ? (
+                <Button
+                  title={STRINGS.wallet.income}
+                  variant={transactionType === "income" ? "primary" : "outline"}
+                  onPress={() => setTransactionType("income")}
+                  style={styles.addFormTypeButton}
+                />
+              ) : (
+                <Button
+                  title={STRINGS.wallet.expense}
+                  variant={
+                    transactionType === "expense" ? "primary" : "outline"
+                  }
+                  onPress={() => setTransactionType("expense")}
+                  style={styles.addFormTypeButton}
+                />
+              )}
+              {entity.type === "asset" && (
+                <Button
+                  title={STRINGS.wallet.expense}
+                  variant={
+                    transactionType === "expense" ? "primary" : "outline"
+                  }
+                  onPress={() => setTransactionType("expense")}
+                  style={styles.addFormTypeButton}
+                />
+              )}
+              {entity.type === "liability" && (
+                <Button
+                  title={STRINGS.wallet.income}
+                  variant={transactionType === "income" ? "primary" : "outline"}
+                  onPress={() => setTransactionType("income")}
+                  style={styles.addFormTypeButton}
+                />
+              )}
+            </View>
+            <Input
+              placeholder={STRINGS.wallet.amount}
+              value={transactionAmount}
+              onChangeText={(t) => setTransactionAmount(formatAmountInput(t))}
+              keyboardType="numeric"
+            />
+            <Input
+              placeholder={STRINGS.wallet.description}
+              value={transactionDescription}
+              onChangeText={setTransactionDescription}
+            />
+            <Button
+              title={STRINGS.common.save}
+              onPress={handleAddTransaction}
+              loading={isSaving}
+            />
+          </View>
+        )}
+
+        <FlatList
+          data={entityTransactions}
+          keyExtractor={(item) => item.id}
+          style={styles.list}
+          contentContainerStyle={styles.listContent}
+          keyboardShouldPersistTaps="handled"
+          renderItem={({ item }) => {
+            const isIncoming =
+              item.type === "income" ||
+              (item.type === "transfer" &&
+                item.transferRelatedEntityId === entity.id);
+            const amountColor = isIncoming ? colors.success : colors.expense;
+
+            return (
+              <Pressable onPress={() => onPressTransaction(item)}>
+                <GlassSurface
+                  forceGlass
+                  isInteractive
+                  style={styles.row}
+                  fallbackStyle={[
+                    styles.flatRow,
+                    {
+                      backgroundColor: colors.surface,
+                      borderColor: colors.border,
+                    },
+                  ]}
+                >
+                  <View style={styles.rowCopy}>
+                    <Typography
+                      variant="body"
+                      weight="semibold"
+                      numberOfLines={1}
+                    >
+                      {item.description}
+                    </Typography>
+                    <Typography variant="caption" muted>
+                      {new Date(item.date).toLocaleDateString()}
+                    </Typography>
+                  </View>
+                  <Typography variant="number" style={{ color: amountColor }}>
+                    {isIncoming ? "+" : "−"}
+                    {formatCurrency(item.amount)}
+                  </Typography>
+                </GlassSurface>
+              </Pressable>
+            );
+          }}
+          ListEmptyComponent={
+            <Typography variant="caption" muted style={styles.emptyCopy}>
+              {STRINGS.wallet.noRecentTransactions}
+            </Typography>
+          }
+        />
       </View>
-    </Modal>
+    </BottomSheet>
   );
 };
 
 const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "flex-end",
+  /**
+   * `flexShrink` encadenado: el panel del sheet ya lo tiene, así el contenido y
+   * la lista de dentro se ajustan al tope de altura del sheet y la lista scrollea
+   * en vez de desbordarse.
+   */
+  sheetContent: {
+    flexShrink: 1,
   },
-  modalContent: {
-    borderTopLeftRadius: BorderRadius.xl,
-    borderTopRightRadius: BorderRadius.xl,
-    padding: Spacing.l,
-  },
-  header: {
+  headerActions: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: Spacing.m,
+    gap: Spacing.m,
+  },
+  closeButton: {
+    width: 28,
+    height: 28,
+    borderRadius: BorderRadius.round,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cryptoBlock: {
+    alignItems: "flex-start",
+    marginTop: Spacing.s,
+    gap: Spacing.xs,
+  },
+  cryptoButton: {
+    alignSelf: "flex-start",
+  },
+  description: {
+    marginTop: Spacing.xs,
+  },
+  history: {
+    marginTop: Spacing.l,
+    flexShrink: 1,
   },
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: Spacing.s,
+  },
+  /**
+   * Formulario rápido: plano a propósito. Es un bloque **dentro** del panel del
+   * sheet, que ya es la superficie de cristal.
+   */
+  addForm: {
+    padding: Spacing.m,
+    borderRadius: BorderRadius.l,
+    borderWidth: StyleSheet.hairlineWidth,
+    marginBottom: Spacing.m,
+  },
+  addFormTitle: {
+    marginBottom: Spacing.s,
+  },
+  addFormTypes: {
+    flexDirection: "row",
+    gap: Spacing.s,
+    marginBottom: Spacing.s,
+  },
+  addFormTypeButton: {
+    flex: 1,
+  },
+  list: {
+    flexShrink: 1,
+  },
+  listContent: {
+    gap: Spacing.s,
+    paddingBottom: Spacing.m,
+  },
+  /** Layout de la fila, común a la variante con cristal y a la plana. */
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: BorderRadius.l,
+    overflow: "hidden",
+  },
+  /** Fondo opaco + hairline: solo cuando no hay cristal. */
+  flatRow: {
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  rowCopy: {
+    flex: 1,
+  },
+  emptyCopy: {
+    textAlign: "center",
+    marginTop: Spacing.m,
   },
 });

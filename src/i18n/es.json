@@ -193,6 +193,7 @@
     "toggleWeekShow": "Ver gastos",
     "toggleWeekHide": "Ocultar gastos",
     "weekRange": "{from}–{to}",
-    "uncategorized": "Sin categoría"
+    "uncategorized": "Sin categoría",
+    "recentTransactions": "Movimientos recientes"
   }
 }

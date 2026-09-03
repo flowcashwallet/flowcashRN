@@ -7,7 +7,7 @@
 // --- LIGHT THEME (Glacial Breeze) ---
 const lightPalette = {
   // Backgrounds
-  background: "#e8f4e4", // Ice/Mint 50
+  background: "#f7f5fa", // Ice/Mint 50
   surface: "#FFFFFF", // Pure White
   surfaceHighlight: "#E0F2FE", // Sky 100
   surfaceActive: "#CCFBF1", // Teal 100
@@ -98,9 +98,11 @@ const darkPalette = {
 /**
  * Nota de dirección estética (ver `docs/refactor-plan.md`):
  * `glass.*` y `gradients.*` quedan **deprecados**. La dirección es superficie plana +
- * hairline. Se conservan porque todavía los consumen componentes que se limpian en los
- * pases visuales por pantalla (`GlassSegmentedControl`, `MetricGlassPill`, `ForecastCard`,
- * `TransactionItem`, `VisionHeader`, `VisionEntityList`, `BudgetDashboard`, `VisionScreen`).
+ * hairline. Se conservan porque todavía los consume un componente que se limpiará en el
+ * pase visual de su pantalla. **Consumidor restante al cerrar el pase de Analytics
+ * (2026-09-02): solo `BudgetDashboard` (3 usos de `glass.cardBg`).** `ForecastCard` se
+ * limpió en ese pase; `VisionHeader`, `VisionEntityList`, `VisionAssetLiabilityTabs` y
+ * `LiabilityManagementLink` ya lo estaban. `gradients.*` no tiene ningún consumidor.
  * No añadir usos nuevos.
  */
 export const Colors = {
@@ -195,14 +197,49 @@ export const BorderRadius = {
  * los ~63 usos existentes; no usar en código nuevo.
  */
 export const TypographyScale = {
-  display: { fontSize: 34, lineHeight: 40, fontWeight: "700", letterSpacing: -0.4 },
-  title: { fontSize: 28, lineHeight: 36, fontWeight: "700", letterSpacing: -0.3 },
-  heading: { fontSize: 22, lineHeight: 28, fontWeight: "700", letterSpacing: -0.2 },
-  subheading: { fontSize: 18, lineHeight: 24, fontWeight: "600", letterSpacing: -0.1 },
+  display: {
+    fontSize: 34,
+    lineHeight: 40,
+    fontWeight: "700",
+    letterSpacing: -0.4,
+  },
+  title: {
+    fontSize: 28,
+    lineHeight: 36,
+    fontWeight: "700",
+    letterSpacing: -0.3,
+  },
+  heading: {
+    fontSize: 22,
+    lineHeight: 28,
+    fontWeight: "700",
+    letterSpacing: -0.2,
+  },
+  subheading: {
+    fontSize: 18,
+    lineHeight: 24,
+    fontWeight: "600",
+    letterSpacing: -0.1,
+  },
   body: { fontSize: 16, lineHeight: 24, fontWeight: "400", letterSpacing: 0 },
-  bodySmall: { fontSize: 14, lineHeight: 20, fontWeight: "400", letterSpacing: 0 },
-  caption: { fontSize: 12, lineHeight: 16, fontWeight: "400", letterSpacing: 0.1 },
-  overline: { fontSize: 11, lineHeight: 16, fontWeight: "600", letterSpacing: 0.8 },
+  bodySmall: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: "400",
+    letterSpacing: 0,
+  },
+  caption: {
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: "400",
+    letterSpacing: 0.1,
+  },
+  overline: {
+    fontSize: 11,
+    lineHeight: 16,
+    fontWeight: "600",
+    letterSpacing: 0.8,
+  },
   button: { fontSize: 16, lineHeight: 24, fontWeight: "600", letterSpacing: 0 },
   number: { fontSize: 16, lineHeight: 24, fontWeight: "600", letterSpacing: 0 },
 } as const;

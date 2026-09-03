@@ -1,9 +1,12 @@
+import { GlassSurface } from "@/components/atoms/GlassSurface";
+import { Typography } from "@/components/atoms/Typography";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { BorderRadius, Spacing } from "@/constants/theme";
 import STRINGS from "@/i18n/es.json";
 import { formatCurrency } from "@/utils/format";
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
+import { DashboardCard } from "./DashboardCard";
 import { DashboardColors } from "./types";
 
 interface BalanceOverviewSectionProps {
@@ -15,6 +18,26 @@ interface BalanceOverviewSectionProps {
   savings: number;
 }
 
+interface BalanceOverviewPill {
+  key: string;
+  label: string;
+  amount: number;
+  accent: string;
+  icon: "arrow.down.left" | "arrow.up.right" | "banknote.fill";
+}
+
+/**
+ * La cifra protagonista de la pantalla y sus tres desgloses.
+ *
+ * El saldo va en `variant="display"` porque es *la* cifra que responde "¿cómo
+ * voy?"; los tres importes de abajo en `variant="number"` (tabulares, a la
+ * derecha) para que la columna cuadre. El saldo negativo se pinta en `expense`,
+ * no en `error`: un mes en rojo contable no es un fallo — mismo criterio que el
+ * saldo del día de `TransactionList`.
+ *
+ * La card y cada píldora son superficies propias y hermanas entre sí, así que
+ * las cuatro llevan cristal en iOS 26+; no hay anidamiento.
+ */
 export function BalanceOverviewSection({
   colors,
   periodView,
@@ -23,145 +46,123 @@ export function BalanceOverviewSection({
   balance,
   savings,
 }: BalanceOverviewSectionProps) {
+  const pills: BalanceOverviewPill[] = [
+    {
+      key: "income",
+      label:
+        periodView === "year"
+          ? STRINGS.dashboard.yearlyIncome
+          : STRINGS.dashboard.monthlyIncome,
+      amount: income,
+      accent: colors.success,
+      icon: "arrow.down.left",
+    },
+    {
+      key: "expense",
+      label:
+        periodView === "year"
+          ? STRINGS.dashboard.yearlyOutflow
+          : STRINGS.dashboard.monthlyOutflow,
+      amount: expense,
+      accent: colors.expense,
+      icon: "arrow.up.right",
+    },
+    {
+      key: "savings",
+      label: STRINGS.dashboard.projectedSavings,
+      amount: savings,
+      accent: colors.primary,
+      icon: "banknote.fill",
+    },
+  ];
+
   return (
     <>
-      <View style={styles.card}>
-        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+      <DashboardCard style={styles.balanceCard}>
+        <Typography variant="overline" muted>
           {STRINGS.dashboard.total}
-        </Text>
-        <Text
-          style={[
-            styles.bigAmount,
-            { color: balance >= 0 ? colors.success : colors.error },
-          ]}
+        </Typography>
+        <Typography
+          variant="display"
+          style={{ color: balance >= 0 ? colors.success : colors.expense }}
         >
           {formatCurrency(balance)}
-        </Text>
-      </View>
+        </Typography>
+      </DashboardCard>
 
-      <View style={{ gap: 12, marginBottom: Spacing.m }}>
-        <View
-          style={[
-            styles.pill,
-            {
-              borderLeftColor: colors.success,
-              borderColor: colors.border,
-            },
-          ]}
-        >
-          <View style={[styles.pillIcon, { borderColor: colors.success }]}>
-            <IconSymbol
-              name="arrow.down.left"
-              size={16}
-              color={colors.success}
-            />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>
-              {periodView === "year"
-                ? STRINGS.dashboard.yearlyIncome
-                : STRINGS.dashboard.monthlyIncome}
-            </Text>
-            <Text style={[styles.value, { color: colors.text }]}>
-              {formatCurrency(income)}
-            </Text>
-          </View>
-        </View>
-
-        <View
-          style={[
-            styles.pill,
-            {
-              borderLeftColor: colors.error,
-              borderColor: colors.border,
-            },
-          ]}
-        >
-          <View style={[styles.pillIcon, { borderColor: colors.error }]}>
-            <IconSymbol name="arrow.up.right" size={16} color={colors.error} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>
-              {periodView === "year"
-                ? STRINGS.dashboard.yearlyOutflow
-                : STRINGS.dashboard.monthlyOutflow}
-            </Text>
-            <Text style={[styles.value, { color: colors.text }]}>
-              {formatCurrency(expense)}
-            </Text>
-          </View>
-        </View>
-
-        <View
-          style={[
-            styles.pill,
-            {
-              borderLeftColor: colors.primary,
-              borderColor: colors.border,
-            },
-          ]}
-        >
-          <View style={[styles.pillIcon, { borderColor: colors.primary }]}>
-            <IconSymbol name="banknote.fill" size={16} color={colors.primary} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>
-              {STRINGS.dashboard.projectedSavings}
-            </Text>
-            <Text style={[styles.value, { color: colors.text }]}>
-              {formatCurrency(savings)}
-            </Text>
-          </View>
-        </View>
+      <View style={styles.pills}>
+        {pills.map((pill) => (
+          <GlassSurface
+            key={pill.key}
+            style={[styles.pill, { borderLeftColor: pill.accent }]}
+            fallbackStyle={[
+              styles.flatPill,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+                borderLeftColor: pill.accent,
+              },
+            ]}
+          >
+            <View style={[styles.pillIcon, { borderColor: pill.accent }]}>
+              <IconSymbol name={pill.icon} size={16} color={pill.accent} />
+            </View>
+            <View style={styles.pillCopy}>
+              <Typography variant="overline" muted>
+                {pill.label}
+              </Typography>
+              <Typography variant="number" style={styles.pillAmount}>
+                {formatCurrency(pill.amount)}
+              </Typography>
+            </View>
+          </GlassSurface>
+        ))}
       </View>
     </>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    borderRadius: BorderRadius.xl,
-    padding: 20,
-    marginBottom: 16,
-    borderWidth: 1,
+  /** El bloque de píldoras es la continuación de esta card, no otra sección. */
+  balanceCard: {
+    marginBottom: Spacing.sm,
   },
-  subtitle: {
-    fontSize: 10,
-    letterSpacing: 2,
-    fontWeight: "700",
-    marginBottom: 8,
+  pills: {
+    gap: Spacing.sm,
+    marginBottom: Spacing.l,
   },
-  bigAmount: {
-    fontSize: 40,
-    fontWeight: "bold",
-    marginBottom: 12,
-    lineHeight: 44,
-  },
+  /**
+   * Layout de la píldora, común a la variante con cristal y a la plana. El
+   * `borderLeftWidth` se queda aquí (y no en `flatPill`) porque es el acento de
+   * estado —ingreso / gasto / ahorro—, no el borde de la superficie.
+   */
   pill: {
-    borderRadius: 30,
-    padding: 16,
     flexDirection: "row",
     alignItems: "center",
+    gap: Spacing.sm,
+    padding: Spacing.m,
+    borderRadius: BorderRadius.round,
     borderLeftWidth: 2,
-    borderWidth: 1,
+    overflow: "hidden",
+  },
+  /** Fondo opaco + hairline: solo cuando no hay cristal. */
+  flatPill: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderLeftWidth: 2,
   },
   pillIcon: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: BorderRadius.round,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1,
-    marginRight: 12,
+    borderWidth: StyleSheet.hairlineWidth,
   },
-  label: {
-    fontSize: 10,
-    letterSpacing: 1,
-    fontWeight: "700",
-    marginBottom: 4,
+  pillCopy: {
+    flex: 1,
   },
-  value: {
-    fontSize: 18,
-    fontWeight: "700",
+  /** La cifra sigue la columna del bloque, pegada al borde izquierdo del texto. */
+  pillAmount: {
+    textAlign: "left",
   },
 });

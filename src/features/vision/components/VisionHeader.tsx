@@ -1,3 +1,4 @@
+import { GlassSurface } from "@/components/atoms/GlassSurface";
 import { Typography } from "@/components/atoms/Typography";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { BorderRadius, Spacing } from "@/constants/theme";
@@ -5,7 +6,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import STRINGS from "@/i18n/es.json";
 import { formatCurrency } from "@/utils/format";
 import React, { useState } from "react";
-import { Platform, StyleSheet, TouchableOpacity, View } from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 import Animated, {
   FadeIn,
   FadeOut,
@@ -18,159 +19,168 @@ interface VisionHeaderProps {
   totalLiabilities: number;
 }
 
+/**
+ * Card de patrimonio de Vision.
+ *
+ * Es una superficie propia sobre el canvas, así que en iOS 26+ lleva Liquid
+ * Glass nativo vía `GlassSurface` (regla por defecto desde el 2026-09-02, ver
+ * `docs/refactor-plan.md`); sin cristal cae a `surface` + hairline, igual que
+ * las cards de Dashboard. Antes pintaba `colors.glass.cardBg` —el vidrio falso
+ * deprecado— más una sombra con `#000` a mano.
+ *
+ * Los importes van en `variant="number"` para que la columna cuadre, y el signo
+ * se codifica con `success`/`expense`: los pasivos son dinero que sale del
+ * patrimonio, nunca `error`.
+ */
 export const VisionHeader: React.FC<VisionHeaderProps> = ({
   netWorth,
   totalAssets,
   totalLiabilities,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false); // Default collapsed
+  const { colors } = useTheme();
 
-  const colors = useTheme().colors;
+  const netWorthColor = netWorth >= 0 ? colors.success : colors.expense;
+
   return (
-    <View
-      style={[
-        styles.balanceCard,
-        {
-          padding: Spacing.m,
-          borderRadius: BorderRadius.xl,
-          backgroundColor: colors.glass.cardBg, // Dark card background
-          borderWidth: 0,
-          ...Platform.select({
-            ios: {
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.3,
-              shadowRadius: 10,
-            },
-            android: { elevation: 6 },
-          }),
-        },
+    <GlassSurface
+      style={styles.card}
+      fallbackStyle={[
+        styles.flatCard,
+        { backgroundColor: colors.surface, borderColor: colors.border },
       ]}
     >
-      {/* Header / Title Row */}
       <TouchableOpacity
         onPress={() => setIsExpanded(!isExpanded)}
         activeOpacity={0.8}
-        style={{
-          flexDirection: "row",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: isExpanded ? Spacing.m : 0,
-        }}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: isExpanded }}
+        style={[styles.titleRow, isExpanded && styles.titleRowExpanded]}
       >
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-          <Typography variant="h3" weight="bold">
-            {STRINGS.vision.netWorth}
-          </Typography>
-        </View>
+        <Typography variant="subheading">{STRINGS.vision.netWorth}</Typography>
         <IconSymbol
           name={isExpanded ? "chevron.up" : "chevron.down"}
           size={16}
-          color={colors.textSecondary}
+          color={colors.icon}
         />
       </TouchableOpacity>
 
-      {/* Expanded Content */}
       {isExpanded ? (
         <Animated.View
           entering={FadeIn.duration(300)}
           exiting={FadeOut.duration(200)}
           layout={LinearTransition}
         >
-          {/* Assets */}
           <View style={styles.row}>
-            <View
-              style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
-            >
-              <Typography>{STRINGS.vision.assets}</Typography>
-              <IconSymbol name="info.circle" size={14} color="#8E8E93" />
-            </View>
-            <View
-              style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
-            >
-              <Typography weight="bold">
+            <Typography variant="body" muted>
+              {STRINGS.vision.assets}
+            </Typography>
+            <View style={styles.amountGroup}>
+              <Typography variant="number" style={{ color: colors.success }}>
                 {formatCurrency(totalAssets)}
               </Typography>
-              <View style={[styles.dot, { backgroundColor: "#30D158" }]} />
+              <View style={[styles.dot, { backgroundColor: colors.success }]} />
             </View>
           </View>
 
-          {/* Liabilities */}
           <View style={styles.row}>
-            <Typography>{STRINGS.vision.liabilities}</Typography>
-            <View
-              style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
-            >
-              <Typography weight="bold">
-                -{formatCurrency(totalLiabilities)}
+            <Typography variant="body" muted>
+              {STRINGS.vision.liabilities}
+            </Typography>
+            <View style={styles.amountGroup}>
+              <Typography variant="number" style={{ color: colors.expense }}>
+                −{formatCurrency(totalLiabilities)}
               </Typography>
-              <View style={[styles.dot, { backgroundColor: "#FF453A" }]} />
+              <View style={[styles.dot, { backgroundColor: colors.expense }]} />
             </View>
           </View>
 
-          {/* Divider */}
           <View
-            style={{
-              height: 1,
-              backgroundColor: "#3A3A3C",
-              marginVertical: Spacing.s,
-            }}
+            style={[styles.divider, { backgroundColor: colors.border }]}
+            pointerEvents="none"
           />
 
-          {/* Net Worth */}
-          <View style={styles.row}>
-            <Typography>{STRINGS.wallet.balanceTotal}</Typography>
-            <View
-              style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
-            >
-              <Typography weight="bold">{formatCurrency(netWorth)}</Typography>
-              <View
-                style={[
-                  styles.dot,
-                  { backgroundColor: netWorth >= 0 ? "#30D158" : "#FF453A" },
-                ]}
-              />
+          <View style={[styles.row, styles.rowFlush]}>
+            <Typography variant="body">
+              {STRINGS.wallet.balanceTotal}
+            </Typography>
+            <View style={styles.amountGroup}>
+              <Typography variant="number" style={{ color: netWorthColor }}>
+                {formatCurrency(netWorth)}
+              </Typography>
+              <View style={[styles.dot, { backgroundColor: netWorthColor }]} />
             </View>
           </View>
         </Animated.View>
       ) : (
-        /* Collapsed View - Just Balance */
         <Animated.View
           entering={FadeIn.duration(300)}
           exiting={FadeOut.duration(200)}
           layout={LinearTransition}
-          style={{ marginTop: 4 }}
+          style={styles.collapsed}
         >
-          <View
-            style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <Typography>{STRINGS.wallet.balanceTotal}</Typography>
-            <Typography weight="bold">{formatCurrency(netWorth)}</Typography>
-          </View>
+          {/*
+            Colapsado, el patrimonio es la cifra protagonista de la pantalla:
+            va en `display` con su etiqueta en `overline`, no comprimida en una
+            fila de label + importe.
+          */}
+          <Typography variant="overline" muted>
+            {STRINGS.wallet.balanceTotal}
+          </Typography>
+          <Typography variant="display" style={{ color: netWorthColor }}>
+            {formatCurrency(netWorth)}
+          </Typography>
         </Animated.View>
       )}
-    </View>
+    </GlassSurface>
   );
 };
 
 const styles = StyleSheet.create({
-  balanceCard: {
+  /** Layout de la card, común a la variante con cristal y a la plana. */
+  card: {
+    padding: Spacing.m,
+    borderRadius: BorderRadius.xl,
     marginBottom: Spacing.l,
     overflow: "hidden",
+  },
+  /** Fondo opaco + hairline: solo cuando no hay cristal. */
+  flatCard: {
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  titleRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  titleRowExpanded: {
+    marginBottom: Spacing.m,
+  },
+  collapsed: {
+    marginTop: Spacing.xs,
   },
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: Spacing.s,
+  },
+  /** Última fila del bloque: sin el paso de separación que trae `row`. */
+  rowFlush: {
+    marginBottom: 0,
+  },
+  amountGroup: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.s,
+  },
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    marginVertical: Spacing.s,
   },
   dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: Spacing.s,
+    height: Spacing.s,
+    borderRadius: BorderRadius.round,
   },
 });

@@ -1,9 +1,9 @@
-import { GlassSegmentedControl } from "@/components/atoms/GlassSegmentedControl";
+import { SegmentedControl } from "@/components/atoms/SegmentedControl";
 import { Spacing } from "@/constants/theme";
 import { MonthSelector } from "@/features/wallet/components/MonthSelector";
 import STRINGS from "@/i18n/es.json";
 import React from "react";
-import { View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
 interface DashboardPeriodControlsProps {
   periodView: "month" | "year";
@@ -14,6 +14,17 @@ interface DashboardPeriodControlsProps {
   onChangePeriodView: (value: "month" | "year") => void;
 }
 
+/**
+ * Cabecera de periodo del dashboard: píldora de mes/año + segmentado.
+ *
+ * **Vidrio por control, no un panel único** — la misma decisión que en
+ * `WalletListHeader` (ver "Retrofit ronda 2" en `docs/refactor-plan.md`).
+ * `MonthSelector` y `SegmentedControl` ya son superficies de cristal por sí
+ * mismas; envolverlas en una card las dejaría anidadas y el guard de
+ * anidamiento de `GlassSurface` las aplanaría, cambiando dos cristales vivos
+ * por una losa. Esta fila es solo layout: no tiene —ni debe tener— superficie
+ * propia.
+ */
 export function DashboardPeriodControls({
   periodView,
   selectedDate,
@@ -23,13 +34,7 @@ export function DashboardPeriodControls({
   onChangePeriodView,
 }: DashboardPeriodControlsProps) {
   return (
-    <View
-      style={{
-        marginBottom: Spacing.m,
-        flexDirection: "row",
-        alignItems: "center",
-      }}
-    >
+    <View style={styles.row}>
       <MonthSelector
         currentMonthName={
           periodView === "year"
@@ -40,8 +45,7 @@ export function DashboardPeriodControls({
         showYear={periodView === "month" && year !== new Date().getFullYear()}
         onPress={onOpenDatePicker}
       />
-      <GlassSegmentedControl
-        style={{ marginLeft: Spacing.s }}
+      <SegmentedControl
         value={periodView}
         options={[
           { value: "month", label: STRINGS.wallet.viewMonth },
@@ -52,3 +56,12 @@ export function DashboardPeriodControls({
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.s,
+    marginBottom: Spacing.l,
+  },
+});

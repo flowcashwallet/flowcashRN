@@ -1,15 +1,9 @@
 import { Typography } from "@/components/atoms/Typography";
-import { IconSymbol } from "@/components/ui/icon-symbol";
-import { BorderRadius, Colors, Spacing } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { BottomSheet } from "@/components/molecules/BottomSheet";
+import { BorderRadius, Spacing } from "@/constants/theme";
+import { useTheme } from "@/contexts/ThemeContext";
 import React from "react";
-import {
-  Modal,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 
 interface VisionFilterModalProps {
   visible: boolean;
@@ -19,6 +13,18 @@ interface VisionFilterModalProps {
   onSelectCategory: (category: string | null) => void;
 }
 
+const ALL = "__all__";
+
+/**
+ * Filtro por categoría de Vision.
+ *
+ * Migrado a la primitiva `BottomSheet` en el pase visual de Vision: antes era un
+ * `Modal` propio con su backdrop `rgba(0,0,0,0.5)`, su sombra `#000` y su header
+ * a mano. También pasa de `useColorScheme()` + `Colors[...]` a `useTheme()`, así
+ * respeta el toggle de tema de la app (mismo arreglo que `TransactionFilterModal`).
+ * Los chips se quedan planos: van **dentro** del panel del sheet, que ya es la
+ * superficie de cristal.
+ */
 export const VisionFilterModal: React.FC<VisionFilterModalProps> = ({
   visible,
   onClose,
@@ -26,147 +32,77 @@ export const VisionFilterModal: React.FC<VisionFilterModalProps> = ({
   selectedCategory,
   onSelectCategory,
 }) => {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme === "dark" ? "dark" : "light"];
+  const { colors } = useTheme();
 
   const handleSelect = (category: string | null) => {
     onSelectCategory(category);
     onClose();
   };
 
-  return (
-    <Modal
-      animationType="slide"
-      transparent={true}
-      visible={visible}
-      onRequestClose={onClose}
-    >
-      <View style={styles.centeredView}>
-        <View
-          style={[styles.modalView, { backgroundColor: colors.background }]}
-        >
-          <View style={styles.header}>
-            <Typography
-              variant="h3"
-              weight="bold"
-              style={{ color: colors.text }}
-            >
-              Filtrar por Categoría
-            </Typography>
-            <TouchableOpacity onPress={onClose}>
-              <IconSymbol name="xmark" size={24} color={colors.text} />
-            </TouchableOpacity>
-          </View>
+  const options: { key: string; label: string; value: string | null }[] = [
+    { key: ALL, label: "Todas", value: null },
+    ...categories.map((cat) => ({ key: cat, label: cat, value: cat })),
+  ];
 
-          <ScrollView style={styles.scrollView}>
-            <Typography
-              variant="body"
-              weight="bold"
-              style={{ marginBottom: Spacing.s, color: colors.text }}
-            >
-              Categorías
-            </Typography>
-            <View style={styles.categoriesContainer}>
+  return (
+    <BottomSheet
+      visible={visible}
+      onClose={onClose}
+      title="Filtrar por categoría"
+    >
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <Typography variant="overline" muted style={styles.sectionLabel}>
+          Categorías
+        </Typography>
+
+        <View style={styles.chips}>
+          {options.map((option) => {
+            const selected = selectedCategory === option.value;
+            return (
               <TouchableOpacity
+                key={option.key}
                 style={[
-                  styles.categoryChip,
+                  styles.chip,
                   {
-                    borderColor: colors.border,
-                    backgroundColor:
-                      selectedCategory === null
-                        ? colors.primary
-                        : "transparent",
+                    borderColor: selected ? colors.primary : colors.border,
+                    backgroundColor: selected
+                      ? colors.primary
+                      : colors.surfaceHighlight,
                   },
                 ]}
-                onPress={() => handleSelect(null)}
+                onPress={() => handleSelect(option.value)}
+                accessibilityRole="button"
+                accessibilityState={{ selected }}
               >
                 <Typography
-                  variant="caption"
-                  style={{
-                    color: selectedCategory === null ? "#FFF" : colors.text,
-                  }}
+                  variant="bodySmall"
+                  style={selected ? { color: colors.onPrimary } : undefined}
                 >
-                  Todas
+                  {option.label}
                 </Typography>
               </TouchableOpacity>
-              {categories.map((cat) => (
-                <TouchableOpacity
-                  key={cat}
-                  style={[
-                    styles.categoryChip,
-                    {
-                      borderColor: colors.border,
-                      backgroundColor:
-                        selectedCategory === cat
-                          ? colors.primary
-                          : "transparent",
-                    },
-                  ]}
-                  onPress={() => handleSelect(cat)}
-                >
-                  <Typography
-                    variant="caption"
-                    style={{
-                      color: selectedCategory === cat ? "#FFF" : colors.text,
-                    }}
-                  >
-                    {cat}
-                  </Typography>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </ScrollView>
+            );
+          })}
         </View>
-      </View>
-    </Modal>
+      </ScrollView>
+    </BottomSheet>
   );
 };
 
 const styles = StyleSheet.create({
-  centeredView: {
-    flex: 1,
-    justifyContent: "flex-end",
-    backgroundColor: "rgba(0,0,0,0.5)",
+  sectionLabel: {
+    marginBottom: Spacing.s,
   },
-  modalView: {
-    borderTopLeftRadius: BorderRadius.xl,
-    borderTopRightRadius: BorderRadius.xl,
-    padding: Spacing.l,
-    height: "50%",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: Spacing.l,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  categoriesContainer: {
+  chips: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: Spacing.s,
+    paddingBottom: Spacing.m,
   },
-  categoryChip: {
+  chip: {
     paddingHorizontal: Spacing.m,
     paddingVertical: Spacing.s,
-    borderRadius: BorderRadius.l,
-    borderWidth: 1,
-    marginBottom: Spacing.s,
-    marginRight: Spacing.s,
-  },
-  footer: {
-    flexDirection: "row",
-    marginTop: Spacing.l,
-    marginBottom: Spacing.xl,
+    borderRadius: BorderRadius.round,
+    borderWidth: StyleSheet.hairlineWidth,
   },
 });

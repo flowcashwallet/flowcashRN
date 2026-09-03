@@ -1,9 +1,10 @@
 import { Typography } from "@/components/atoms/Typography";
+import { BottomSheet } from "@/components/molecules/BottomSheet";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { BorderRadius, Colors, Spacing } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { BorderRadius, Spacing } from "@/constants/theme";
+import { useTheme } from "@/contexts/ThemeContext";
 import React from "react";
-import { Modal, StyleSheet, TouchableOpacity, View } from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 export type SortOption = "amount" | "name";
 
@@ -14,150 +15,99 @@ interface VisionSortModalProps {
   onSelectOption: (option: SortOption) => void;
 }
 
+const SORT_OPTIONS: {
+  id: SortOption;
+  label: string;
+  icon: React.ComponentProps<typeof IconSymbol>["name"];
+}[] = [
+  { id: "amount", label: "Monto (mayor a menor)", icon: "dollarsign.circle" },
+  { id: "name", label: "Alfabético (A-Z)", icon: "textformat" },
+];
+
+/**
+ * Selector de orden de Vision.
+ *
+ * Migrado a `BottomSheet` en el pase visual de Vision (antes: `Modal` propio con
+ * backdrop y sombra a mano) y de `useColorScheme()` a `useTheme()`. Las filas de
+ * opción se quedan planas: están dentro del panel del sheet, que ya es cristal.
+ * `dollarsign.circle` y `textformat` se añadieron al `MAPPING` de `IconSymbol`
+ * en este mismo pase — se usaban sin estar mapeados y en Android/web no pintaban
+ * nada.
+ */
 export const VisionSortModal: React.FC<VisionSortModalProps> = ({
   visible,
   onClose,
   selectedOption,
   onSelectOption,
 }) => {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme === "dark" ? "dark" : "light"];
+  const { colors } = useTheme();
 
   const handleSelect = (option: SortOption) => {
     onSelectOption(option);
     onClose();
   };
 
-  const sortOptions: { id: SortOption; label: string; icon: string }[] = [
-    { id: "amount", label: "Monto (Mayor a Menor)", icon: "dollarsign.circle" },
-    { id: "name", label: "Alfabético (A-Z)", icon: "textformat" },
-  ];
-
   return (
-    <Modal
-      animationType="slide"
-      transparent={true}
-      visible={visible}
-      onRequestClose={onClose}
-    >
-      <View style={styles.centeredView}>
-        <View
-          style={[styles.modalView, { backgroundColor: colors.background }]}
-        >
-          <View style={styles.header}>
-            <Typography
-              variant="h3"
-              weight="bold"
-              style={{ color: colors.text }}
+    <BottomSheet visible={visible} onClose={onClose} title="Ordenar por">
+      <View style={styles.list}>
+        {SORT_OPTIONS.map((option) => {
+          const selected = selectedOption === option.id;
+          return (
+            <TouchableOpacity
+              key={option.id}
+              style={[
+                styles.optionRow,
+                {
+                  backgroundColor: selected
+                    ? colors.surfaceActive
+                    : colors.surfaceHighlight,
+                  borderColor: selected ? colors.primary : colors.border,
+                },
+              ]}
+              onPress={() => handleSelect(option.id)}
+              accessibilityRole="button"
+              accessibilityState={{ selected }}
             >
-              Ordenar por
-            </Typography>
-            <TouchableOpacity onPress={onClose}>
-              <IconSymbol name="xmark" size={24} color={colors.text} />
+              <View style={styles.optionContent}>
+                <IconSymbol
+                  name={option.icon}
+                  size={20}
+                  color={selected ? colors.primary : colors.icon}
+                />
+                <Typography
+                  variant="body"
+                  weight={selected ? "semibold" : "regular"}
+                >
+                  {option.label}
+                </Typography>
+              </View>
+              {selected && (
+                <IconSymbol name="checkmark" size={20} color={colors.primary} />
+              )}
             </TouchableOpacity>
-          </View>
-
-          <View style={styles.content}>
-            {sortOptions.map((option) => (
-              <TouchableOpacity
-                key={option.id}
-                style={[
-                  styles.optionRow,
-                  {
-                    backgroundColor:
-                      selectedOption === option.id
-                        ? colors.surfaceHighlight
-                        : "transparent",
-                    borderColor:
-                      selectedOption === option.id
-                        ? colors.primary
-                        : colors.border,
-                  },
-                ]}
-                onPress={() => handleSelect(option.id)}
-              >
-                <View style={styles.optionContent}>
-                  <IconSymbol
-                    name={option.icon as any}
-                    size={24}
-                    color={
-                      selectedOption === option.id
-                        ? colors.primary
-                        : colors.text
-                    }
-                  />
-                  <Typography
-                    variant="body"
-                    style={{
-                      marginLeft: Spacing.m,
-                      color: colors.text,
-                      fontWeight:
-                        selectedOption === option.id ? "bold" : "normal",
-                    }}
-                  >
-                    {option.label}
-                  </Typography>
-                </View>
-                {selectedOption === option.id && (
-                  <IconSymbol
-                    name="checkmark"
-                    size={20}
-                    color={colors.primary}
-                  />
-                )}
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
+          );
+        })}
       </View>
-    </Modal>
+    </BottomSheet>
   );
 };
 
 const styles = StyleSheet.create({
-  centeredView: {
-    flex: 1,
-    justifyContent: "flex-end",
-    backgroundColor: "rgba(0,0,0,0.5)",
-  },
-  modalView: {
-    borderTopLeftRadius: BorderRadius.xl,
-    borderTopRightRadius: BorderRadius.xl,
-    padding: Spacing.l,
-    minHeight: "40%",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: Spacing.l,
-  },
-  content: {
-    flex: 1,
+  list: {
+    gap: Spacing.s,
+    paddingBottom: Spacing.m,
   },
   optionRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     padding: Spacing.m,
-    borderRadius: BorderRadius.m,
-    borderWidth: 1,
-    marginBottom: Spacing.m,
+    borderRadius: BorderRadius.l,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   optionContent: {
     flexDirection: "row",
     alignItems: "center",
-  },
-  footer: {
-    marginTop: Spacing.l,
-    marginBottom: Spacing.xl,
+    gap: Spacing.sm,
   },
 });

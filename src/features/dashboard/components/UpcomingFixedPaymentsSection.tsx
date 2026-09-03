@@ -1,5 +1,9 @@
+import { GlassSurface } from "@/components/atoms/GlassSurface";
+import { Typography } from "@/components/atoms/Typography";
+import { BorderRadius, Spacing } from "@/constants/theme";
 import React from "react";
-import { Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
+import { DashboardCard } from "./DashboardCard";
 import { DashboardColors, UpcomingFixedPaymentsSummary } from "./types";
 
 interface UpcomingFixedPaymentsSectionProps {
@@ -8,144 +12,156 @@ interface UpcomingFixedPaymentsSectionProps {
   formatWeeklyValue: (value: number) => string;
 }
 
+/**
+ * Recurrentes de gasto de los próximos 30 días y su impacto en el balance.
+ *
+ * Aquí sí aparece `error`, y es el único sitio del dashboard donde está
+ * justificado: un balance proyectado negativo **tras** los fijos es un
+ * sobregiro que va a pasar, no un gasto normal. El total de los pagos, en
+ * cambio, es un importe de gasto corriente y va en `expense`.
+ *
+ * El panel de totales y la caja de cada pago piden cristal con `forceGlass`
+ * aunque estén dentro de la card: son los bloques destacados de la sección —el
+ * resumen es único, y los pagos próximos son un puñado corto—, y planos se
+ * leían como cajas blancas pegadas sobre el cristal (retrofit 2026-09-02).
+ */
 export function UpcomingFixedPaymentsSection({
   colors,
   data,
   formatWeeklyValue,
 }: UpcomingFixedPaymentsSectionProps) {
+  const willOverdraw = data.expectedBalanceAfterFixed < 0;
+
   return (
-    <View
-      style={{
-        borderRadius: 20,
-        padding: 20,
-        marginBottom: 16,
-        borderWidth: 1,
-      }}
-    >
-      <Text
-        style={{
-          fontSize: 16,
-          fontWeight: "700",
-          marginBottom: 12,
-          color: colors.text,
-        }}
-      >
+    <DashboardCard>
+      <Typography variant="subheading" style={styles.title}>
         Pagos fijos proximos (30 dias)
-      </Text>
-      <Text
-        style={{ color: colors.textSecondary, fontSize: 12, marginBottom: 10 }}
-      >
+      </Typography>
+      <Typography variant="caption" muted style={styles.help}>
         Proyeccion de recurrentes de gasto en los proximos 30 dias e impacto
         estimado en el balance actual
-      </Text>
+      </Typography>
 
-      <View
-        style={{
-          borderWidth: 1,
-          borderColor: colors.border,
-          borderRadius: 12,
-          padding: 10,
-          backgroundColor: colors.surface,
-          marginBottom: 10,
-        }}
+      <GlassSurface
+        forceGlass
+        style={styles.summary}
+        fallbackStyle={[
+          styles.flatBox,
+          { backgroundColor: colors.surface, borderColor: colors.border },
+        ]}
       >
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            marginBottom: 6,
-          }}
-        >
-          <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
+        <View style={styles.summaryRow}>
+          <Typography variant="caption" muted>
             Total pagos fijos
-          </Text>
-          <Text
-            style={{ color: colors.error, fontSize: 12, fontWeight: "700" }}
-          >
-            -{formatWeeklyValue(data.total)}
-          </Text>
+          </Typography>
+          <Typography variant="number" style={{ color: colors.expense }}>
+            −{formatWeeklyValue(data.total)}
+          </Typography>
         </View>
-        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-          <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
+        <View style={styles.summaryRow}>
+          <Typography variant="caption" muted>
             Balance estimado tras fijos
-          </Text>
-          <Text
-            style={{
-              color:
-                data.expectedBalanceAfterFixed >= 0
-                  ? colors.success
-                  : colors.error,
-              fontSize: 12,
-              fontWeight: "700",
-            }}
+          </Typography>
+          <Typography
+            variant="number"
+            style={{ color: willOverdraw ? colors.error : colors.success }}
           >
-            {(data.expectedBalanceAfterFixed >= 0 ? "+" : "") +
+            {(willOverdraw ? "" : "+") +
               formatWeeklyValue(data.expectedBalanceAfterFixed)}
-          </Text>
+          </Typography>
         </View>
-      </View>
+      </GlassSurface>
 
       {data.items.length === 0 ? (
-        <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
+        <Typography variant="bodySmall" muted>
           No hay pagos fijos recurrentes en los proximos 30 dias.
-        </Text>
+        </Typography>
       ) : (
-        <View style={{ gap: 10 }}>
+        <View style={styles.list}>
           {data.items.map((item) => (
-            <View
+            <GlassSurface
               key={item.key}
-              style={{
-                borderWidth: 1,
-                borderColor: colors.border,
-                borderRadius: 12,
-                padding: 10,
-                backgroundColor: colors.surface,
-              }}
+              forceGlass
+              style={styles.item}
+              fallbackStyle={[
+                styles.flatBox,
+                { backgroundColor: colors.surface, borderColor: colors.border },
+              ]}
             >
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                }}
-              >
-                <Text
-                  style={{
-                    color: colors.text,
-                    fontSize: 13,
-                    fontWeight: "700",
-                    flex: 1,
-                  }}
+              <View style={styles.itemHeader}>
+                <Typography
+                  variant="bodySmall"
+                  weight="semibold"
+                  style={styles.itemName}
                   numberOfLines={1}
                 >
                   {item.description}
-                </Text>
-                <Text
-                  style={{
-                    color: colors.error,
-                    fontSize: 13,
-                    fontWeight: "700",
-                  }}
-                >
-                  -{formatWeeklyValue(item.amount)}
-                </Text>
+                </Typography>
+                <Typography variant="number" style={{ color: colors.expense }}>
+                  −{formatWeeklyValue(item.amount)}
+                </Typography>
               </View>
-              <Text
-                style={{
-                  color: colors.textSecondary,
-                  fontSize: 12,
-                  marginTop: 4,
-                }}
-              >
+              <Typography variant="caption" muted style={styles.itemMeta}>
                 {item.category} •{" "}
                 {item.dueDate.toLocaleDateString("es-MX", {
                   day: "2-digit",
                   month: "short",
                 })}
-              </Text>
-            </View>
+              </Typography>
+            </GlassSurface>
           ))}
         </View>
       )}
-    </View>
+    </DashboardCard>
   );
 }
+
+const styles = StyleSheet.create({
+  title: {
+    marginBottom: Spacing.s,
+  },
+  help: {
+    marginBottom: Spacing.sm,
+  },
+  /** Layout del panel de totales, con y sin cristal. */
+  summary: {
+    borderRadius: BorderRadius.m,
+    padding: Spacing.sm,
+    marginBottom: Spacing.sm,
+    gap: Spacing.xs,
+    overflow: "hidden",
+  },
+  /**
+   * Fondo opaco + hairline del resumen y de cada pago: solo sin cristal. El
+   * radio y el padding viven en `summary`/`item` porque aplican siempre.
+   */
+  flatBox: {
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  summaryRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: Spacing.s,
+  },
+  list: {
+    gap: Spacing.s,
+  },
+  item: {
+    borderRadius: BorderRadius.m,
+    padding: Spacing.sm,
+    overflow: "hidden",
+  },
+  itemHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: Spacing.s,
+  },
+  itemName: {
+    flex: 1,
+  },
+  itemMeta: {
+    marginTop: Spacing.xs,
+  },
+});

@@ -59,22 +59,23 @@ describe("AnalyticsScreen", () => {
     // Check ForecastCard Content
     expect(getByText("Predicción Mensual")).toBeTruthy();
     expect(getByText("Your finances are looking good!")).toBeTruthy();
-    // Daily Burn Rate: 50.0 -> formatted likely as "$50.00"
-    expect(getByText("$50.00")).toBeTruthy();
-    // Projected Balance: 1000.0 -> "$1,000.00"
+    // Daily Burn Rate: 50.0 -> gasto, así que lleva el signo de la regla: "−$50.00"
+    expect(getByText("−$50.00")).toBeTruthy();
+    // Projected Balance: 1000.0 -> "$1,000.00". Es un saldo, no un movimiento:
+    // sin prefijo de signo (`formatCurrency` ya emite el "-" si es negativo).
     expect(getByText("$1,000.00")).toBeTruthy();
 
     // Check Recurring Expenses
     // Note: Adjust text matcher if title is different in actual component
     expect(getByText("Gastos Recurrentes")).toBeTruthy();
     expect(getByText("Netflix")).toBeTruthy();
-    expect(getByText("$15.00")).toBeTruthy();
+    expect(getByText("−$15.00")).toBeTruthy();
 
     // Check Top Categories
     expect(getByText("Top Categorías")).toBeTruthy();
     expect(getByText("Food")).toBeTruthy();
     expect(getByText("40.0%")).toBeTruthy();
-    expect(getByText("$400.00")).toBeTruthy();
+    expect(getByText("−$400.00")).toBeTruthy();
 
     // Check Tips
     expect(getByText("Consejos para ti")).toBeTruthy();
@@ -94,6 +95,6 @@ describe("AnalyticsScreen", () => {
 
     // Check if transactions are revealed
     expect(getByText("Burger King")).toBeTruthy();
-    expect(getByText("$15.50")).toBeTruthy();
+    expect(getByText("−$15.50")).toBeTruthy();
   });
 });

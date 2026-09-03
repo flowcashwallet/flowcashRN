@@ -1,8 +1,12 @@
+import { GlassSurface } from "@/components/atoms/GlassSurface";
+import { Typography } from "@/components/atoms/Typography";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { BorderRadius, Spacing, TypographyScale } from "@/constants/theme";
 import STRINGS from "@/i18n/es.json";
 import React from "react";
-import { Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { LineChart } from "react-native-gifted-charts";
+import { DashboardCard } from "./DashboardCard";
 import { DashboardColors, ExpenseTrend, WeeklyDetail } from "./types";
 
 interface WeeklySpendingSectionProps {
@@ -20,6 +24,31 @@ interface WeeklySpendingSectionProps {
   onToggleExpandedWeek: (weekLabel: string) => void;
 }
 
+/** Alto del área de dibujo del `LineChart`, en la rejilla de 4pt. */
+const CHART_HEIGHT = 160;
+
+/**
+ * Tendencia de gasto del periodo, con el desglose semana a semana.
+ *
+ * **Superficies (retrofit 2026-09-02, tercera vuelta).** La card exterior es
+ * cristal vía `DashboardCard`; dentro piden cristal con `forceGlass` las dos
+ * superficies que el usuario ve como bloques propios: el botón "Ver detalles
+ * por semana" y **cada bloque de semana** del desglose. Estos últimos estaban
+ * planos por la excepción "el contenido repetido se queda plano", que se retiró
+ * — ya no hay distinción entre elemento destacado y fila repetida: si tiene
+ * superficie propia, lleva cristal (ver la sección de Liquid Glass en
+ * `docs/refactor-plan.md`).
+ *
+ * Lo que hay **dentro** del bloque de semana —su toggle, el panel de totales y
+ * las filas de categoría— sigue plano, y no por la excepción retirada sino por
+ * el guard de anidamiento: ya hay cristal justo encima y apilar un tercer nivel
+ * de material va contra la guía de Apple. Se resuelve solo, sin decidirlo aquí:
+ * son `View` normales dentro de un `GlassSurface` activo.
+ *
+ * Los importes van en `variant="number"`: gasto en `expense`, ingreso en
+ * `success`, balance de la semana en uno u otro según el signo. `error` no
+ * aparece aquí — una semana en negativo no es un fallo.
+ */
 export function WeeklySpendingSection({
   colors,
   periodView,
@@ -35,31 +64,17 @@ export function WeeklySpendingSection({
   onToggleExpandedWeek,
 }: WeeklySpendingSectionProps) {
   return (
-    <View
-      style={{
-        borderRadius: 20,
-        padding: 20,
-        marginBottom: 16,
-        borderWidth: 1,
-      }}
-    >
-      <Text
-        style={{
-          fontSize: 16,
-          fontWeight: "700",
-          marginBottom: 12,
-          color: colors.text,
-        }}
-      >
+    <DashboardCard>
+      <Typography variant="subheading" style={styles.title}>
         {periodView === "year"
           ? STRINGS.dashboard.monthlySpending
           : STRINGS.dashboard.weeklySpending}
-      </Text>
+      </Typography>
 
       {expenseTrend.hasData ? (
         <>
           <View
-            style={{ width: "100%" }}
+            style={styles.chartWrapper}
             onLayout={(e) => onLineChartLayout(e.nativeEvent.layout.width)}
           >
             <LineChart
@@ -69,7 +84,7 @@ export function WeeklySpendingSection({
               hideDataPoints={false}
               dataPointsColor={colors.primary}
               dataPointsRadius={4}
-              height={160}
+              height={CHART_HEIGHT}
               spacing={lineChartSpacing}
               initialSpacing={10}
               endSpacing={10}
@@ -78,14 +93,11 @@ export function WeeklySpendingSection({
               yAxisLabelPrefix="$"
               overflowTop={22}
               textColor1={colors.text}
-              textFontSize={12}
+              textFontSize={TypographyScale.caption.fontSize}
               textShiftY={-8}
               textShiftX={10}
-              xAxisLabelTextStyle={{
-                color: colors.textSecondary,
-                fontSize: 12,
-              }}
-              yAxisTextStyle={{ color: colors.textSecondary, fontSize: 12 }}
+              xAxisLabelTextStyle={axisLabelStyle(colors.textSecondary)}
+              yAxisTextStyle={axisLabelStyle(colors.textSecondary)}
               noOfSections={4}
               backgroundColor="transparent"
               rulesColor={colors.border}
@@ -93,7 +105,7 @@ export function WeeklySpendingSection({
                 ? { width: resolvedLineChartWidth }
                 : {})}
               pointerConfig={{
-                pointerStripHeight: 160,
+                pointerStripHeight: CHART_HEIGHT,
                 pointerStripColor: colors.border,
                 pointerStripWidth: 2,
                 pointerColor: colors.primary,
@@ -108,39 +120,30 @@ export function WeeklySpendingSection({
                     typeof item?.value === "number" ? item.value : 0;
                   return (
                     <View
-                      style={{
-                        paddingHorizontal: 10,
-                        paddingVertical: 8,
-                        borderRadius: 10,
-                        backgroundColor: colors.surface,
-                        borderWidth: 1,
-                        borderColor: colors.border,
-                        minWidth: 140,
-                      }}
+                      style={[
+                        styles.pointerLabel,
+                        {
+                          backgroundColor: colors.surface,
+                          borderColor: colors.border,
+                        },
+                      ]}
                     >
-                      <Text
-                        style={{
-                          color: colors.textSecondary,
-                          fontSize: 12,
-                          maxWidth: "100%",
-                        }}
+                      <Typography
+                        variant="caption"
+                        muted
                         numberOfLines={1}
                         ellipsizeMode="tail"
                       >
                         {label}
-                      </Text>
-                      <Text
-                        style={{
-                          color: colors.text,
-                          fontSize: 14,
-                          fontWeight: "700",
-                          maxWidth: "100%",
-                        }}
+                      </Typography>
+                      <Typography
+                        variant="number"
+                        style={styles.pointerValue}
                         numberOfLines={1}
                         ellipsizeMode="tail"
                       >
                         {formatWeeklyValue(value)}
-                      </Text>
+                      </Typography>
                     </View>
                   );
                 },
@@ -152,352 +155,258 @@ export function WeeklySpendingSection({
             <>
               <TouchableOpacity
                 onPress={onToggleWeeklyDetails}
-                style={{
-                  marginTop: 12,
-                  paddingVertical: 10,
-                  paddingHorizontal: 12,
-                  borderRadius: 12,
-                  backgroundColor: colors.surfaceHighlight,
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                }}
+                accessibilityRole="button"
+                activeOpacity={0.7}
+                style={styles.toggleWrapper}
               >
-                <Text
-                  style={{
-                    color: colors.text,
-                    fontSize: 14,
-                    fontWeight: "700",
-                  }}
+                <GlassSurface
+                  forceGlass
+                  isInteractive
+                  style={styles.toggle}
+                  fallbackStyle={[
+                    styles.flatToggle,
+                    {
+                      backgroundColor: colors.surfaceHighlight,
+                      borderColor: colors.border,
+                    },
+                  ]}
                 >
-                  {showWeeklyDetails
-                    ? STRINGS.dashboard.toggleWeeklyDetailsHide
-                    : STRINGS.dashboard.toggleWeeklyDetailsShow}
-                </Text>
-                <IconSymbol
-                  name={showWeeklyDetails ? "chevron.up" : "chevron.down"}
-                  size={18}
-                  color={colors.textSecondary}
-                />
+                  <Typography variant="button">
+                    {showWeeklyDetails
+                      ? STRINGS.dashboard.toggleWeeklyDetailsHide
+                      : STRINGS.dashboard.toggleWeeklyDetailsShow}
+                  </Typography>
+                  <IconSymbol
+                    name={showWeeklyDetails ? "chevron.up" : "chevron.down"}
+                    size={20}
+                    color={colors.textSecondary}
+                  />
+                </GlassSurface>
               </TouchableOpacity>
 
               {showWeeklyDetails ? (
-                <View style={{ marginTop: 12, gap: 12 }}>
+                <View style={styles.weekList}>
                   {weeklyDetails.map((w) => (
-                    <View
+                    <GlassSurface
                       key={w.label}
-                      style={{
-                        borderRadius: 14,
-                        backgroundColor: colors.surfaceHighlight,
-                        borderWidth: 1,
-                        borderColor: colors.border,
-                        padding: 12,
-                      }}
+                      forceGlass
+                      style={styles.weekBlock}
+                      fallbackStyle={[
+                        styles.flatWeekBlock,
+                        {
+                          backgroundColor: colors.surfaceHighlight,
+                          borderColor: colors.border,
+                        },
+                      ]}
                     >
-                      <View
-                        style={{
-                          flexDirection: "row",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          marginBottom: 8,
-                        }}
-                      >
-                        <Text
-                          style={{
-                            color: colors.text,
-                            fontSize: 14,
-                            fontWeight: "700",
-                          }}
-                        >
+                      <View style={styles.weekHeader}>
+                        <Typography variant="body" weight="semibold">
                           {w.label}
-                        </Text>
-                        <Text
+                        </Typography>
+                        <Typography
+                          variant="number"
                           style={{
                             color:
-                              w.balance >= 0 ? colors.success : colors.error,
-                            fontSize: 14,
-                            fontWeight: "700",
+                              w.balance >= 0 ? colors.success : colors.expense,
                           }}
                         >
                           {(w.balance >= 0 ? "+" : "") +
                             formatWeeklyValue(w.balance)}
-                        </Text>
+                        </Typography>
                       </View>
 
-                      <Text
-                        style={{
-                          color: colors.textSecondary,
-                          fontSize: 12,
-                          marginBottom: 8,
-                        }}
-                      >
+                      <Typography variant="caption" muted style={styles.range}>
                         {w.range}
-                      </Text>
+                      </Typography>
 
                       <TouchableOpacity
                         onPress={() => onToggleExpandedWeek(w.label)}
-                        style={{
-                          marginTop: 6,
-                          paddingVertical: 10,
-                          paddingHorizontal: 10,
-                          borderRadius: 12,
-                          backgroundColor: colors.surface,
-                          borderWidth: 1,
-                          borderColor: colors.border,
-                          flexDirection: "row",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                        }}
+                        accessibilityRole="button"
+                        activeOpacity={0.7}
                       >
-                        <Text
-                          style={{
-                            color: colors.text,
-                            fontSize: 13,
-                            fontWeight: "700",
-                          }}
+                        <GlassSurface
+                          forceGlass
+                          isInteractive
+                          style={styles.weekToggle}
+                          fallbackStyle={[
+                            styles.flatWeekToggle,
+                            {
+                              backgroundColor: colors.surface,
+                              borderColor: colors.border,
+                            },
+                          ]}
                         >
-                          {expandedWeek === w.label
-                            ? STRINGS.dashboard.toggleWeekHide
-                            : STRINGS.dashboard.toggleWeekShow}
-                        </Text>
-                        <IconSymbol
-                          name={
-                            expandedWeek === w.label
-                              ? "chevron.up"
-                              : "chevron.down"
-                          }
-                          size={16}
-                          color={colors.textSecondary}
-                        />
+                          <Typography variant="bodySmall" weight="semibold">
+                            {expandedWeek === w.label
+                              ? STRINGS.dashboard.toggleWeekHide
+                              : STRINGS.dashboard.toggleWeekShow}
+                          </Typography>
+                          <IconSymbol
+                            name={
+                              expandedWeek === w.label
+                                ? "chevron.up"
+                                : "chevron.down"
+                            }
+                            size={16}
+                            color={colors.textSecondary}
+                          />
+                        </GlassSurface>
                       </TouchableOpacity>
 
                       {expandedWeek === w.label ? (
                         <>
-                          <View
-                            style={{
-                              marginTop: 8,
-                              borderRadius: 12,
-                              backgroundColor: colors.surface,
-                              borderWidth: 1,
-                              borderColor: colors.border,
-                              padding: 10,
-                              gap: 6,
-                            }}
+                          <GlassSurface
+                            forceGlass
+                            style={styles.weekTotals}
+                            fallbackStyle={[
+                              styles.flatWeekTotals,
+                              {
+                                backgroundColor: colors.surface,
+                                borderColor: colors.border,
+                              },
+                            ]}
                           >
-                            <View
-                              style={{
-                                flexDirection: "row",
-                                justifyContent: "space-between",
-                                alignItems: "center",
-                              }}
-                            >
-                              <Text
-                                style={{
-                                  color: colors.textSecondary,
-                                  fontSize: 12,
-                                }}
-                              >
+                            <View style={styles.totalsRow}>
+                              <Typography variant="caption" muted>
                                 Ingresos
-                              </Text>
-                              <Text
-                                style={{
-                                  color: colors.success,
-                                  fontSize: 12,
-                                  fontWeight: "700",
-                                }}
+                              </Typography>
+                              <Typography
+                                variant="number"
+                                style={{ color: colors.success }}
                               >
                                 +{formatWeeklyValue(w.incomeTotal)}
-                              </Text>
+                              </Typography>
                             </View>
-                            <View
-                              style={{
-                                flexDirection: "row",
-                                justifyContent: "space-between",
-                                alignItems: "center",
-                              }}
-                            >
-                              <Text
-                                style={{
-                                  color: colors.textSecondary,
-                                  fontSize: 12,
-                                }}
-                              >
+                            <View style={styles.totalsRow}>
+                              <Typography variant="caption" muted>
                                 Gastos
-                              </Text>
-                              <Text
-                                style={{
-                                  color: colors.error,
-                                  fontSize: 12,
-                                  fontWeight: "700",
-                                }}
+                              </Typography>
+                              <Typography
+                                variant="number"
+                                style={{ color: colors.expense }}
                               >
-                                -{formatWeeklyValue(w.expenseTotal)}
-                              </Text>
+                                −{formatWeeklyValue(w.expenseTotal)}
+                              </Typography>
                             </View>
                             <View
-                              style={{
-                                flexDirection: "row",
-                                justifyContent: "space-between",
-                                alignItems: "center",
-                                borderTopWidth: 1,
-                                borderTopColor: colors.border,
-                                paddingTop: 6,
-                              }}
+                              style={[
+                                styles.totalsRow,
+                                styles.totalsBalanceRow,
+                                { borderTopColor: colors.border },
+                              ]}
                             >
-                              <Text
-                                style={{
-                                  color: colors.textSecondary,
-                                  fontSize: 12,
-                                }}
-                              >
+                              <Typography variant="caption" muted>
                                 Balance
-                              </Text>
-                              <Text
+                              </Typography>
+                              <Typography
+                                variant="number"
                                 style={{
                                   color:
                                     w.balance >= 0
                                       ? colors.success
-                                      : colors.error,
-                                  fontSize: 12,
-                                  fontWeight: "700",
+                                      : colors.expense,
                                 }}
                               >
                                 {(w.balance >= 0 ? "+" : "") +
                                   formatWeeklyValue(w.balance)}
-                              </Text>
+                              </Typography>
                             </View>
-                          </View>
+                          </GlassSurface>
 
-                          <Text
-                            style={{
-                              color: colors.textSecondary,
-                              fontSize: 12,
-                              marginTop: 10,
-                              marginBottom: 4,
-                            }}
+                          <Typography
+                            variant="overline"
+                            muted
+                            style={styles.breakdownLabel}
                           >
                             Gastos por categoria
-                          </Text>
+                          </Typography>
 
                           {w.categories.length === 0 ? (
-                            <Text
-                              style={{
-                                color: colors.textSecondary,
-                                fontSize: 12,
-                                marginTop: 4,
-                              }}
-                            >
+                            <Typography variant="bodySmall" muted>
                               {STRINGS.dashboard.noWeekExpenses}
-                            </Text>
+                            </Typography>
                           ) : (
-                            <View style={{ marginTop: 4 }}>
-                              {w.categories.map((category, idx) => {
-                                const isFirst = idx === 0;
-                                return (
-                                  <View
-                                    key={`${w.label}-${category.category}`}
-                                    style={{
-                                      flexDirection: "row",
-                                      justifyContent: "space-between",
-                                      alignItems: "center",
-                                      paddingVertical: 6,
-                                      borderTopWidth: isFirst ? 0 : 1,
-                                      borderTopColor: colors.border,
-                                    }}
+                            <View>
+                              {w.categories.map((category, idx) => (
+                                <View
+                                  key={`${w.label}-${category.category}`}
+                                  style={[
+                                    styles.categoryRow,
+                                    idx === 0
+                                      ? null
+                                      : {
+                                          borderTopWidth:
+                                            StyleSheet.hairlineWidth,
+                                          borderTopColor: colors.border,
+                                        },
+                                  ]}
+                                >
+                                  <Typography
+                                    variant="bodySmall"
+                                    style={styles.categoryName}
+                                    numberOfLines={1}
                                   >
-                                    <Text
-                                      style={{
-                                        color: colors.text,
-                                        fontSize: 13,
-                                        flex: 1,
-                                        paddingRight: 12,
-                                      }}
-                                      numberOfLines={1}
-                                    >
-                                      {category.category}
-                                    </Text>
-                                    <Text
-                                      style={{
-                                        color: colors.text,
-                                        fontSize: 13,
-                                        fontWeight: "700",
-                                      }}
-                                    >
-                                      -{formatWeeklyValue(category.amount)}
-                                    </Text>
-                                  </View>
-                                );
-                              })}
+                                    {category.category}
+                                  </Typography>
+                                  <Typography
+                                    variant="number"
+                                    style={{ color: colors.expense }}
+                                  >
+                                    −{formatWeeklyValue(category.amount)}
+                                  </Typography>
+                                </View>
+                              ))}
                             </View>
                           )}
 
-                          <Text
-                            style={{
-                              color: colors.textSecondary,
-                              fontSize: 12,
-                              marginTop: 10,
-                              marginBottom: 4,
-                            }}
+                          <Typography
+                            variant="overline"
+                            muted
+                            style={styles.breakdownLabel}
                           >
                             Ingresos por categoria
-                          </Text>
+                          </Typography>
 
                           {w.incomeCategories.length === 0 ? (
-                            <Text
-                              style={{
-                                color: colors.textSecondary,
-                                fontSize: 12,
-                                marginTop: 4,
-                              }}
-                            >
+                            <Typography variant="bodySmall" muted>
                               No hay ingresos en esta semana.
-                            </Text>
+                            </Typography>
                           ) : (
-                            <View style={{ marginTop: 4 }}>
-                              {w.incomeCategories.map((category, idx) => {
-                                const isFirst = idx === 0;
-                                return (
-                                  <View
-                                    key={`${w.label}-income-${category.category}`}
-                                    style={{
-                                      flexDirection: "row",
-                                      justifyContent: "space-between",
-                                      alignItems: "center",
-                                      paddingVertical: 6,
-                                      borderTopWidth: isFirst ? 0 : 1,
-                                      borderTopColor: colors.border,
-                                    }}
+                            <View>
+                              {w.incomeCategories.map((category, idx) => (
+                                <View
+                                  key={`${w.label}-income-${category.category}`}
+                                  style={[
+                                    styles.categoryRow,
+                                    idx === 0
+                                      ? null
+                                      : {
+                                          borderTopWidth:
+                                            StyleSheet.hairlineWidth,
+                                          borderTopColor: colors.border,
+                                        },
+                                  ]}
+                                >
+                                  <Typography
+                                    variant="bodySmall"
+                                    style={styles.categoryName}
+                                    numberOfLines={1}
                                   >
-                                    <Text
-                                      style={{
-                                        color: colors.text,
-                                        fontSize: 13,
-                                        flex: 1,
-                                        paddingRight: 12,
-                                      }}
-                                      numberOfLines={1}
-                                    >
-                                      {category.category}
-                                    </Text>
-                                    <Text
-                                      style={{
-                                        color: colors.success,
-                                        fontSize: 13,
-                                        fontWeight: "700",
-                                      }}
-                                    >
-                                      +{formatWeeklyValue(category.amount)}
-                                    </Text>
-                                  </View>
-                                );
-                              })}
+                                    {category.category}
+                                  </Typography>
+                                  <Typography
+                                    variant="number"
+                                    style={{ color: colors.success }}
+                                  >
+                                    +{formatWeeklyValue(category.amount)}
+                                  </Typography>
+                                </View>
+                              ))}
                             </View>
                           )}
                         </>
                       ) : null}
-                    </View>
+                    </GlassSurface>
                   ))}
                 </View>
               ) : null}
@@ -505,12 +414,136 @@ export function WeeklySpendingSection({
           ) : null}
         </>
       ) : (
-        <Text style={{ color: colors.textSecondary, fontSize: 14 }}>
+        <Typography variant="bodySmall" muted>
           {periodView === "year"
             ? STRINGS.dashboard.noMonthlySpending
             : STRINGS.dashboard.noWeeklySpending}
-        </Text>
+        </Typography>
       )}
-    </View>
+    </DashboardCard>
   );
 }
+
+/**
+ * `react-native-gifted-charts` pide estilos de texto sueltos para sus ejes, no
+ * admite un componente: el tamaño sale igualmente de la escala tipográfica.
+ */
+function axisLabelStyle(color: string) {
+  return { color, fontSize: TypographyScale.caption.fontSize };
+}
+
+const styles = StyleSheet.create({
+  title: {
+    marginBottom: Spacing.sm,
+  },
+  chartWrapper: {
+    width: "100%",
+  },
+  pointerLabel: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.s,
+    borderRadius: BorderRadius.m,
+    borderWidth: StyleSheet.hairlineWidth,
+    minWidth: 140,
+  },
+  pointerValue: {
+    textAlign: "left",
+  },
+  /**
+   * El margen vive en el `TouchableOpacity` y no en la superficie: así el área
+   * pulsable coincide exactamente con el cristal.
+   */
+  toggleWrapper: {
+    marginTop: Spacing.sm,
+  },
+  toggle: {
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: BorderRadius.m,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    overflow: "hidden",
+  },
+  /** Fondo opaco + hairline del botón: solo cuando no hay cristal. */
+  flatToggle: {
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  weekList: {
+    marginTop: Spacing.sm,
+    gap: Spacing.sm,
+  },
+  /** Layout del bloque de semana, con y sin cristal. */
+  weekBlock: {
+    borderRadius: BorderRadius.m,
+    padding: Spacing.sm,
+    overflow: "hidden",
+  },
+  /**
+   * Fondo opaco + hairline del bloque de semana: solo cuando no hay cristal.
+   * `surfaceHighlight` —y no `surface`— porque plano sigue siendo el escalón de
+   * superficie *dentro* de la card, que ya es `surface`.
+   */
+  flatWeekBlock: {
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  weekHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: Spacing.s,
+  },
+  range: {
+    marginBottom: Spacing.s,
+  },
+  /** Layout del botón "Ver gastos", con y sin cristal. */
+  weekToggle: {
+    marginTop: Spacing.s,
+    paddingVertical: Spacing.s,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: BorderRadius.m,
+    overflow: "hidden",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  /** Fondo opaco + hairline del botón "Ver gastos": solo cuando no hay cristal. */
+  flatWeekToggle: {
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  /** Layout de la card de totales de la semana, con y sin cristal. */
+  weekTotals: {
+    marginTop: Spacing.s,
+    borderRadius: BorderRadius.m,
+    padding: Spacing.s,
+    gap: Spacing.xs,
+    overflow: "hidden",
+  },
+  /** Fondo opaco + hairline de la card de totales: solo cuando no hay cristal. */
+  flatWeekTotals: {
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  totalsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  totalsBalanceRow: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingTop: Spacing.xs,
+  },
+  breakdownLabel: {
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.xs,
+  },
+  categoryRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: Spacing.s,
+  },
+  categoryName: {
+    flex: 1,
+    paddingRight: Spacing.sm,
+  },
+});

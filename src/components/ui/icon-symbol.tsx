@@ -68,6 +68,16 @@ const MAPPING = {
   "lock.open": "lock-open",
   "info.circle": "info-outline",
   "square.and.arrow.up": "ios-share",
+  // Añadidos en el pase visual de Vision (2026-09-02), misma razón: la feature
+  // ya los usaba sin estar mapeados, así que en Android/web no pintaban nada.
+  "bitcoinsign.circle": "currency-bitcoin",
+  "arrow.up.circle": "arrow-circle-up",
+  "arrow.down.circle": "arrow-circle-down",
+  "checkmark.circle.fill": "check-circle",
+  "calendar.badge.checkmark": "event-available",
+  "dollarsign.circle": "monetization-on",
+  textformat: "sort-by-alpha",
+  "arrow.up.arrow.down": "swap-vert",
 } as Record<string, ComponentProps<typeof MaterialIcons>["name"]>;
 
 /**

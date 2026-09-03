@@ -162,7 +162,7 @@ export default function WalletLayout() {
           name="transaction-form"
           options={{
             headerShown: true,
-            presentation: isIOS ? "formSheet" : "card",
+            presentation: isIOS ? "pageSheet" : "card",
             headerTransparent: true,
             headerTitle: "Transacción",
             ...(isIOS ? { sheetAllowedDetents: [0.9] } : {}),
@@ -175,7 +175,7 @@ export default function WalletLayout() {
           name="transaction-details"
           options={{
             headerShown: true,
-            presentation: isIOS ? "formSheet" : "card",
+            presentation: isIOS ? "pageSheet" : "card",
             headerTransparent: true,
             headerTitle: "Transacción",
             ...(isIOS ? { sheetAllowedDetents: [0.9] } : {}),
@@ -188,7 +188,7 @@ export default function WalletLayout() {
           name="category-picker"
           options={{
             headerShown: true,
-            presentation: "formSheet",
+            presentation: "pageSheet",
             headerTransparent: true,
             headerTitle: "Categorías",
             sheetAllowedDetents: [0.9],

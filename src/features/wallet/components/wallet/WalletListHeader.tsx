@@ -1,4 +1,5 @@
-import { GlassSegmentedControl } from "@/components/atoms/GlassSegmentedControl";
+import { SegmentedControl } from "@/components/atoms/SegmentedControl";
+import { GlassSurface } from "@/components/atoms/GlassSurface";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import {
   BorderRadius,
@@ -29,6 +30,23 @@ interface WalletListHeaderProps {
   colors: ThemeColors;
 }
 
+/**
+ * Cabecera flotante de la lista de Wallet: píldora de mes + control segmentado +
+ * exportar, y debajo el buscador.
+ *
+ * **Vidrio por control, no un panel único** (decisión del retrofit del
+ * 2026-09-01, ver `docs/refactor-plan.md`). El motivo es duro, no de gusto:
+ * `SegmentedControl` es una superficie de cristal por sí misma —y también
+ * en Dashboard, donde no existe esta cabecera—, así que envolver el bloque en
+ * un solo `GlassSurface` sería apilar cristal sobre cristal, justo lo que la
+ * dirección prohíbe. Cada control flota por su cuenta: `MonthSelector`, el
+ * segmented y el buscador ponen su propio material. Encaja además con el layout
+ * (`marginHorizontal` por bloque, con aire entre filas) y con las filas de la
+ * lista de abajo, que ya son cápsulas independientes.
+ *
+ * `ExportButton` se queda plano: es un icono desnudo, sin superficie propia ni
+ * antes ni ahora; el cristal es para superficies, no para glifos sueltos.
+ */
 export function WalletListHeader({
   periodView,
   onChangePeriodView,
@@ -56,7 +74,7 @@ export function WalletListHeader({
             }
             onPress={onPressMonth}
           />
-          <GlassSegmentedControl
+          <SegmentedControl
             style={styles.segmentedControl}
             value={periodView}
             options={[
@@ -69,9 +87,10 @@ export function WalletListHeader({
         <ExportButton />
       </View>
 
-      <View
-        style={[
-          styles.searchBar,
+      <GlassSurface
+        style={styles.searchBar}
+        fallbackStyle={[
+          styles.flatSearchBar,
           {
             backgroundColor: colors.surface,
             borderColor: colors.border,
@@ -100,7 +119,7 @@ export function WalletListHeader({
             />
           </TouchableOpacity>
         )}
-      </View>
+      </GlassSurface>
     </>
   );
 }
@@ -121,9 +140,13 @@ const styles = StyleSheet.create({
     marginLeft: Spacing.s,
   },
   /**
-   * Antes era un panel translúcido blanco con sombra: en modo oscuro se veía
-   * como una neblina y el borde blanco no existía como token. Ahora es una
-   * superficie plana con hairline, según la dirección estética.
+   * Antes era un panel translúcido blanco (`rgba(...)`) con sombra: en modo
+   * oscuro se veía como una neblina y el borde blanco no existía como token.
+   * Ahora el layout es común y el fondo lo decide `GlassSurface`: material
+   * nativo en iOS 26+, `surface` + hairline (`flatSearchBar`) en el resto.
+   *
+   * El `TextInput` de dentro se queda plano a propósito: es un control dentro
+   * de una superficie de cristal y no se apila cristal sobre cristal.
    */
   searchBar: {
     flexDirection: "row",
@@ -133,8 +156,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.sm,
     paddingVertical: Platform.OS === "ios" ? Spacing.xs : Spacing.s,
     marginBottom: Spacing.m,
-    borderWidth: StyleSheet.hairlineWidth,
     marginHorizontal: Spacing.m,
+  },
+  flatSearchBar: {
+    borderWidth: StyleSheet.hairlineWidth,
   },
   searchInput: {
     flex: 1,
