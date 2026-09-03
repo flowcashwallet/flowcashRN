@@ -287,7 +287,7 @@ describe("Analytics — cada componente con superficie propia lleva cristal", ()
     ["light" as const, Colors.light],
     ["dark" as const, Colors.dark],
   ])(
-    "la card de categoría cae a `surface` + hairline en `border` en modo %s",
+    "la fila de categoría cae a `background` + hairline inferior en modo %s (misma píldora que `TransactionItem`)",
     async (theme, colors) => {
       mockColorScheme.mockReturnValue(theme);
       mockApiAvailable.mockReturnValue(false);
@@ -301,13 +301,14 @@ describe("Analytics — cada componente con superficie propia lleva cristal", ()
       );
       await settle();
 
-      const card = viewStyles().find(
-        (s) => s?.backgroundColor === colors.surface && s?.borderWidth,
+      const row = viewStyles().find(
+        (s) =>
+          s?.backgroundColor === colors.background && s?.borderBottomWidth,
       );
-      expect(card).toBeDefined();
-      expect(card?.borderWidth).toBe(StyleSheet.hairlineWidth);
-      expect(card?.borderColor).toBe(colors.border);
-      expect(card?.shadowOpacity).toBeUndefined();
+      expect(row).toBeDefined();
+      expect(row?.borderBottomWidth).toBe(StyleSheet.hairlineWidth);
+      expect(row?.borderBottomColor).toBe(colors.border);
+      expect(row?.shadowOpacity).toBeUndefined();
     },
   );
 

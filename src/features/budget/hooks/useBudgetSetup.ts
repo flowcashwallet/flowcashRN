@@ -3,8 +3,9 @@ import {
   formatAmountInput,
   getRawAmount,
 } from "@/features/budget/components/BudgetHelpers";
+import { fetchCategories } from "@/features/wallet/data/categoriesSlice";
 import { AppDispatch, RootState } from "@/store/store";
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Keyboard } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 
@@ -13,6 +14,8 @@ export const useBudgetSetup = () => {
   const { monthlyIncome, fixedExpenses, isSetup } = useSelector(
     (state: RootState) => state.budget,
   );
+  const { user } = useSelector((state: RootState) => state.auth);
+  const { categories } = useSelector((state: RootState) => state.categories);
 
   const [step, setStep] = useState(1);
   const [income, setIncome] = useState(
@@ -27,6 +30,42 @@ export const useBudgetSetup = () => {
   const [expenseAmount, setExpenseAmount] = useState("");
   const [expenseCategory, setExpenseCategory] = useState("");
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
+
+  // Antes vivía como `useEffect` directo en `BudgetSetupWizard.tsx`.
+  useEffect(() => {
+    if (user?.id && categories.length === 0) {
+      dispatch(fetchCategories(user.id.toString()));
+    }
+  }, [user, dispatch, categories.length]);
+
+  const handleIncomeChange = useCallback((text: string) => {
+    setIncome(formatAmountInput(text));
+  }, []);
+
+  const handleExpenseAmountChange = useCallback((text: string) => {
+    setExpenseAmount(formatAmountInput(text));
+  }, []);
+
+  const toggleCategoryDropdown = useCallback(() => {
+    setIsCategoryDropdownOpen((prev) => !prev);
+  }, []);
+
+  const handleSelectExpenseCategory = useCallback((name: string) => {
+    setExpenseCategory(name);
+    setIsCategoryDropdownOpen(false);
+  }, []);
+
+  const goToIncomeStep = useCallback(() => setStep(1), []);
+  const goToExpensesStep = useCallback(() => setStep(2), []);
+  const goToSummaryStep = useCallback(() => setStep(3), []);
+
+  const handleContinueFromIncome = useCallback(() => {
+    if (!income) {
+      Alert.alert("Error", "Por favor ingresa tu ingreso mensual.");
+      return;
+    }
+    goToExpensesStep();
+  }, [income, goToExpensesStep]);
 
   const handleAddExpense = () => {
     if (!expenseName || !expenseAmount) {
@@ -49,6 +88,16 @@ export const useBudgetSetup = () => {
     setExpenses(expenses.filter((e) => e.id !== id));
   };
 
+  // Antes un `.reduce(...)` inline en el paso 3 (resumen) de
+  // `BudgetSetupWizard.tsx`.
+  const totalExpenses = useMemo(
+    () => expenses.reduce((acc, curr) => acc + curr.amount, 0),
+    [expenses],
+  );
+
+  // Antes `getRawAmount(income)` calculado inline en el JSX del paso 3.
+  const parsedIncome = useMemo(() => getRawAmount(income), [income]);
+
   const handleFinish = async () => {
     try {
       await dispatch(
@@ -67,22 +116,26 @@ export const useBudgetSetup = () => {
 
   return {
     step,
-    setStep,
     income,
-    setIncome,
+    handleIncomeChange,
     expenses,
     expenseName,
     setExpenseName,
     expenseAmount,
-    setExpenseAmount,
+    handleExpenseAmountChange,
     expenseCategory,
-    setExpenseCategory,
     isCategoryDropdownOpen,
-    setIsCategoryDropdownOpen,
+    toggleCategoryDropdown,
+    handleSelectExpenseCategory,
+    categories,
     handleAddExpense,
     handleRemoveExpense,
+    totalExpenses,
+    parsedIncome,
     handleFinish,
-    formatAmountInput,
-    getRawAmount,
+    handleContinueFromIncome,
+    goToIncomeStep,
+    goToExpensesStep,
+    goToSummaryStep,
   };
 };

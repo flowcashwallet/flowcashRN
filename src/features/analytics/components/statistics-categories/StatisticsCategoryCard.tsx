@@ -15,14 +15,34 @@ interface StatisticsCategoryCardProps {
 }
 
 /**
+ * Igual heurística que `categoryIcon()` de `CategoryCard.tsx` (Analytics):
+ * las categorías son texto libre, sin campo de icono en el modelo, así que
+ * esto es un match de palabras clave sobre nombres comunes en español. Sin
+ * match, cae a `tag.fill`.
+ */
+function categoryIcon(name: string) {
+  const n = name.toLowerCase();
+  if (/comida|restaurante|super|almuerzo|cena/.test(n)) return "fork.knife";
+  if (/transporte|auto|carro|gasolina|uber|taxi/.test(n)) return "car.fill";
+  if (/vivienda|renta|casa|hogar|alquiler/.test(n)) return "house.fill";
+  if (/salud|médic|medic|farmacia|doctor/.test(n)) return "cross.case.fill";
+  if (/entretenimiento|ocio|diversión|cine/.test(n)) return "sparkles";
+  if (/educación|escuela|curso|universidad/.test(n)) return "book.fill";
+  if (/servicios|luz|agua|internet|teléfono|telefono/.test(n))
+    return "bolt.fill";
+  if (/compras|ropa|tienda/.test(n)) return "bag.fill";
+  return "tag.fill";
+}
+
+/**
  * La card de categoría de la pantalla "Todas las categorías".
  *
- * Pase visual 2026-09-02: era `Card variant="outlined"`. Se retira en favor de
- * `GlassSurface` directamente — desde que el cristal pasó a ser el default de
- * toda superficie propia, `Card` dejó de ser la forma en la que se pinta
- * contenido con superficie en esta app (sigue viva en auth/budget/vision, que
- * aún no han tenido su pase). Los movimientos desplegados son superficies
- * propias con `forceGlass`, igual que en `CategoryCard` de Analytics.
+ * Equivalente de `CategoryCard` de Analytics, mismo tratamiento y misma
+ * fecha de ajuste: pedido explícito del usuario de que se lea como
+ * `TransactionItem`/`VisionEntityList` — píldora (`BorderRadius.round`) con
+ * disco de icono en `surfaceHighlight`, fondo `colors.background` en el
+ * fallback plano. Los movimientos desplegados siguen siendo superficies
+ * propias con `forceGlass`, en `BorderRadius.m`.
  */
 export const StatisticsCategoryCard: React.FC<StatisticsCategoryCardProps> = ({
   colors,
@@ -31,42 +51,60 @@ export const StatisticsCategoryCard: React.FC<StatisticsCategoryCardProps> = ({
   onPress,
 }) => {
   return (
-    <GlassSurface
-      style={styles.categoryCard}
-      fallbackStyle={[
-        styles.flatCard,
-        { backgroundColor: colors.surface, borderColor: colors.border },
-      ]}
-    >
+    <View>
       <TouchableOpacity
-        style={styles.categoryHeader}
         onPress={onPress}
+        activeOpacity={0.7}
         accessibilityRole="button"
       >
-        <View style={styles.categoryInfo}>
-          <Typography variant="body" weight="semibold">
-            {category.category}
-          </Typography>
-          <Typography variant="caption" muted>
-            {category.percentage.toFixed(1)}%
-          </Typography>
-        </View>
-        <View style={styles.categoryAmountContainer}>
-          <Typography variant="number" style={{ color: colors.expense }}>
-            −{formatCurrency(category.totalAmount)}
-          </Typography>
-          <IconSymbol
-            name={isExpanded ? "chevron.up" : "chevron.down"}
-            size={16}
-            color={colors.icon}
-          />
-        </View>
+        <GlassSurface
+          style={styles.row}
+          isInteractive
+          fallbackStyle={[
+            styles.flatRow,
+            {
+              backgroundColor: colors.background,
+              borderBottomColor: colors.border,
+            },
+          ]}
+        >
+          <View
+            style={[
+              styles.iconContainer,
+              { backgroundColor: colors.surfaceHighlight },
+            ]}
+          >
+            <IconSymbol
+              name={categoryIcon(category.category)}
+              size={20}
+              color={colors.icon}
+            />
+          </View>
+
+          <View style={styles.categoryInfo}>
+            <Typography variant="body" weight="semibold" numberOfLines={1}>
+              {category.category}
+            </Typography>
+            <Typography variant="caption" muted>
+              {category.percentage.toFixed(1)}%
+            </Typography>
+          </View>
+
+          <View style={styles.categoryAmountContainer}>
+            <Typography variant="number" style={{ color: colors.expense }}>
+              −{formatCurrency(category.totalAmount)}
+            </Typography>
+            <IconSymbol
+              name={isExpanded ? "chevron.up" : "chevron.down"}
+              size={16}
+              color={colors.icon}
+            />
+          </View>
+        </GlassSurface>
       </TouchableOpacity>
 
       {isExpanded && (
-        <View
-          style={[styles.categoryDetails, { borderTopColor: colors.border }]}
-        >
+        <View style={styles.categoryDetails}>
           {category.transactions && category.transactions.length > 0 ? (
             category.transactions.map((tx) => (
               <GlassSurface
@@ -74,7 +112,7 @@ export const StatisticsCategoryCard: React.FC<StatisticsCategoryCardProps> = ({
                 forceGlass
                 style={styles.transactionRow}
                 fallbackStyle={[
-                  styles.flatRow,
+                  styles.flatTransactionRow,
                   {
                     backgroundColor: colors.surfaceHighlight,
                     borderColor: colors.border,
@@ -101,26 +139,34 @@ export const StatisticsCategoryCard: React.FC<StatisticsCategoryCardProps> = ({
           )}
         </View>
       )}
-    </GlassSurface>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  /** Layout de la card, común a la variante con cristal y a la plana. */
-  categoryCard: {
-    padding: Spacing.m,
-    borderRadius: BorderRadius.l,
+  /** Layout de la fila colapsada, común a la variante con cristal y a la plana. */
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.s,
+    borderRadius: BorderRadius.round,
     overflow: "hidden",
   },
-  /** Fondo opaco + hairline: solo cuando no hay cristal. */
-  flatCard: {
-    borderWidth: StyleSheet.hairlineWidth,
+  /**
+   * Fondo de la fila **sin** cristal: opaco y del color del lienzo, igual
+   * convención que `TransactionItem`/`VisionEntityList`.
+   */
+  flatRow: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  categoryHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: BorderRadius.round,
+    justifyContent: "center",
     alignItems: "center",
-    gap: Spacing.s,
   },
   categoryInfo: {
     flex: 1,
@@ -132,8 +178,6 @@ const styles = StyleSheet.create({
   },
   categoryDetails: {
     marginTop: Spacing.sm,
-    paddingTop: Spacing.sm,
-    borderTopWidth: StyleSheet.hairlineWidth,
     gap: Spacing.s,
   },
   /** Layout de la fila desplegada, común a la variante con cristal y a la plana. */
@@ -148,7 +192,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   /** Fondo opaco + hairline de la fila: solo cuando no hay cristal. */
-  flatRow: {
+  flatTransactionRow: {
     borderWidth: StyleSheet.hairlineWidth,
   },
   transactionInfo: {

@@ -1,21 +1,27 @@
 import { ThemedView } from "@/components/themed-view";
 import { BudgetDashboard } from "@/features/budget/components/BudgetDashboard";
 import { BudgetSetupWizard } from "@/features/budget/components/BudgetSetupWizard";
-import { useBudgetData } from "@/features/budget/hooks/useBudgetData";
+import { useBudgetScreen } from "@/features/budget/hooks/useBudgetScreen";
 import { Stack } from "expo-router";
-import React, { useState } from "react";
+import React from "react";
 import { ActivityIndicator, StyleSheet } from "react-native";
 
 export default function BudgetScreen() {
-  const { isSetup, budgetLoading, colors } = useBudgetData();
-  const [isEditing, setIsEditing] = useState(false);
+  const {
+    isSetup,
+    budgetLoading,
+    colors,
+    isEditing,
+    onStartEditing,
+    onCancelEditing,
+  } = useBudgetScreen();
 
   if (budgetLoading) {
     return (
       <ThemedView
         lightColor="transparent"
         darkColor="transparent"
-        style={[styles.container, { justifyContent: "center" }]}
+        style={[styles.container, styles.centered]}
       >
         <ActivityIndicator size="large" color={colors.primary} />
       </ThemedView>
@@ -40,7 +46,7 @@ export default function BudgetScreen() {
                       name: "pencil",
                     },
                     tintColor: colors.primary,
-                    onPress: () => setIsEditing(true),
+                    onPress: onStartEditing,
                   },
                 ]
               : isEditing
@@ -53,7 +59,7 @@ export default function BudgetScreen() {
                         name: "xmark",
                       },
                       tintColor: colors.primary,
-                      onPress: () => setIsEditing(false),
+                      onPress: onCancelEditing,
                     },
                   ]
                 : [],
@@ -62,7 +68,7 @@ export default function BudgetScreen() {
       {isSetup && !isEditing ? (
         <BudgetDashboard />
       ) : (
-        <BudgetSetupWizard onFinish={() => setIsEditing(false)} />
+        <BudgetSetupWizard onFinish={onCancelEditing} />
       )}
     </ThemedView>
   );
@@ -72,5 +78,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     width: "100%",
+  },
+  centered: {
+    justifyContent: "center",
   },
 });

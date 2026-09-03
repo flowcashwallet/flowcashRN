@@ -38,3 +38,11 @@ export const formatAmountInput = (text: string) => {
 export const getRawAmount = (formattedText: string) => {
   return parseFloat(formattedText.replace(/,/g, ""));
 };
+
+// Helper to resolve the wizard step title/heading, was an inline ternary in
+// BudgetSetupWizard.tsx's JSX.
+export const getWizardStepTitle = (step: number) => {
+  if (step === 1) return "Configura tu Presupuesto";
+  if (step === 2) return "Gastos Fijos";
+  return "Resumen";
+};

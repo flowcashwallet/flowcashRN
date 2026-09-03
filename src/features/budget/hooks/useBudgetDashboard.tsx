@@ -4,8 +4,8 @@ import { resetBudgetConfig } from "@/features/budget/budgetSlice";
 import STRINGS from "@/i18n/es.json";
 import { AppDispatch, RootState } from "@/store/store";
 import { formatCurrency } from "@/utils/format";
-import React from "react";
-import { Alert } from "react-native";
+import React, { useCallback, useState } from "react";
+import { Alert, LayoutAnimation } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 
 export const useBudgetDashboard = () => {
@@ -15,6 +15,27 @@ export const useBudgetDashboard = () => {
   );
   const { transactions } = useSelector((state: RootState) => state.wallet);
   const { colors } = useTheme();
+
+  // Estado de expansión de las tres cards colapsables (Distribución, Resumen
+  // mensual, Detalles) — vivía como `useState` local en `BudgetDashboard.tsx`.
+  const [isPieExpanded, setIsPieExpanded] = useState(false);
+  const [isBarExpanded, setIsBarExpanded] = useState(false);
+  const [isStatsExpanded, setIsStatsExpanded] = useState(false);
+
+  const onTogglePieExpanded = useCallback(() => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setIsPieExpanded((prev) => !prev);
+  }, []);
+
+  const onToggleBarExpanded = useCallback(() => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setIsBarExpanded((prev) => !prev);
+  }, []);
+
+  const onToggleStatsExpanded = useCallback(() => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setIsStatsExpanded((prev) => !prev);
+  }, []);
 
   const handleReset = () => {
     Alert.alert(
@@ -156,5 +177,11 @@ export const useBudgetDashboard = () => {
     totalActualExpense,
     totalActualIncome,
     totalFixedExpenses,
+    isPieExpanded,
+    isBarExpanded,
+    isStatsExpanded,
+    onTogglePieExpanded,
+    onToggleBarExpanded,
+    onToggleStatsExpanded,
   };
 };

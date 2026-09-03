@@ -40,18 +40,6 @@ const lightPalette = {
   expense: "#9F1239", // Rose 800
   grey: "#94A3B8", // Slate 400
   border: "#86898dff", // Slate 200
-
-  gradients: {
-    background: ["#8EC5FC", "#ddf2d3ff"] as const,
-    primary: ["#0D9488", "#115E59"] as const,
-    success: ["#34D399", "#10B981"] as const,
-    error: ["#F87171", "#EF4444"] as const,
-  },
-  glass: {
-    cardBg: "rgba(255,255,255,0.35)",
-    cardBorder: "rgba(0,0,0,0.08)",
-    specularTop: "rgba(255,255,255,0.35)",
-  },
 };
 
 // --- DARK THEME (Midnight Teal) ---
@@ -81,29 +69,14 @@ const darkPalette = {
   expense: "#FB7185", // Rose 400
   grey: "#64748B", // Slate 500
   border: "#334155", // Slate 700
-
-  gradients: {
-    background: ["#0F2027", "#203A43", "#2C5364"] as const,
-    primary: ["#2DD4BF", "#0D9488"] as const, // Lighter to Darker Teal
-    success: ["#34D399", "#10B981"] as const,
-    error: ["#F87171", "#EF4444"] as const,
-  },
-  glass: {
-    cardBg: "rgba(255,255,255,0.08)",
-    cardBorder: "rgba(255,255,255,0.10)",
-    specularTop: "rgba(255,255,255,0.25)",
-  },
 };
 
 /**
  * Nota de dirección estética (ver `docs/refactor-plan.md`):
- * `glass.*` y `gradients.*` quedan **deprecados**. La dirección es superficie plana +
- * hairline. Se conservan porque todavía los consume un componente que se limpiará en el
- * pase visual de su pantalla. **Consumidor restante al cerrar el pase de Analytics
- * (2026-09-02): solo `BudgetDashboard` (3 usos de `glass.cardBg`).** `ForecastCard` se
- * limpió en ese pase; `VisionHeader`, `VisionEntityList`, `VisionAssetLiabilityTabs` y
- * `LiabilityManagementLink` ya lo estaban. `gradients.*` no tiene ningún consumidor.
- * No añadir usos nuevos.
+ * `glass.*` y `gradients.*` — el vidrio *falso* (`rgba(...)` cross-platform,
+ * distinto del Liquid Glass nativo de `GlassSurface`) — quedaron deprecados y,
+ * al cerrar el pase visual de Budget (2026-09-03, su último consumidor real,
+ * `BudgetDashboard`), **eliminados por completo** de la paleta. No reintroducir.
  */
 export const Colors = {
   light: {
@@ -126,8 +99,6 @@ export const Colors = {
     warning: lightPalette.warning,
     success: lightPalette.success,
     expense: lightPalette.expense,
-    gradients: lightPalette.gradients,
-    glass: lightPalette.glass,
   },
   dark: {
     text: darkPalette.text,
@@ -149,8 +120,6 @@ export const Colors = {
     warning: darkPalette.warning,
     success: darkPalette.success,
     expense: darkPalette.expense,
-    gradients: darkPalette.gradients,
-    glass: darkPalette.glass,
   },
 };
 export type ThemeColors = typeof Colors.light | typeof Colors.dark;

@@ -78,6 +78,18 @@ const MAPPING = {
   "dollarsign.circle": "monetization-on",
   textformat: "sort-by-alpha",
   "arrow.up.arrow.down": "swap-vert",
+  // Añadidos en el pase de consistencia de forma de Analytics (2026-09-03):
+  // `categoryIcon()` en `CategoryCard`/`StatisticsCategoryCard` y el disco de
+  // icono de `RecurringExpensesSection`/`StatisticsRecurringList`/
+  // `FinancialTipsSection` los usaban sin estar mapeados.
+  "fork.knife": "restaurant",
+  "car.fill": "directions-car",
+  "cross.case.fill": "medical-services",
+  sparkles: "auto-awesome",
+  "book.fill": "menu-book",
+  "bolt.fill": "bolt",
+  "bag.fill": "shopping-bag",
+  "tag.fill": "label",
 } as Record<string, ComponentProps<typeof MaterialIcons>["name"]>;
 
 /**
