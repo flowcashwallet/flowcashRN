@@ -21,6 +21,8 @@ interface BudgetCollapsibleCardProps {
   title: string;
   /** Solo lo pasan las cards que coloreaban el título explícitamente en el original (Resumen mensual, Detalles). */
   titleColor?: string;
+  /** Ícono en disco a la izquierda del título — mismo lenguaje que `CategoryCard`/`TransactionItem`. */
+  icon: React.ComponentProps<typeof IconSymbol>["name"];
   expanded: boolean;
   onToggle: () => void;
   chevronColor: string;
@@ -40,10 +42,18 @@ interface BudgetCollapsibleCardProps {
  * `surface` + hairline sin él (era `colors.glass.cardBg`, el vidrio *falso*
  * deprecado, con sombra `#000`). `BudgetDashboard` era el último consumidor
  * de `glass.*`/`gradients.*` del repo.
+ *
+ * Ajuste 2026-09-03 (pedido explícito del usuario: mismo lenguaje visual que
+ * "Top Categorías" de Analytics): el header gana un disco de icono en
+ * `surfaceHighlight`, igual que `CategoryCard`/`TransactionItem`. Sigue
+ * siendo una *card* de sección (`BorderRadius.xl`, no la píldora
+ * `BorderRadius.round` de una fila de lista) — expande contenido compuesto
+ * (gráficos, varias filas), no es un elemento repetido de una lista.
  */
 export const BudgetCollapsibleCard: React.FC<BudgetCollapsibleCardProps> = ({
   title,
   titleColor,
+  icon,
   expanded,
   onToggle,
   chevronColor,
@@ -56,6 +66,7 @@ export const BudgetCollapsibleCard: React.FC<BudgetCollapsibleCardProps> = ({
   return (
     <GlassSurface
       style={styles.card}
+      isInteractive
       fallbackStyle={[
         styles.flatCard,
         { backgroundColor: colors.surface, borderColor: colors.border },
@@ -67,6 +78,14 @@ export const BudgetCollapsibleCard: React.FC<BudgetCollapsibleCardProps> = ({
         style={styles.cardHeader}
       >
         <View style={styles.headerTitleRow}>
+          <View
+            style={[
+              styles.iconContainer,
+              { backgroundColor: colors.surfaceHighlight },
+            ]}
+          >
+            <IconSymbol name={icon} size={20} color={colors.icon} />
+          </View>
           <Typography
             variant="subheading"
             style={titleColor ? { color: titleColor } : undefined}
@@ -118,7 +137,15 @@ const styles = StyleSheet.create({
   headerTitleRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: Spacing.s,
+    gap: Spacing.sm,
+    flex: 1,
+  },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: BorderRadius.round,
+    justifyContent: "center",
+    alignItems: "center",
   },
   headerRightRow: {
     flexDirection: "row",

@@ -90,6 +90,9 @@ const MAPPING = {
   "bolt.fill": "bolt",
   "bag.fill": "shopping-bag",
   "tag.fill": "label",
+  // Añadido en el pase visual de Auth (2026-09-03): `AuthErrorBanner` lo usa
+  // como icono de estado de error real, sin estar mapeado todavía.
+  "exclamationmark.triangle.fill": "warning",
 } as Record<string, ComponentProps<typeof MaterialIcons>["name"]>;
 
 /**

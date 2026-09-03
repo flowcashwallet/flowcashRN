@@ -31,6 +31,7 @@ export const BudgetStatsCard: React.FC<BudgetStatsCardProps> = ({
     <BudgetCollapsibleCard
       title="Detalles"
       titleColor={colors.text}
+      icon="list.bullet"
       expanded={expanded}
       onToggle={onToggle}
       chevronColor={colors.textSecondary}

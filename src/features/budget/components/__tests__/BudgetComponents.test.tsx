@@ -122,6 +122,7 @@ describe("BudgetCollapsibleCard — cristal por defecto, plana como fallback", (
     renderInTheme(
       <BudgetCollapsibleCard
         title="Distribución"
+        icon="chart.pie.fill"
         expanded={false}
         onToggle={jest.fn()}
         chevronColor={Colors.light.icon}
@@ -139,6 +140,7 @@ describe("BudgetCollapsibleCard — cristal por defecto, plana como fallback", (
     renderInTheme(
       <BudgetCollapsibleCard
         title="Distribución"
+        icon="chart.pie.fill"
         expanded={false}
         onToggle={jest.fn()}
         chevronColor={Colors.light.icon}
@@ -162,6 +164,7 @@ describe("BudgetCollapsibleCard — cristal por defecto, plana como fallback", (
       renderInTheme(
         <BudgetCollapsibleCard
           title="Distribución"
+          icon="chart.pie.fill"
           expanded={false}
           onToggle={jest.fn()}
           chevronColor={colors.icon}
@@ -302,7 +305,10 @@ describe("BudgetSummaryStep — resumen final del wizard", () => {
     );
     await settle();
 
-    expect(screen.getAllByTestId("glass-view")).toHaveLength(2);
+    // 2 cards (ingreso/gastos) + 2 botones de `WizardNavRow` ("Atrás"
+    // outline, "Finalizar" primary) — `Button` gana cristal propio el
+    // 2026-09-03, así que este paso del wizard lo hereda gratis sin tocarlo.
+    expect(screen.getAllByTestId("glass-view")).toHaveLength(4);
   });
 });
 

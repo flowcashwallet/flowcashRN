@@ -50,6 +50,7 @@ export const BudgetSummaryChartCard: React.FC<BudgetSummaryChartCardProps> = ({
     <BudgetCollapsibleCard
       title={STRINGS.budget.monthlySummary}
       titleColor={colors.text}
+      icon="chart.bar.fill"
       expanded={expanded}
       onToggle={onToggle}
       chevronColor={colors.textSecondary}

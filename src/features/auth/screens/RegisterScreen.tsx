@@ -1,180 +1,57 @@
-import { Button } from "@/components/atoms/Button";
-import { Card } from "@/components/atoms/Card";
-import { Checkbox } from "@/components/atoms/Checkbox";
-import { Input } from "@/components/atoms/Input";
+import { GlassSurface } from "@/components/atoms/GlassSurface";
 import { Typography } from "@/components/atoms/Typography";
 import { ThemedView } from "@/components/themed-view";
-import { IconSymbol } from "@/components/ui/icon-symbol";
-import { Spacing } from "@/constants/theme";
-import { useTheme } from "@/contexts/ThemeContext";
-import STRINGS from "@/i18n/es.json";
-import { endpoints } from "@/services/api";
-import { AppDispatch, RootState } from "@/store/store";
-import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import { BorderRadius, Spacing } from "@/constants/theme";
+import React from "react";
 import {
-  ActivityIndicator,
   KeyboardAvoidingView,
-  Linking,
   Platform,
   ScrollView,
   StyleSheet,
-  TouchableOpacity,
   View,
 } from "react-native";
-import { useDispatch, useSelector } from "react-redux";
-import {
-  enableBiometrics,
-  loginSuccess,
-  setError,
-  setLoading,
-} from "../authSlice";
+import { AuthErrorBanner } from "../components/AuthErrorBanner";
+import { RegisterForm } from "../components/register/RegisterForm";
+import { useRegisterForm } from "../hooks/useRegisterForm";
 
 export default function RegisterScreen() {
-  const router = useRouter();
-  const dispatch = useDispatch<AppDispatch>();
-  const { loading, error } = useSelector((state: RootState) => state.auth);
-  const { colors } = useTheme();
-
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [dob, setDob] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
-  const [termsAccepted, setTermsAccepted] = useState(false);
-
-  const handleDateChange = (text: string) => {
-    // Remove non-numeric characters
-    const cleaned = text.replace(/[^0-9]/g, "");
-
-    // Limit length to 8 characters (DDMMAAAA)
-    let formatted = cleaned.substring(0, 8);
-
-    // Insert hyphens
-    if (formatted.length > 4) {
-      formatted = `${formatted.slice(0, 2)}-${formatted.slice(2, 4)}-${formatted.slice(4)}`;
-    } else if (formatted.length > 2) {
-      formatted = `${formatted.slice(0, 2)}-${formatted.slice(2)}`;
-    }
-
-    setDob(formatted);
-  };
-
-  const isValidDate = (dateString: string) => {
-    const regex = /^(\d{2})-(\d{2})-(\d{4})$/;
-    if (!regex.test(dateString)) return false;
-
-    const parts = dateString.split("-");
-    const day = parseInt(parts[0], 10);
-    const month = parseInt(parts[1], 10);
-    const year = parseInt(parts[2], 10);
-
-    if (year < 1900 || year > new Date().getFullYear()) return false;
-    if (month < 1 || month > 12) return false;
-    if (day < 1 || day > 31) return false;
-
-    const date = new Date(year, month - 1, day);
-    return (
-      date.getDate() === day &&
-      date.getMonth() === month - 1 &&
-      date.getFullYear() === year
-    );
-  };
-
-  const handleRegister = async () => {
-    if (!firstName || !lastName || !dob || !email || !password) {
-      dispatch(setError("Por favor completa todos los campos"));
-      return;
-    }
-
-    if (!isValidDate(dob)) {
-      dispatch(setError("Por favor ingresa una fecha válida (DD-MM-AAAA)"));
-      return;
-    }
-
-    if (!termsAccepted) {
-      dispatch(setError("Debes aceptar los términos y condiciones"));
-      return;
-    }
-
-    dispatch(setLoading(true));
-    dispatch(setError(null));
-
-    try {
-      const response = await fetch(endpoints.auth.register, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          username: email,
-          email,
-          password,
-          first_name: firstName,
-          last_name: lastName,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        // Handle Django errors
-        // Django returns { field: ["error message"], ... }
-        let errorMessage = "Error en el registro";
-        if (data.username) errorMessage = `Usuario: ${data.username[0]}`;
-        else if (data.email) errorMessage = `Email: ${data.email[0]}`;
-        else if (data.password)
-          errorMessage = `Contraseña: ${data.password[0]}`;
-        else if (data.detail) errorMessage = data.detail;
-
-        throw new Error(errorMessage);
-      }
-
-      console.log("User registered:", data);
-
-      // Auto-login if tokens are present
-      if (data.access && data.refresh) {
-        await dispatch(
-          loginSuccess({
-            token: data.access,
-            refreshToken: data.refresh,
-            user: data.user,
-          }),
-        ).unwrap();
-
-        // Ask for biometric permission
-        try {
-          await dispatch(enableBiometrics()).unwrap();
-        } catch (bioError) {
-          console.log("Biometrics not enabled or failed:", bioError);
-        }
-
-        router.replace("/");
-      } else {
-        // Fallback if no tokens (shouldn't happen with updated backend)
-        router.replace("/login");
-      }
-    } catch (err: any) {
-      console.error("Registration Error:", err);
-      dispatch(setError(err.message || "Error desconocido"));
-    } finally {
-      dispatch(setLoading(false));
-    }
-  };
-
-  const openTerms = () => {
-    Linking.openURL("https://www.walletBudget.net/Terms.pdf");
-  };
+  const {
+    colors,
+    loading,
+    error,
+    firstName,
+    setFirstName,
+    lastName,
+    setLastName,
+    dob,
+    handleDateChange,
+    email,
+    setEmail,
+    password,
+    setPassword,
+    isPasswordVisible,
+    togglePasswordVisibility,
+    termsAccepted,
+    setTermsAccepted,
+    handleRegister,
+    openTerms,
+    onLoginPress,
+  } = useRegisterForm();
 
   return (
     <ThemedView style={styles.container}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={{ flex: 1 }}
+        style={styles.keyboardAvoiding}
       >
         <ScrollView contentContainerStyle={styles.scrollContent}>
-          <Card variant="flat" style={styles.card}>
+          <GlassSurface
+            style={styles.card}
+            fallbackStyle={[
+              styles.flatCard,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
+          >
             <View style={styles.header}>
               <View
                 style={[
@@ -182,137 +59,43 @@ export default function RegisterScreen() {
                   { backgroundColor: colors.primary }, // Solid primary color
                 ]}
               >
-                <Typography
-                  variant="h2"
-                  weight="bold"
-                  style={{ color: "#FFF" }}
-                >
+                <Typography variant="heading" style={{ color: colors.onPrimary }}>
                   +
                 </Typography>
               </View>
 
-              <Typography
-                variant="h1"
-                weight="bold"
-                style={{ textAlign: "center", marginBottom: Spacing.s }}
-              >
+              <Typography variant="title" style={styles.title}>
                 Crear Cuenta
               </Typography>
-              <Typography
-                variant="body"
-                style={{ textAlign: "center", color: colors.icon }}
-              >
+              <Typography variant="body" muted style={styles.subtitle}>
                 Únete para gestionar tus finanzas
               </Typography>
             </View>
 
-            {error && (
-              <Card
-                variant="flat"
-                style={[styles.errorCard, { backgroundColor: "#FFEBEE" }]}
-              >
-                <Typography
-                  variant="caption"
-                  style={{ color: colors.error, textAlign: "center" }}
-                >
-                  {error}
-                </Typography>
-              </Card>
-            )}
+            <AuthErrorBanner error={error} colors={colors} />
 
-            <View style={styles.form}>
-              <Input
-                label="Nombre"
-                placeholder="Ej. Juan"
-                value={firstName}
-                onChangeText={setFirstName}
-              />
-              <Input
-                label="Apellido"
-                placeholder="Ej. Pérez"
-                value={lastName}
-                onChangeText={setLastName}
-              />
-              <Input
-                label="Fecha de Nacimiento"
-                placeholder="DD-MM-AAAA"
-                value={dob}
-                onChangeText={handleDateChange}
-                keyboardType="numeric"
-                maxLength={10}
-              />
-              <Input
-                label={STRINGS.auth.email}
-                placeholder={STRINGS.auth.emailPlaceholder}
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-              <Input
-                label={STRINGS.auth.password}
-                placeholder={STRINGS.auth.passwordPlaceholder}
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!isPasswordVisible}
-                rightIcon={
-                  <TouchableOpacity
-                    onPress={() => setIsPasswordVisible(!isPasswordVisible)}
-                  >
-                    <IconSymbol
-                      name={isPasswordVisible ? "eye.fill" : "eye.slash.fill"}
-                      size={24}
-                      color={colors.icon}
-                    />
-                  </TouchableOpacity>
-                }
-              />
-
-              <View style={styles.termsContainer}>
-                <Checkbox
-                  checked={termsAccepted}
-                  onChange={setTermsAccepted}
-                  testID="terms-checkbox"
-                />
-                <View style={{ flex: 1, marginLeft: Spacing.s }}>
-                  <Typography variant="body" style={{ color: colors.text }}>
-                    Acepto los{" "}
-                    <Typography
-                      variant="body"
-                      weight="bold"
-                      style={{ color: colors.primary }}
-                      onPress={openTerms}
-                    >
-                      Términos y Condiciones
-                    </Typography>
-                  </Typography>
-                </View>
-              </View>
-
-              {loading ? (
-                <ActivityIndicator
-                  size="large"
-                  color={colors.primary}
-                  style={{ marginTop: Spacing.m }}
-                />
-              ) : (
-                <Button
-                  title="Registrarse"
-                  onPress={handleRegister}
-                  style={{ marginTop: Spacing.m }}
-                />
-              )}
-
-              <TouchableOpacity
-                onPress={() => router.replace("/login")}
-                style={{ marginTop: Spacing.l, alignItems: "center" }}
-              >
-                <Typography variant="body" style={{ color: colors.primary }}>
-                  ¿Ya tienes cuenta? Inicia sesión
-                </Typography>
-              </TouchableOpacity>
-            </View>
-          </Card>
+            <RegisterForm
+              colors={colors}
+              loading={loading}
+              firstName={firstName}
+              onFirstNameChange={setFirstName}
+              lastName={lastName}
+              onLastNameChange={setLastName}
+              dob={dob}
+              onDobChange={handleDateChange}
+              email={email}
+              onEmailChange={setEmail}
+              password={password}
+              onPasswordChange={setPassword}
+              isPasswordVisible={isPasswordVisible}
+              onTogglePasswordVisibility={togglePasswordVisibility}
+              termsAccepted={termsAccepted}
+              onTermsAcceptedChange={setTermsAccepted}
+              onOpenTerms={openTerms}
+              onSubmit={handleRegister}
+              onLoginPress={onLoginPress}
+            />
+          </GlassSurface>
         </ScrollView>
       </KeyboardAvoidingView>
     </ThemedView>
@@ -323,15 +106,26 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  keyboardAvoiding: {
+    flex: 1,
+  },
   scrollContent: {
     flexGrow: 1,
     justifyContent: "center",
     padding: Spacing.l,
     paddingTop: Spacing.xxl,
   },
+  /** Layout de la card, común a la variante con cristal y a la plana. */
   card: {
     alignItems: "center",
+    padding: Spacing.m,
     paddingVertical: Spacing.xxl,
+    borderRadius: BorderRadius.l,
+    overflow: "hidden",
+  },
+  /** Fondo opaco + hairline: solo cuando no hay cristal. */
+  flatCard: {
+    borderWidth: StyleSheet.hairlineWidth,
   },
   header: {
     alignItems: "center",
@@ -354,19 +148,11 @@ const styles = StyleSheet.create({
     shadowRadius: 4.65,
     elevation: 8,
   },
-  errorCard: {
-    width: "100%",
-    padding: Spacing.s,
-    marginBottom: Spacing.m,
-    borderRadius: 8,
-  },
-  form: {
-    width: "100%",
-  },
-  termsContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: Spacing.s,
+  title: {
+    textAlign: "center",
     marginBottom: Spacing.s,
+  },
+  subtitle: {
+    textAlign: "center",
   },
 });

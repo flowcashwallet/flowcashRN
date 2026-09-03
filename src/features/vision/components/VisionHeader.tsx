@@ -45,6 +45,7 @@ export const VisionHeader: React.FC<VisionHeaderProps> = ({
   return (
     <GlassSurface
       style={styles.card}
+      isInteractive
       fallbackStyle={[
         styles.flatCard,
         { backgroundColor: colors.surface, borderColor: colors.border },

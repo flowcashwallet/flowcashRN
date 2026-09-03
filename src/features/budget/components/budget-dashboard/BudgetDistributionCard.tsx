@@ -29,6 +29,7 @@ export const BudgetDistributionCard: React.FC<BudgetDistributionCardProps> = ({
   return (
     <BudgetCollapsibleCard
       title={STRINGS.budget.distribution}
+      icon="chart.pie.fill"
       expanded={expanded}
       onToggle={onToggle}
       chevronColor={colors.icon}
