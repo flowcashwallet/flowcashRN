@@ -1,10 +1,11 @@
+import { Motion } from "@/constants/theme";
 import { SortOption } from "@/features/vision/components/VisionSortModal";
 import { VisionEntity } from "@/features/vision/data/visionSlice";
 import { useVisionData } from "@/features/vision/hooks/useVisionData";
 import { useVisionOperations } from "@/features/vision/hooks/useVisionOperations";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const VISION_SORT_PREF_KEY = "vision_sort_preference";
 
@@ -143,11 +144,35 @@ export const useVisionScreen = () => {
     }
   }, [handleDeleteEntity, selectedEntity]);
 
+  /**
+   * `AddEntityModal`/`EntityDetailModal` son dos `BottomSheet` independientes,
+   * cada uno con su propio `Modal` nativo. Cerrar uno y abrir el otro en el
+   * mismo tick deja los dos `Modal` con `visible=true` a la vez durante la
+   * animación de salida del primero (`BottomSheet` no desmonta hasta que
+   * termina, para que se vea salir) — iOS no soporta bien dos `Modal` nativos
+   * presentados a la vez, y el síntoma es justo el bug reportado: un sheet
+   * fantasma sin contenido que bloquea el toque sobre la pantalla. Se espera
+   * a que termine la animación de salida (`Motion.exit`) antes de abrir el de
+   * edición, para que nunca haya dos `Modal` nativos visibles a la vez.
+   */
+  const editModalTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+
+  useEffect(() => {
+    return () => {
+      if (editModalTimeoutRef.current) clearTimeout(editModalTimeoutRef.current);
+    };
+  }, []);
+
   const handleEditEntity = useCallback(() => {
     if (selectedEntity) {
       setDetailModalVisible(false);
       setSelectedType(selectedEntity.type);
-      setAddModalVisible(true);
+      if (editModalTimeoutRef.current) clearTimeout(editModalTimeoutRef.current);
+      editModalTimeoutRef.current = setTimeout(() => {
+        setAddModalVisible(true);
+      }, Motion.exit);
     }
   }, [selectedEntity]);
 

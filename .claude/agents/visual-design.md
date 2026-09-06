@@ -129,23 +129,28 @@ instead of making ad-hoc per-screen calls.
 - Do not touch files under that feature's `hooks/` folder, and do not move JSX between files
   for structural reasons — if a screen still needs decomposition, that's `arch-refactor`'s job,
   flag it instead of doing it yourself.
-- **`Button.tsx` already has Liquid Glass built in (2026-09-03, design-system-level change, not
-  tied to one feature's tracker row) — you get it for free, do not add glass to a button
-  ad-hoc.** `primary`/`secondary`/`outline` wrap in `GlassSurface` with `isInteractive` always
-  `true`; `ghost` never (no surface by design); `disabled` never (flat grey stays flat,
-  regardless of variant). `primary`/`secondary` tint to `colors.primary`/`colors.secondary` by
-  default, but if the call site overrides `backgroundColor` via `style` (e.g. a success/error
-  "Guardar y continuar"/delete button), that colour is used as the tint instead — check
-  `Button.tsx`'s docblock before assuming the tint is always the flat variant colour.
-  `outline`'s border (including any custom `borderColor`, like Budget's red "Reiniciar
-  Presupuesto") lives on the outer `TouchableOpacity`, unchanged, so it stays visible in both
-  the glass and fallback states without you doing anything. This means Auth/Notifications (and
-  any future screen) get glass buttons automatically just by using `<Button>` — do not wrap a
-  `<Button>` in your own `GlassSurface`, and do not re-derive gating logic per screen. Full
-  rationale (why glass is a sibling `absoluteFill` layer here instead of the usual
-  `TouchableOpacity>GlassSurface` wrapper pattern used by `TransactionItem`/
-  `BudgetCollapsibleCard`) is in the verification log row "Liquid Glass en `Button.tsx`" in
-  `docs/refactor-plan.md`.
+- **`Button.tsx` already has Liquid Glass built in (2026-09-03, corrected 2026-09-04,
+  design-system-level change, not tied to one feature's tracker row) — you get it for free, do
+  not add glass to a button ad-hoc.** `primary`/`secondary`/`outline` wrap `Content` directly in
+  `GlassSurface`, the exact same `TouchableOpacity > GlassSurface` pattern used by
+  `TransactionItem`/`CategoryCard`/`BudgetCollapsibleCard` — not a sibling `absoluteFill` layer
+  (an earlier attempt used that; the user explicitly rejected it and asked for the items'
+  wrap-based pattern instead). `isInteractive` is always `true` on the three glassed variants;
+  `ghost` never gets a `GlassSurface` (no surface by design, style stays on the outer
+  `TouchableOpacity`); `disabled` never either (flat grey stays flat, regardless of variant).
+  `primary`/`secondary` tint to `colors.primary`/`colors.secondary` by default, but if the call
+  site overrides `backgroundColor` via `style` (e.g. a success/error "Guardar y continuar"/delete
+  button), that colour is used as the tint instead — check `Button.tsx`'s docblock before
+  assuming the tint is always the flat variant colour. `outline`'s border (including any custom
+  `borderColor`, like Budget's red "Reiniciar Presupuesto") lives in `baseStyle`, applied to
+  `GlassSurface`'s own `style` (always applied, glass or fallback), so it stays visible in both
+  states without you doing anything — same for any layout override (`flex`, `alignSelf`,
+  `minWidth`) the call site passes via `style`, which also lands on `GlassSurface`'s `style`, not
+  the outer `TouchableOpacity`. This means Auth/Notifications (and any future screen) get glass
+  buttons automatically just by using `<Button>` — do not wrap a `<Button>` in your own
+  `GlassSurface`, and do not re-derive gating logic per screen. Full rationale is in the
+  verification log rows "Liquid Glass en `Button.tsx`" and its "Fix: cristal debe envolver, no
+  `absoluteFill`" follow-up in `docs/refactor-plan.md`.
 
 ## Verification (required before marking a screen's `visual status` `done`)
 

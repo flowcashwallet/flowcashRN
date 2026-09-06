@@ -305,10 +305,15 @@ describe("BudgetSummaryStep — resumen final del wizard", () => {
     );
     await settle();
 
-    // 2 cards (ingreso/gastos) + 2 botones de `WizardNavRow` ("Atrás"
-    // outline, "Finalizar" primary) — `Button` gana cristal propio el
-    // 2026-09-03, así que este paso del wizard lo hereda gratis sin tocarlo.
-    expect(screen.getAllByTestId("glass-view")).toHaveLength(4);
+    // 2 cards (ingreso/gastos) con testID por defecto "glass-view", + 2
+    // botones de `WizardNavRow` ("Atrás" outline, "Finalizar" primary) —
+    // `Button` gana cristal propio el 2026-09-03, así que este paso del
+    // wizard lo hereda gratis sin tocarlo. Desde el fix del 2026-09-04
+    // (el cristal de `Button` envuelve el contenido en vez de una capa
+    // absoluta), su `GlassSurface` lleva `testID="button-surface"` propio,
+    // así que las 4 superficies se cuentan por separado, no en una sola query.
+    expect(screen.getAllByTestId("glass-view")).toHaveLength(2);
+    expect(screen.getAllByTestId("button-surface")).toHaveLength(2);
   });
 });
 
