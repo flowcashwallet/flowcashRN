@@ -53,6 +53,16 @@ export interface BottomSheetProps {
   style?: StyleProp<ViewStyle>;
   /** Estilo extra para el área de contenido, debajo del header. */
   contentStyle?: StyleProp<ViewStyle>;
+  /**
+   * Se llama cuando el `Modal` nativo terminó de descartarse de verdad (solo
+   * iOS — ver el prop `onDismiss` de `Modal`). A diferencia de `onClose`, que
+   * se dispara al pedir el cierre, este confirma que ya no queda ningún
+   * `UIViewController` presentado — la señal que hay que esperar antes de
+   * presentar otro `Modal` nativo desde el mismo sitio (ver
+   * `useVisionScreen.ts`'s `handleEditEntity`, dos `BottomSheet` que se turnan
+   * para editar una entidad).
+   */
+  onDismiss?: () => void;
   children: React.ReactNode;
 }
 
@@ -91,6 +101,7 @@ export function BottomSheet({
   avoidKeyboard = false,
   style,
   contentStyle,
+  onDismiss,
   children,
 }: BottomSheetProps) {
   const { colors } = useTheme();
@@ -175,6 +186,7 @@ export function BottomSheet({
       animationType="none"
       statusBarTranslucent
       onRequestClose={onClose}
+      onDismiss={onDismiss}
     >
       {/*
         El contenido del `Modal` es otra ventana: aunque en el árbol de React

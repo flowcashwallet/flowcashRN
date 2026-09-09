@@ -1,4 +1,3 @@
-import { Motion } from "@/constants/theme";
 import { SortOption } from "@/features/vision/components/VisionSortModal";
 import { VisionEntity } from "@/features/vision/data/visionSlice";
 import { useVisionData } from "@/features/vision/hooks/useVisionData";
@@ -6,6 +5,7 @@ import { useVisionOperations } from "@/features/vision/hooks/useVisionOperations
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Platform } from "react-native";
 
 const VISION_SORT_PREF_KEY = "vision_sort_preference";
 
@@ -147,34 +147,48 @@ export const useVisionScreen = () => {
   /**
    * `AddEntityModal`/`EntityDetailModal` son dos `BottomSheet` independientes,
    * cada uno con su propio `Modal` nativo. Cerrar uno y abrir el otro en el
-   * mismo tick deja los dos `Modal` con `visible=true` a la vez durante la
-   * animación de salida del primero (`BottomSheet` no desmonta hasta que
-   * termina, para que se vea salir) — iOS no soporta bien dos `Modal` nativos
-   * presentados a la vez, y el síntoma es justo el bug reportado: un sheet
-   * fantasma sin contenido que bloquea el toque sobre la pantalla. Se espera
-   * a que termine la animación de salida (`Motion.exit`) antes de abrir el de
-   * edición, para que nunca haya dos `Modal` nativos visibles a la vez.
+   * mismo tick deja los dos `Modal` presentados a la vez en iOS — no soporta
+   * bien dos `UIViewController` modales a la vez, y el síntoma es justo el bug
+   * reportado ("already presenting <RCTFabricModalHostViewController>... from
+   * detached view controller"): un sheet fantasma sin contenido que bloquea el
+   * toque sobre la pantalla.
+   *
+   * Un `setTimeout` con la duración de la animación (`Motion.exit`) no alcanza
+   * a evitarlo: ese reloj arranca en el mismo tick que el cierre, pero el
+   * `useEffect` de `BottomSheet` que arranca su animación de salida corre en
+   * el siguiente render, así que el `finished` de la animación (y con él el
+   * dismiss real del `Modal` nativo) llega *después* de que expire un timer
+   * de la misma duración — la carrera se pierde justo por ese margen, más
+   * variable aún en dispositivo real que en simulador. La señal fiable es
+   * `onDismiss` del `Modal` nativo (solo iOS): se dispara cuando el
+   * `UIViewController` terminó de descartarse de verdad, no cuando la animación
+   * en JS *debería* haber terminado. `pendingEditRef` distingue ese dismiss del
+   * de cualquier otro cierre del detalle (cancelar, borrar, backdrop): solo se
+   * abre `AddEntityModal` cuando el dismiss fue el que disparó `handleEditEntity`.
+   * En Android, `onDismiss` no existe (limitación documentada de `Modal`) y el
+   * bug tampoco se reproduce ahí (es un choque de `UIViewController`, no de
+   * `Dialog`), así que se mantiene el comportamiento original: abrir de una vez.
    */
-  const editModalTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null,
-  );
-
-  useEffect(() => {
-    return () => {
-      if (editModalTimeoutRef.current) clearTimeout(editModalTimeoutRef.current);
-    };
-  }, []);
+  const pendingEditRef = useRef(false);
 
   const handleEditEntity = useCallback(() => {
     if (selectedEntity) {
-      setDetailModalVisible(false);
       setSelectedType(selectedEntity.type);
-      if (editModalTimeoutRef.current) clearTimeout(editModalTimeoutRef.current);
-      editModalTimeoutRef.current = setTimeout(() => {
+      setDetailModalVisible(false);
+      if (Platform.OS === "ios") {
+        pendingEditRef.current = true;
+      } else {
         setAddModalVisible(true);
-      }, Motion.exit);
+      }
     }
   }, [selectedEntity]);
+
+  const onDetailModalDismissed = useCallback(() => {
+    if (pendingEditRef.current) {
+      pendingEditRef.current = false;
+      setAddModalVisible(true);
+    }
+  }, []);
 
   const onOpenFilter = useCallback(() => setFilterVisible(true), []);
   const onOpenSort = useCallback(() => setSortVisible(true), []);
@@ -265,6 +279,7 @@ export const useVisionScreen = () => {
     onCloseDetailModal,
     onCloseFilterModal,
     onCloseSortModal,
+    onDetailModalDismissed,
 
     fabActions,
   };

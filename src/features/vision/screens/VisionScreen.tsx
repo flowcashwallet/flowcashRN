@@ -61,6 +61,7 @@ export default function VisionScreen() {
     onCloseDetailModal,
     onCloseFilterModal,
     onCloseSortModal,
+    onDetailModalDismissed,
 
     fabActions,
   } = useVisionScreen();
@@ -179,6 +180,7 @@ export default function VisionScreen() {
       <EntityDetailModal
         visible={detailModalVisible}
         onClose={onCloseDetailModal}
+        onDismiss={onDetailModalDismissed}
         entity={selectedEntity}
         transactions={transactions}
         isSaving={isSaving}

@@ -23,6 +23,15 @@ import {
 interface EntityDetailModalProps {
   visible: boolean;
   onClose: () => void;
+  /**
+   * Se llama cuando el `Modal` nativo de este sheet terminó de descartarse de
+   * verdad (solo iOS, ver `BottomSheet`'s `onDismiss`). `handleEditEntity`
+   * en `useVisionScreen.ts` lo usa para esperar a que este sheet desaparezca
+   * del todo antes de presentar `AddEntityModal` — presentar los dos a la vez
+   * es justo el bug de "sheet fantasma que bloquea el toque" (dos `Modal`
+   * nativos de iOS presentados al mismo tiempo).
+   */
+  onDismiss?: () => void;
   entity: VisionEntity | null;
   transactions: Transaction[];
   onEdit: () => void;
@@ -56,6 +65,7 @@ interface EntityDetailModalProps {
 export const EntityDetailModal: React.FC<EntityDetailModalProps> = ({
   visible,
   onClose,
+  onDismiss,
   entity,
   transactions,
   onEdit,
@@ -165,6 +175,7 @@ export const EntityDetailModal: React.FC<EntityDetailModalProps> = ({
     <BottomSheet
       visible={visible}
       onClose={onClose}
+      onDismiss={onDismiss}
       title={entity.name}
       headerRight={headerActions}
       contentStyle={styles.sheetContent}

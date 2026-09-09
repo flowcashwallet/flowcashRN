@@ -188,7 +188,7 @@ export default function WalletLayout() {
           name="category-picker"
           options={{
             headerShown: true,
-            presentation: "pageSheet",
+            presentation: "formSheet",
             headerTransparent: true,
             headerTitle: "Categorías",
             sheetAllowedDetents: [0.9],
