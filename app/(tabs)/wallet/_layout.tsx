@@ -175,7 +175,7 @@ export default function WalletLayout() {
           name="transaction-details"
           options={{
             headerShown: true,
-            presentation: isIOS ? "pageSheet" : "card",
+            presentation: isIOS ? "formSheet" : "card",
             headerTransparent: true,
             headerTitle: "Transacción",
             ...(isIOS ? { sheetAllowedDetents: [0.9] } : {}),
