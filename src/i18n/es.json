@@ -195,5 +195,20 @@
     "weekRange": "{from}–{to}",
     "uncategorized": "Sin categoría",
     "recentTransactions": "Movimientos recientes"
+  },
+  "aiChat": {
+    "title": "Asistente FlowCash",
+    "fabLabel": "Preguntar a la IA",
+    "composerPlaceholder": "Pregúntame sobre tus finanzas...",
+    "sendMessage": "Enviar mensaje",
+    "emptyTitle": "Hola, soy Fin",
+    "emptySubtitle": "Pregúntame sobre tus gastos, tu presupuesto o tu proyección del mes.",
+    "suggestedPrompts": [
+      "¿Cuánto llevo gastado este mes?",
+      "¿Cómo va mi presupuesto?",
+      "¿Cuáles son mis gastos fijos?"
+    ],
+    "genericError": "No pudimos conectar con el asistente. Intenta de nuevo.",
+    "retry": "Reintentar"
   }
 }

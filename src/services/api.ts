@@ -22,6 +22,7 @@ export const endpoints = {
     forecast: `${API_BASE_URL}/wallet/analytics/forecast/`,
     parseCommand: `${API_BASE_URL}/wallet/transactions/parse-command/`,
     pushTokens: `${API_BASE_URL}/wallet/push-tokens/`,
+    chat: `${API_BASE_URL}/wallet/chat/message/`,
   },
 };
 

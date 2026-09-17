@@ -12,3 +12,4 @@ django-admin-autocomplete-filter
 openpyxl
 reportlab
 python-dateutil
+anthropic

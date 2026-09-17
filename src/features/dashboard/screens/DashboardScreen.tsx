@@ -1,4 +1,5 @@
 import { Spacing } from "@/constants/theme";
+import { AiChatFab } from "@/features/ai-chat/components/AiChatFab";
 import { AllocationSection } from "@/features/dashboard/components/AllocationSection";
 import { AnomalousMovementsSection } from "@/features/dashboard/components/AnomalousMovementsSection";
 import { BalanceOverviewSection } from "@/features/dashboard/components/BalanceOverviewSection";
@@ -14,6 +15,7 @@ import { ScrollView, StyleSheet, View } from "react-native";
 export default function DashboardScreen() {
   const {
     colors,
+    openAiChat,
     periodView,
     setPeriodView,
     selectedDate,
@@ -124,6 +126,7 @@ export default function DashboardScreen() {
         onSelect={setSelectedDate}
         mode={periodView}
       />
+      <AiChatFab onPress={openAiChat} />
     </View>
   );
 }

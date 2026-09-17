@@ -24,6 +24,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-i!br3!)i_#b(n)0$p_ky&mnost$(ch$atmjtr)@jkage@sk$tf')
 
+# Anthropic API key for the AI chat feature (backend/wallet/ai_chat.py). No
+# insecure default — the chat endpoint fails closed (502) if unset.
+ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY')
+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = 'RENDER' not in os.environ and 'DYNO' not in os.environ and 'VERCEL' not in os.environ
 

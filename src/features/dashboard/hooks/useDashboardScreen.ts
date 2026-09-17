@@ -2,6 +2,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useWalletData } from "@/features/wallet/hooks/useWalletData";
 import STRINGS from "@/i18n/es.json";
 import { formatCurrency } from "@/utils/format";
+import { useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 const PIE_PALETTE = [
@@ -25,6 +26,7 @@ const hashString = (value: string) => {
 
 export const useDashboardScreen = () => {
   const { colors } = useTheme();
+  const router = useRouter();
   const {
     transactions,
     currentMonthTransactions,
@@ -482,8 +484,11 @@ export const useDashboardScreen = () => {
     setExpandedWeek((prev) => (prev === weekLabel ? null : weekLabel));
   }, []);
 
+  const openAiChat = useCallback(() => router.push("/ai-chat"), [router]);
+
   return {
     colors,
+    openAiChat,
 
     periodView,
     setPeriodView,

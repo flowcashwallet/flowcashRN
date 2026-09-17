@@ -8,6 +8,7 @@ from .ml import predict_category_for_user
 from .nlp import parse_voice_command
 from .analytics import predict_runway
 from .recurrence import process_recurring_transactions
+from .ai_chat import AnthropicServiceError, get_chat_reply
 from django.utils import timezone
 from django.conf import settings
 import os
@@ -146,6 +147,33 @@ class AnalyticsViewSet(viewsets.ViewSet):
         """
         result = predict_runway(request.user)
         return Response(result)
+
+class ChatViewSet(viewsets.ViewSet):
+    permission_classes = [permissions.IsAuthenticated]
+
+    @action(detail=False, methods=['post'], url_path='message')
+    def message(self, request):
+        """
+        One turn of the AI chat. v1 is session-only — the client resends the
+        recent conversation each call, nothing is persisted server-side.
+        Body: { "message": "...", "history": [{"role": "user"|"assistant", "content": "..."}] }
+        """
+        text = (request.data.get('message') or '').strip()
+        history = request.data.get('history') or []
+
+        if not text:
+            return Response({"error": "message_required"}, status=status.HTTP_400_BAD_REQUEST)
+        if len(text) > 1000:
+            return Response({"error": "message_too_long"}, status=status.HTTP_400_BAD_REQUEST)
+        if not isinstance(history, list):
+            history = []
+
+        try:
+            reply = get_chat_reply(request.user, text, history)
+        except AnthropicServiceError:
+            return Response({"error": "ai_service_unavailable"}, status=status.HTTP_502_BAD_GATEWAY)
+
+        return Response({"reply": reply})
 
 class CategoryViewSet(viewsets.ModelViewSet):
     serializer_class = CategorySerializer

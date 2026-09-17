@@ -1,4 +1,5 @@
 import { configureStore } from "@reduxjs/toolkit";
+import aiChatReducer from "../features/ai-chat/data/aiChatSlice";
 import authReducer from "../features/auth/authSlice";
 import budgetReducer from "../features/budget/budgetSlice";
 import visionReducer from "../features/vision/data/visionSlice";
@@ -18,6 +19,7 @@ export const store = configureStore({
     budget: budgetReducer,
     gamification: gamificationReducer,
     settings: settingsReducer,
+    aiChat: aiChatReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
