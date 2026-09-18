@@ -38,7 +38,14 @@ export function ChatComposer({ onSend, disabled }: ChatComposerProps) {
       ]}
     >
       {/* `Input` trae un `marginBottom` fijo pensado para formularios apilados;
-          se cancela aquí para que se alinee bien dentro de esta barra horizontal. */}
+          se cancela aquí para que se alinee bien dentro de esta barra horizontal.
+          Su caja interior pinta `colors.surface` por defecto — igual que el
+          fondo plano de esta barra y el de las burbujas del asistente, así
+          que sin el override de abajo el campo de texto se funde con todo lo
+          que lo rodea y no se distingue. `surfaceHighlight` es el token que
+          la app ya usa para "elemento realzado dentro de una superficie"
+          (el disco de icono de `TransactionItem`, los toggles de
+          `AddEntityModal`). */}
       <View style={styles.inputWrapper}>
         <Input
           value={text}
@@ -47,6 +54,7 @@ export function ChatComposer({ onSend, disabled }: ChatComposerProps) {
           multiline
           editable={!disabled}
           onSubmitEditing={handleSend}
+          style={{ backgroundColor: colors.surfaceHighlight }}
         />
       </View>
       <TouchableOpacity

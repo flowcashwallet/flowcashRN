@@ -5,10 +5,17 @@ thin and delegates here.
 
 v1 scope (see docs/refactor-plan.md-equivalent planning conversation):
 non-streaming, session-only conversation (no DB persistence — the frontend
-resends recent history each turn), single-shot context injection (no
-tool-calling loop).
+resends recent history each turn). One tool (`propose_transaction`) is
+offered so the assistant can propose a transaction from the conversation —
+the frontend renders it as an inline confirmation card and only the app
+(never the model) actually creates it via the existing `addTransaction`
+thunk, on explicit user confirmation. There is still no full tool-execution
+loop (no `tool_result` round-trip): the proposal is one-shot per turn, and a
+plain-text summary of it is always folded into the reply so later turns keep
+enough context to handle follow-ups ("cambia el monto a 300").
 """
 import datetime
+import math
 
 try:
     import zoneinfo
@@ -20,13 +27,50 @@ from django.conf import settings
 from django.db.models import Sum
 
 from .analytics import get_exclusion_filter, predict_runway
-from .models import Transaction
+from .models import Category, Transaction
 
 MODEL_NAME = "claude-haiku-4-5-20251001"
 MAX_HISTORY_MESSAGES = 20
 MAX_OUTPUT_TOKENS = 1024
 RECENT_TRANSACTIONS_LIMIT = 30
 TOP_CATEGORIES_LIMIT = 5
+
+PROPOSE_TRANSACTION_TOOL = {
+    "name": "propose_transaction",
+    "description": (
+        "Propone una transacción nueva para que el usuario la confirme en la "
+        "app — no la crea de verdad, solo abre una tarjeta de confirmación. "
+        "Úsala SOLO cuando ya tengas monto, tipo (income/expense) y una "
+        "descripción breve; si falta alguno, sigue preguntando en vez de "
+        "llamar la herramienta con datos incompletos o inventados."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "amount": {
+                "type": "number",
+                "description": "Monto positivo de la transacción, en la moneda del usuario.",
+            },
+            "type": {
+                "type": "string",
+                "enum": ["income", "expense"],
+                "description": "\"income\" si es un ingreso, \"expense\" si es un gasto.",
+            },
+            "description": {
+                "type": "string",
+                "description": "Descripción corta y clara, ej. \"Supermercado\".",
+            },
+            "category": {
+                "type": "string",
+                "description": (
+                    "Categoría, de preferencia una de las que ya usa el usuario "
+                    "(ver el contexto financiero). Déjala vacía si no es evidente."
+                ),
+            },
+        },
+        "required": ["amount", "type", "description"],
+    },
+}
 
 # Matches `predict_runway`'s timezone so "this month"/"today" boundaries in
 # the chat's context agree with the Forecast the user sees on-screen.
@@ -54,6 +98,15 @@ que no es tu función y redirige la conversación a sus finanzas.
 
 Usa siempre formato de moneda "$X,XXX.XX" y sé honesto sobre la incertidumbre \
 del pronóstico cuando la confianza sea "low".
+
+Si el usuario quiere registrar un gasto o ingreso nuevo, pregúntale lo que \
+falte (monto, si es gasto o ingreso, una descripción breve, y categoría si no \
+es obvia) antes de proponerlo — de preferencia usa una de sus categorías \
+existentes (ver el contexto). Cuando ya tengas monto, tipo y descripción, usa \
+la herramienta `propose_transaction`; no antes, y no la llames más de una vez \
+por turno. La herramienta NO crea la transacción — solo abre una tarjeta que \
+el usuario debe confirmar en la app. Nunca digas que ya se agregó o guardó: \
+esa confirmación la da la propia app cuando el usuario la confirme.
 
 === CONTEXTO FINANCIERO DEL USUARIO ===
 {financial_context}
@@ -100,6 +153,12 @@ def _fixed_expenses_lines(user):
     return lines, budget
 
 
+def _user_category_names(user):
+    return list(
+        Category.objects.filter(user=user).order_by("name").values_list("name", flat=True)
+    )
+
+
 def _recent_transactions_lines(user):
     rows = (
         Transaction.objects.filter(user=user)
@@ -131,6 +190,7 @@ def build_financial_context(user):
 
     fixed_lines, budget = _fixed_expenses_lines(user)
     top_categories = _top_categories_this_month(user, now_local)
+    category_names = _user_category_names(user)
     recent_lines = _recent_transactions_lines(user)
 
     sections = [
@@ -165,6 +225,12 @@ def build_financial_context(user):
         sections.append("(sin gastos categorizados este mes)")
 
     sections.append("")
+    sections.append("=== CATEGORÍAS DEL USUARIO ===")
+    sections.append(
+        ", ".join(category_names) if category_names else "(sin categorías propias creadas)"
+    )
+
+    sections.append("")
     sections.append(f"=== ÚLTIMAS {RECENT_TRANSACTIONS_LIMIT} TRANSACCIONES ===")
     sections.extend(recent_lines if recent_lines else ["(sin transacciones registradas)"])
 
@@ -185,11 +251,64 @@ def _sanitize_history(history):
     return cleaned
 
 
+def _validate_transaction_proposal(raw):
+    """
+    Never trust the model's tool call blindly — re-validate shape/types
+    before it reaches the frontend, same spirit as `_sanitize_history` for
+    client input.
+    """
+    if not isinstance(raw, dict):
+        return None
+    try:
+        amount = float(raw.get("amount"))
+    except (TypeError, ValueError):
+        return None
+    # `float()` happily parses "nan"/"inf" strings — guard explicitly so those
+    # can't sneak past the `amount <= 0` check (NaN comparisons are always False).
+    if not math.isfinite(amount) or amount <= 0:
+        return None
+
+    tx_type = raw.get("type")
+    if tx_type not in ("income", "expense"):
+        return None
+
+    description = str(raw.get("description") or "").strip()
+    if not description:
+        return None
+
+    category = str(raw.get("category") or "").strip() or None
+
+    return {
+        "amount": amount,
+        "type": tx_type,
+        "description": description,
+        "category": category,
+    }
+
+
+def _describe_proposal(proposal):
+    """
+    A plain-text summary of the proposal, always folded into the reply (see
+    `get_chat_reply`) so it survives into `history` on the next turn — the
+    frontend only round-trips `{role, content}` text, not the raw tool_use
+    block, so this is the only trace the model has of what it just proposed
+    if the user asks to tweak it in a follow-up.
+    """
+    label = "un ingreso" if proposal["type"] == "income" else "un gasto"
+    category_part = f" en {proposal['category']}" if proposal["category"] else ""
+    return (
+        f"Propuesta: {label} de {_format_currency(proposal['amount'])}{category_part} "
+        f"— \"{proposal['description']}\". Confírmalo en la tarjeta de abajo."
+    )
+
+
 def get_chat_reply(user, message, history):
     """
     Sends one turn to Claude with the user's financial context as the system
     prompt and the sanitized/capped history + new message as the message
-    list. Non-streaming — returns the full reply text.
+    list. Non-streaming. Returns `(reply_text, transaction_proposal)` —
+    `transaction_proposal` is `None` unless the model called
+    `propose_transaction` this turn.
     """
     api_key = settings.ANTHROPIC_API_KEY
     if not api_key:
@@ -209,10 +328,24 @@ def get_chat_reply(user, message, history):
             model=MODEL_NAME,
             max_tokens=MAX_OUTPUT_TOKENS,
             system=system_prompt,
+            tools=[PROPOSE_TRANSACTION_TOOL],
             messages=messages,
         )
     except anthropic.AnthropicError as exc:
         raise AnthropicServiceError(str(exc)) from exc
 
-    text_parts = [block.text for block in response.content if getattr(block, "type", None) == "text"]
-    return "".join(text_parts).strip()
+    text_parts = []
+    transaction_proposal = None
+    for block in response.content:
+        block_type = getattr(block, "type", None)
+        if block_type == "text":
+            text_parts.append(block.text)
+        elif block_type == "tool_use" and block.name == "propose_transaction" and transaction_proposal is None:
+            transaction_proposal = _validate_transaction_proposal(block.input)
+
+    reply_text = "".join(text_parts).strip()
+    if transaction_proposal:
+        summary = _describe_proposal(transaction_proposal)
+        reply_text = f"{reply_text}\n\n{summary}" if reply_text else summary
+
+    return reply_text, transaction_proposal

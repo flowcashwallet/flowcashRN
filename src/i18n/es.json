@@ -209,6 +209,10 @@
       "¿Cuáles son mis gastos fijos?"
     ],
     "genericError": "No pudimos conectar con el asistente. Intenta de nuevo.",
-    "retry": "Reintentar"
+    "retry": "Reintentar",
+    "confirmProposal": "Confirmar",
+    "proposalConfirmed": "Agregada ✓",
+    "proposalCancelled": "Cancelada",
+    "proposalConfirmError": "No se pudo guardar. Intenta de nuevo."
   }
 }

@@ -10,6 +10,8 @@ import { FlatList, StyleSheet, View } from "react-native";
 interface ChatMessageListProps {
   messages: ChatMessage[];
   isLoading: boolean;
+  onConfirmProposal: (messageId: string) => void;
+  onCancelProposal: (messageId: string) => void;
 }
 
 /**
@@ -17,7 +19,12 @@ interface ChatMessageListProps {
  * `ChatTypingIndicator` en el pie es la única señal intermedia mientras se
  * espera la respuesta.
  */
-export function ChatMessageList({ messages, isLoading }: ChatMessageListProps) {
+export function ChatMessageList({
+  messages,
+  isLoading,
+  onConfirmProposal,
+  onCancelProposal,
+}: ChatMessageListProps) {
   const listRef = useRef<FlatList<ChatMessage>>(null);
 
   if (messages.length === 0 && !isLoading) {
@@ -38,7 +45,13 @@ export function ChatMessageList({ messages, isLoading }: ChatMessageListProps) {
       ref={listRef}
       data={messages}
       keyExtractor={(item) => item.id}
-      renderItem={({ item }) => <ChatBubble message={item} />}
+      renderItem={({ item }) => (
+        <ChatBubble
+          message={item}
+          onConfirmProposal={onConfirmProposal}
+          onCancelProposal={onCancelProposal}
+        />
+      )}
       contentContainerStyle={styles.content}
       ListFooterComponent={isLoading ? <ChatTypingIndicator /> : null}
       onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}

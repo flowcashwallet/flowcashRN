@@ -8,7 +8,12 @@ import React from "react";
 function renderList(messages: ChatMessage[], isLoading = false) {
   return render(
     <ThemeProvider>
-      <ChatMessageList messages={messages} isLoading={isLoading} />
+      <ChatMessageList
+        messages={messages}
+        isLoading={isLoading}
+        onConfirmProposal={jest.fn()}
+        onCancelProposal={jest.fn()}
+      />
     </ThemeProvider>,
   );
 }

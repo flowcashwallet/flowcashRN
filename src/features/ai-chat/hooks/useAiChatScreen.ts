@@ -1,5 +1,10 @@
 import { useTheme } from "@/contexts/ThemeContext";
-import { sendChatMessage, sendMessage } from "@/features/ai-chat/data/aiChatSlice";
+import {
+  cancelTransactionProposal,
+  confirmTransactionProposal,
+  sendChatMessage,
+  sendMessage,
+} from "@/features/ai-chat/data/aiChatSlice";
 import { AppDispatch, RootState } from "@/store/store";
 import { useRouter } from "expo-router";
 import { useCallback } from "react";
@@ -27,6 +32,27 @@ export const useAiChatScreen = () => {
     [dispatch],
   );
 
+  const handleConfirmProposal = useCallback(
+    (messageId: string) => {
+      const message = messages.find((m) => m.id === messageId);
+      if (!message?.transactionProposal) return;
+      dispatch(
+        confirmTransactionProposal({
+          messageId,
+          proposal: message.transactionProposal,
+        }),
+      );
+    },
+    [dispatch, messages],
+  );
+
+  const handleCancelProposal = useCallback(
+    (messageId: string) => {
+      dispatch(cancelTransactionProposal(messageId));
+    },
+    [dispatch],
+  );
+
   const goBack = useCallback(() => router.back(), [router]);
 
   return {
@@ -35,6 +61,8 @@ export const useAiChatScreen = () => {
     isLoading: status === "loading",
     error,
     handleSend,
+    handleConfirmProposal,
+    handleCancelProposal,
     goBack,
   };
 };

@@ -169,11 +169,14 @@ class ChatViewSet(viewsets.ViewSet):
             history = []
 
         try:
-            reply = get_chat_reply(request.user, text, history)
+            reply, transaction_proposal = get_chat_reply(request.user, text, history)
         except AnthropicServiceError:
             return Response({"error": "ai_service_unavailable"}, status=status.HTTP_502_BAD_GATEWAY)
 
-        return Response({"reply": reply})
+        payload = {"reply": reply}
+        if transaction_proposal:
+            payload["transaction_proposal"] = transaction_proposal
+        return Response(payload)
 
 class CategoryViewSet(viewsets.ModelViewSet):
     serializer_class = CategorySerializer

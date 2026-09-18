@@ -6,8 +6,13 @@ from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from .ai_chat import AnthropicServiceError, _sanitize_history, build_financial_context
-from .models import Budget, FixedExpense, Transaction
+from .ai_chat import (
+    AnthropicServiceError,
+    _sanitize_history,
+    _validate_transaction_proposal,
+    build_financial_context,
+)
+from .models import Budget, Category, FixedExpense, Transaction
 
 
 class BuildFinancialContextTests(TestCase):
@@ -44,6 +49,13 @@ class BuildFinancialContextTests(TestCase):
         self.assertIn("RESUMEN FINANCIERO", context)
         self.assertIn("TOP CATEGORÍAS ESTE MES", context)
 
+    def test_includes_the_user_own_category_names(self):
+        Category.objects.create(user=self.user, name="Comida")
+        Category.objects.create(user=self.user, name="Transporte")
+        context = build_financial_context(self.user)
+        self.assertIn("CATEGORÍAS DEL USUARIO", context)
+        self.assertIn("Comida, Transporte", context)
+
     def test_handles_user_without_budget_or_transactions(self):
         other_user = User.objects.create_user(username="nobudget", password="password")
         context = build_financial_context(other_user)
@@ -69,6 +81,61 @@ class SanitizeHistoryTests(TestCase):
         ]
         cleaned = _sanitize_history(history)
         self.assertEqual(cleaned, [{"role": "user", "content": "hi"}])
+
+
+class ValidateTransactionProposalTests(TestCase):
+    def test_accepts_a_well_formed_proposal(self):
+        result = _validate_transaction_proposal(
+            {"amount": 250.5, "type": "expense", "description": "Supermercado", "category": "Comida"}
+        )
+        self.assertEqual(
+            result,
+            {"amount": 250.5, "type": "expense", "description": "Supermercado", "category": "Comida"},
+        )
+
+    def test_category_is_optional(self):
+        result = _validate_transaction_proposal(
+            {"amount": 100, "type": "income", "description": "Nómina"}
+        )
+        self.assertEqual(result["category"], None)
+
+    def test_rejects_missing_or_invalid_amount(self):
+        self.assertIsNone(
+            _validate_transaction_proposal({"type": "expense", "description": "x"})
+        )
+        self.assertIsNone(
+            _validate_transaction_proposal({"amount": 0, "type": "expense", "description": "x"})
+        )
+        self.assertIsNone(
+            _validate_transaction_proposal({"amount": -10, "type": "expense", "description": "x"})
+        )
+        self.assertIsNone(
+            _validate_transaction_proposal({"amount": "not a number", "type": "expense", "description": "x"})
+        )
+
+    def test_rejects_nan_and_infinity(self):
+        # float() parses "nan"/"inf" strings happily, and NaN comparisons are
+        # always False — a naive `amount <= 0` guard alone would let them through.
+        self.assertIsNone(
+            _validate_transaction_proposal({"amount": "nan", "type": "expense", "description": "x"})
+        )
+        self.assertIsNone(
+            _validate_transaction_proposal({"amount": "inf", "type": "expense", "description": "x"})
+        )
+
+    def test_rejects_invalid_type(self):
+        self.assertIsNone(
+            _validate_transaction_proposal({"amount": 10, "type": "transfer", "description": "x"})
+        )
+
+    def test_rejects_empty_description(self):
+        self.assertIsNone(
+            _validate_transaction_proposal({"amount": 10, "type": "expense", "description": "   "})
+        )
+
+    def test_rejects_non_dict_input(self):
+        self.assertIsNone(_validate_transaction_proposal("not a dict"))
+        self.assertIsNone(_validate_transaction_proposal(None))
 
 
 class ChatEndpointTests(TestCase):
@@ -100,7 +167,7 @@ class ChatEndpointTests(TestCase):
 
     @patch("wallet.views.get_chat_reply")
     def test_returns_reply_from_ai_chat_module(self, mock_get_chat_reply):
-        mock_get_chat_reply.return_value = "Este mes has gastado $100.00"
+        mock_get_chat_reply.return_value = ("Este mes has gastado $100.00", None)
         response = self.client.post(
             "/api/wallet/chat/message/",
             {"message": "¿Cuánto llevo gastado?", "history": []},
@@ -108,7 +175,26 @@ class ChatEndpointTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["reply"], "Este mes has gastado $100.00")
+        self.assertNotIn("transaction_proposal", response.data)
         mock_get_chat_reply.assert_called_once()
+
+    @patch("wallet.views.get_chat_reply")
+    def test_includes_transaction_proposal_when_present(self, mock_get_chat_reply):
+        proposal = {
+            "amount": 250.0,
+            "type": "expense",
+            "description": "Supermercado",
+            "category": "Comida",
+        }
+        mock_get_chat_reply.return_value = ("Confírmalo abajo:", proposal)
+        response = self.client.post(
+            "/api/wallet/chat/message/",
+            {"message": "agrega un gasto de 250 en comida", "history": []},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["reply"], "Confírmalo abajo:")
+        self.assertEqual(response.data["transaction_proposal"], proposal)
 
     @patch("wallet.views.get_chat_reply")
     def test_returns_502_when_ai_service_unavailable(self, mock_get_chat_reply):

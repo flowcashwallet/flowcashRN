@@ -16,8 +16,16 @@ import { KeyboardAvoidingView, Platform, StyleSheet } from "react-native";
  * ya sufrida en Wallet/Vision con contenido `GlassSurface`.
  */
 export default function AiChatScreen() {
-  const { colors, messages, isLoading, error, handleSend, goBack } =
-    useAiChatScreen();
+  const {
+    colors,
+    messages,
+    isLoading,
+    error,
+    handleSend,
+    handleConfirmProposal,
+    handleCancelProposal,
+    goBack,
+  } = useAiChatScreen();
 
   return (
     <>
@@ -32,7 +40,12 @@ export default function AiChatScreen() {
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
         >
-          <ChatMessageList messages={messages} isLoading={isLoading} />
+          <ChatMessageList
+            messages={messages}
+            isLoading={isLoading}
+            onConfirmProposal={handleConfirmProposal}
+            onCancelProposal={handleCancelProposal}
+          />
           {error ? (
             <Typography
               variant="caption"
