@@ -7,7 +7,14 @@ import { OutgoingChatImage } from "@/features/ai-chat/data/aiChatSlice";
 import STRINGS from "@/i18n/es.json";
 import * as ImagePicker from "expo-image-picker";
 import React, { useState } from "react";
-import { Alert, Image, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import {
+  Alert,
+  Image,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 /** Espejo del límite del backend (`MAX_IMAGES_PER_TURN` en `ai_chat.py`) — evita un round-trip que el 400 rechazaría igual. */
 const MAX_IMAGES_PER_TURN = 4;
@@ -59,32 +66,46 @@ export function ChatComposer({ onSend, disabled }: ChatComposerProps) {
   const addImages = (assets: ImagePicker.ImagePickerAsset[]) => {
     const withBase64 = assets.filter((asset) => !!asset.base64);
     if (withBase64.length < assets.length) {
-      Alert.alert(STRINGS.aiChat.imagePickerErrorTitle, STRINGS.aiChat.imageMissingDataMessage);
+      Alert.alert(
+        STRINGS.aiChat.imagePickerErrorTitle,
+        STRINGS.aiChat.imageMissingDataMessage,
+      );
     }
     setImages((current) => [
       ...current,
-      ...withBase64.slice(0, MAX_IMAGES_PER_TURN - current.length).map((asset) => ({
-        uri: asset.uri,
-        base64: asset.base64!,
-        mediaType: mediaTypeFromAsset(asset),
-      })),
+      ...withBase64
+        .slice(0, MAX_IMAGES_PER_TURN - current.length)
+        .map((asset) => ({
+          uri: asset.uri,
+          base64: asset.base64!,
+          mediaType: mediaTypeFromAsset(asset),
+        })),
     ]);
   };
 
   const pickFromCamera = async () => {
     const permission = await ImagePicker.requestCameraPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert(STRINGS.aiChat.permissionRequiredTitle, STRINGS.aiChat.cameraPermissionMessage);
+      Alert.alert(
+        STRINGS.aiChat.permissionRequiredTitle,
+        STRINGS.aiChat.cameraPermissionMessage,
+      );
       return;
     }
-    const result = await ImagePicker.launchCameraAsync({ quality: 0.6, base64: true });
+    const result = await ImagePicker.launchCameraAsync({
+      quality: 0.6,
+      base64: true,
+    });
     if (!result.canceled) addImages(result.assets);
   };
 
   const pickFromLibrary = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert(STRINGS.aiChat.permissionRequiredTitle, STRINGS.aiChat.libraryPermissionMessage);
+      Alert.alert(
+        STRINGS.aiChat.permissionRequiredTitle,
+        STRINGS.aiChat.libraryPermissionMessage,
+      );
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -114,7 +135,10 @@ export function ChatComposer({ onSend, disabled }: ChatComposerProps) {
     if (!canSend) return;
     onSend({
       text: text.trim(),
-      images: images.map((img) => ({ mediaType: img.mediaType, base64: img.base64 })),
+      images: images.map((img) => ({
+        mediaType: img.mediaType,
+        base64: img.base64,
+      })),
       attachmentUris: images.map((img) => img.uri),
     });
     setText("");
@@ -145,7 +169,11 @@ export function ChatComposer({ onSend, disabled }: ChatComposerProps) {
                 accessibilityLabel={STRINGS.aiChat.removeImage}
                 style={styles.previewRemove}
               >
-                <IconSymbol name="xmark.circle.fill" size={18} color={colors.onPrimary} />
+                <IconSymbol
+                  name="xmark.circle.fill"
+                  size={18}
+                  color={colors.onPrimary}
+                />
               </TouchableOpacity>
             </View>
           ))}
@@ -193,7 +221,11 @@ export function ChatComposer({ onSend, disabled }: ChatComposerProps) {
             { backgroundColor: canSend ? colors.primary : colors.icon },
           ]}
         >
-          <IconSymbol name="paperplane.fill" size={18} color={colors.onPrimary} />
+          <IconSymbol
+            name="paperplane.fill"
+            size={18}
+            color={colors.onPrimary}
+          />
         </TouchableOpacity>
       </View>
     </GlassSurface>
@@ -243,7 +275,7 @@ const styles = StyleSheet.create({
     height: 40,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: Spacing.m,
+    marginBottom: Spacing.xl,
   },
   inputWrapper: {
     flex: 1,
