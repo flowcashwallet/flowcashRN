@@ -1,10 +1,10 @@
 import { Typography } from "@/components/atoms/Typography";
 import { ThemedView } from "@/components/themed-view";
 import { Spacing } from "@/constants/theme";
-import { StatisticsScreenStackHeader } from "@/features/analytics/components/StatisticsScreenStackHeader";
 import { ChatComposer } from "@/features/ai-chat/components/ChatComposer";
 import { ChatMessageList } from "@/features/ai-chat/components/ChatMessageList";
 import { useAiChatScreen } from "@/features/ai-chat/hooks/useAiChatScreen";
+import { StatisticsScreenStackHeader } from "@/features/analytics/components/StatisticsScreenStackHeader";
 import STRINGS from "@/i18n/es.json";
 import React from "react";
 import { KeyboardAvoidingView, Platform, StyleSheet } from "react-native";

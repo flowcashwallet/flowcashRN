@@ -1,15 +1,77 @@
+import {
+  addTransaction,
+  deleteTransaction,
+  updateTransaction,
+} from "@/features/wallet/data/walletSlice";
 import { endpoints } from "@/services/api";
 import { AppDispatch, RootState } from "@/store/store";
 import { fetchWithAuth } from "@/utils/apiClient";
-import { addTransaction, Transaction } from "@/features/wallet/data/walletSlice";
 import { formatCurrency } from "@/utils/format";
 import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
 
-export interface TransactionProposal {
+export type TransactionProposalKind = "create" | "edit" | "delete";
+
+export interface TransactionProposalSnapshot {
   amount: number;
   type: "income" | "expense";
   description: string;
   category: string | null;
+  accountName: string | null;
+}
+
+export interface TransactionProposal {
+  kind: TransactionProposalKind;
+  /** Solo en "edit"/"delete" — el id real de la transacción existente. */
+  transactionId: string | null;
+  amount: number;
+  type: "income" | "expense";
+  description: string;
+  category: string | null;
+  accountId: string | null;
+  accountName: string | null;
+  /** Solo en "edit": los valores actuales antes del cambio, para mostrar el diff en la tarjeta. */
+  previous: TransactionProposalSnapshot | null;
+}
+
+/** Forma tal cual la manda el backend (snake_case) — ver `ChatViewSet.message`/`ai_chat.py`. */
+interface TransactionProposalWire {
+  kind: TransactionProposalKind;
+  transaction_id: string | null;
+  amount: number;
+  type: "income" | "expense";
+  description: string;
+  category: string | null;
+  account_id: string | null;
+  account_name: string | null;
+  previous: {
+    amount: number;
+    type: "income" | "expense";
+    description: string;
+    category: string | null;
+    account_name: string | null;
+  } | null;
+}
+
+function mapProposal(wire: TransactionProposalWire): TransactionProposal {
+  return {
+    kind: wire.kind,
+    transactionId: wire.transaction_id,
+    amount: wire.amount,
+    type: wire.type,
+    description: wire.description,
+    category: wire.category,
+    accountId: wire.account_id,
+    accountName: wire.account_name,
+    previous: wire.previous
+      ? {
+          amount: wire.previous.amount,
+          type: wire.previous.type,
+          description: wire.previous.description,
+          category: wire.previous.category,
+          accountName: wire.previous.account_name,
+        }
+      : null,
+  };
 }
 
 export type ProposalStatus = "pending" | "confirming" | "confirmed" | "cancelled";
@@ -19,7 +81,7 @@ export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
   createdAt: number;
-  /** Solo en turnos del asistente donde el modelo llamó `propose_transaction`. */
+  /** Solo en turnos del asistente donde el modelo propuso crear/editar/eliminar una transacción. */
   transactionProposal?: TransactionProposal;
   proposalStatus?: ProposalStatus;
 }
@@ -80,44 +142,89 @@ export const sendChatMessage = createAsyncThunk<
     const data = await response.json();
     return {
       reply: data.reply as string,
-      transactionProposal: (data.transaction_proposal as TransactionProposal) ?? null,
+      transactionProposal: data.transaction_proposal
+        ? mapProposal(data.transaction_proposal as TransactionProposalWire)
+        : null,
     };
   } catch (error: any) {
     return rejectWithValue(error.message);
   }
 });
 
-/** Texto del mensaje de confirmación que aparece en el chat tras guardar. */
-function confirmationText(transaction: Transaction) {
-  const label = transaction.type === "income" ? "ingreso" : "gasto";
-  const categoryPart = transaction.category ? ` en ${transaction.category}` : "";
-  return `✅ Se agregó tu ${label} de ${formatCurrency(transaction.amount)}${categoryPart}.`;
+interface ConfirmationSummary {
+  amount: number;
+  type: "income" | "expense";
+  description: string;
+  category: string | null;
+}
+
+/** Texto del mensaje de confirmación que aparece en el chat tras crear/editar. */
+function confirmationText(kind: "create" | "edit", summary: ConfirmationSummary) {
+  const label = summary.type === "income" ? "ingreso" : "gasto";
+  const categoryPart = summary.category ? ` en ${summary.category}` : "";
+  const verb = kind === "edit" ? "Se actualizó tu" : "Se agregó tu";
+  return `✅ ${verb} ${label} de ${formatCurrency(summary.amount)}${categoryPart}.`;
+}
+
+/** Texto del mensaje de confirmación tras eliminar. */
+function deletionConfirmationText(summary: ConfirmationSummary) {
+  return `🗑️ Se eliminó "${summary.description}" (${formatCurrency(summary.amount)}).`;
 }
 
 /**
- * Confirma una propuesta que el asistente hizo vía `propose_transaction`: el
- * modelo NUNCA crea la transacción — solo la app, al confirmar el usuario la
- * tarjeta en el chat, reutilizando el mismo `addTransaction` que usa el resto
- * de la app (Wallet, formulario manual, comandos de voz).
+ * Confirma una propuesta que el asistente hizo vía `propose_transaction`/
+ * `propose_transaction_edit`/`propose_transaction_delete`: el modelo NUNCA
+ * crea, edita ni elimina nada — solo la app, al confirmar el usuario la
+ * tarjeta en el chat, reutilizando los mismos thunks que usa el resto de la
+ * app (Wallet, formulario manual, comandos de voz) para cada acción.
  */
 export const confirmTransactionProposal = createAsyncThunk<
-  { messageId: string; transaction: Transaction },
+  { messageId: string; kind: TransactionProposalKind; summary: ConfirmationSummary },
   { messageId: string; proposal: TransactionProposal },
   { state: RootState; dispatch: AppDispatch; rejectValue: string }
 >(
   "aiChat/confirmTransactionProposal",
   async ({ messageId, proposal }, { dispatch, rejectWithValue }) => {
     try {
-      const transaction = await dispatch(
+      const summary: ConfirmationSummary = {
+        amount: proposal.amount,
+        type: proposal.type,
+        description: proposal.description,
+        category: proposal.category,
+      };
+
+      if (proposal.kind === "delete") {
+        await dispatch(deleteTransaction(proposal.transactionId!)).unwrap();
+        return { messageId, kind: "delete" as const, summary };
+      }
+
+      if (proposal.kind === "edit") {
+        await dispatch(
+          updateTransaction({
+            id: proposal.transactionId!,
+            updates: {
+              amount: proposal.amount,
+              type: proposal.type,
+              description: proposal.description,
+              category: proposal.category,
+              relatedEntityId: proposal.accountId,
+            },
+          }),
+        ).unwrap();
+        return { messageId, kind: "edit" as const, summary };
+      }
+
+      await dispatch(
         addTransaction({
           amount: proposal.amount,
           type: proposal.type,
           description: proposal.description,
           category: proposal.category,
+          relatedEntityId: proposal.accountId,
           date: Date.now(),
         }),
       ).unwrap();
-      return { messageId, transaction };
+      return { messageId, kind: "create" as const, summary };
     } catch (error: any) {
       return rejectWithValue(typeof error === "string" ? error : "confirm_failed");
     }
@@ -173,13 +280,16 @@ const aiChatSlice = createSlice({
         if (message) message.proposalStatus = "confirming";
       })
       .addCase(confirmTransactionProposal.fulfilled, (state, action) => {
-        const { messageId, transaction } = action.payload;
+        const { messageId, kind, summary } = action.payload;
         const message = state.messages.find((m) => m.id === messageId);
         if (message) message.proposalStatus = "confirmed";
         state.messages.push({
           id: `${Date.now()}-assistant-confirm`,
           role: "assistant",
-          content: confirmationText(transaction),
+          content:
+            kind === "delete"
+              ? deletionConfirmationText(summary)
+              : confirmationText(kind, summary),
           createdAt: Date.now(),
         });
       })

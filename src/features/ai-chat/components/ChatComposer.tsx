@@ -90,7 +90,7 @@ const styles = StyleSheet.create({
   },
   inputWrapper: {
     flex: 1,
-    marginBottom: -Spacing.m,
+    marginBottom: Spacing.m,
   },
   sendButton: {
     width: 40,
@@ -98,5 +98,6 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.round,
     alignItems: "center",
     justifyContent: "center",
+    marginBottom: Spacing.xl,
   },
 });

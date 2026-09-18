@@ -19,13 +19,23 @@ interface TransactionProposalCardProps {
   onCancel: () => void;
 }
 
+/** "antes → ahora" cuando cambió, o solo el valor actual si no. `null` oculta la fila entera. */
+function diffLine(previous: string | null | undefined, current: string | null): string | null {
+  if (!current) return null;
+  if (previous !== undefined && previous !== null && previous !== current) {
+    return `${previous} → ${current}`;
+  }
+  return current;
+}
+
 /**
- * Tarjeta inline debajo de la burbuja del asistente cuando propuso una
- * transacción vía `propose_transaction`. Es una superficie propia (no vive
- * dentro del `GlassSurface` de la burbuja de texto), así que lleva cristal
- * por defecto, igual que el resto de cards de la app. El modelo nunca crea
- * la transacción — solo al tocar "Confirmar" se despacha `addTransaction`
- * (ver `aiChatSlice.ts`'s `confirmTransactionProposal`).
+ * Tarjeta inline debajo de la burbuja del asistente cuando propuso crear,
+ * editar o eliminar una transacción (`propose_transaction`/
+ * `_edit`/`_delete`). Es una superficie propia (no vive dentro del
+ * `GlassSurface` de la burbuja de texto), así que lleva cristal por defecto,
+ * igual que el resto de cards de la app. El modelo nunca crea, edita ni
+ * elimina nada — solo al tocar "Confirmar"/"Eliminar" se despacha la acción
+ * real (ver `aiChatSlice.ts`'s `confirmTransactionProposal`).
  */
 export function TransactionProposalCard({
   proposal,
@@ -38,6 +48,24 @@ export function TransactionProposalCard({
   const amountColor = isIncome ? colors.success : colors.expense;
   const sign = isIncome ? "+" : "−";
   const isActionable = status === "pending" || status === "confirming";
+  const isDelete = proposal.kind === "delete";
+  const isEdit = proposal.kind === "edit";
+  const previous = proposal.previous;
+
+  const amountText = diffLine(
+    previous ? formatCurrency(previous.amount) : undefined,
+    `${sign}${formatCurrency(proposal.amount)}`,
+  );
+  const descriptionText = diffLine(previous?.description, proposal.description);
+  const categoryText = diffLine(previous?.category, proposal.category);
+  const accountText = diffLine(previous?.accountName, proposal.accountName);
+
+  const confirmedLabel =
+    proposal.kind === "delete"
+      ? STRINGS.aiChat.proposalDeleted
+      : proposal.kind === "edit"
+        ? STRINGS.aiChat.proposalUpdated
+        : STRINGS.aiChat.proposalConfirmed;
 
   return (
     <GlassSurface
@@ -47,21 +75,33 @@ export function TransactionProposalCard({
         { backgroundColor: colors.surface, borderColor: colors.border },
       ]}
     >
+      {isEdit || isDelete ? (
+        <Typography variant="overline" muted style={styles.kindLabel}>
+          {isDelete
+            ? STRINGS.aiChat.deleteTransactionTitle
+            : STRINGS.aiChat.editTransactionTitle}
+        </Typography>
+      ) : null}
+
       <View style={styles.row}>
         <Typography variant="bodySmall" muted>
           {isIncome ? STRINGS.wallet.income : STRINGS.wallet.expense}
         </Typography>
         <Typography variant="number" style={{ color: amountColor }}>
-          {sign}
-          {formatCurrency(proposal.amount)}
+          {amountText}
         </Typography>
       </View>
       <Typography variant="body" weight="semibold" style={styles.description}>
-        {proposal.description}
+        {descriptionText}
       </Typography>
-      {proposal.category ? (
+      {categoryText ? (
         <Typography variant="caption" muted>
-          {proposal.category}
+          {categoryText}
+        </Typography>
+      ) : null}
+      {accountText ? (
+        <Typography variant="caption" muted>
+          {STRINGS.aiChat.accountLabel}: {accountText}
         </Typography>
       ) : null}
 
@@ -76,11 +116,11 @@ export function TransactionProposalCard({
             style={styles.actionButton}
           />
           <Button
-            title={STRINGS.aiChat.confirmProposal}
+            title={isDelete ? STRINGS.aiChat.deleteConfirm : STRINGS.aiChat.confirmProposal}
             size="small"
             loading={status === "confirming"}
             onPress={onConfirm}
-            style={styles.actionButton}
+            style={[styles.actionButton, isDelete && { backgroundColor: colors.error }]}
           />
         </View>
       ) : (
@@ -89,9 +129,7 @@ export function TransactionProposalCard({
           muted
           style={[styles.statusLabel, { color: colors.textSecondary }]}
         >
-          {status === "confirmed"
-            ? STRINGS.aiChat.proposalConfirmed
-            : STRINGS.aiChat.proposalCancelled}
+          {status === "confirmed" ? confirmedLabel : STRINGS.aiChat.proposalCancelled}
         </Typography>
       )}
     </GlassSurface>
@@ -114,6 +152,9 @@ const styles = StyleSheet.create({
   /** Fondo opaco + hairline: solo cuando no hay cristal. */
   flatCard: {
     borderWidth: StyleSheet.hairlineWidth,
+  },
+  kindLabel: {
+    marginBottom: Spacing.xs,
   },
   row: {
     flexDirection: "row",

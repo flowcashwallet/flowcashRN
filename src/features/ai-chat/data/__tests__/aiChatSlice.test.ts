@@ -5,6 +5,7 @@ import aiChatReducer, {
   confirmTransactionProposal,
   sendChatMessage,
   sendMessage,
+  TransactionProposal,
 } from "@/features/ai-chat/data/aiChatSlice";
 import { fetchWithAuth } from "@/utils/apiClient";
 
@@ -19,9 +20,9 @@ function buildStore() {
 }
 
 /**
- * `confirmTransactionProposal` despacha `addTransaction` de `walletSlice`
- * internamente, que a su vez lee `state.auth.user` — un stub basta, no hace
- * falta el `authSlice` real para este test.
+ * `confirmTransactionProposal` despacha `addTransaction`/`updateTransaction`/
+ * `deleteTransaction` de `walletSlice` internamente, que a su vez leen
+ * `state.auth.user` — un stub basta, no hace falta el `authSlice` real.
  */
 function buildStoreWithAuth() {
   return configureStore({
@@ -45,6 +46,18 @@ const backendTransaction = {
   is_recurring: false,
   recurrence_frequency: null,
   recurrence_months: null,
+};
+
+const createProposal: TransactionProposal = {
+  kind: "create",
+  transactionId: null,
+  amount: 250,
+  type: "expense",
+  description: "Súper",
+  category: "Comida",
+  accountId: null,
+  accountName: null,
+  previous: null,
 };
 
 describe("aiChatSlice", () => {
@@ -126,16 +139,21 @@ describe("aiChatSlice", () => {
     expect(state.error).toBeNull();
   });
 
-  it("una respuesta con `transaction_proposal` queda pendiente en el mensaje del asistente", async () => {
+  it("una respuesta con `transaction_proposal` (create) queda pendiente, mapeada a camelCase", async () => {
     mockFetchWithAuth.mockResolvedValue({
       ok: true,
       json: async () => ({
         reply: "Confírmalo abajo:",
         transaction_proposal: {
+          kind: "create",
+          transaction_id: null,
           amount: 250,
           type: "expense",
           description: "Súper",
           category: "Comida",
+          account_id: "9",
+          account_name: "BBVA",
+          previous: null,
         },
       }),
     });
@@ -145,12 +163,55 @@ describe("aiChatSlice", () => {
 
     const message = store.getState().aiChat.messages[0];
     expect(message.transactionProposal).toEqual({
+      kind: "create",
+      transactionId: null,
       amount: 250,
       type: "expense",
       description: "Súper",
       category: "Comida",
+      accountId: "9",
+      accountName: "BBVA",
+      previous: null,
     });
     expect(message.proposalStatus).toBe("pending");
+  });
+
+  it("una respuesta con `transaction_proposal` (edit) incluye `previous` mapeado", async () => {
+    mockFetchWithAuth.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        reply: "Confírmalo abajo:",
+        transaction_proposal: {
+          kind: "edit",
+          transaction_id: "7",
+          amount: 300,
+          type: "expense",
+          description: "Súper",
+          category: "Comida",
+          account_id: null,
+          account_name: null,
+          previous: {
+            amount: 250,
+            type: "expense",
+            description: "Súper",
+            category: "Comida",
+            account_name: null,
+          },
+        },
+      }),
+    });
+
+    const store = buildStore();
+    await store.dispatch(sendChatMessage("cambia el monto a 300") as any);
+
+    const message = store.getState().aiChat.messages[0];
+    expect(message.transactionProposal?.previous).toEqual({
+      amount: 250,
+      type: "expense",
+      description: "Súper",
+      category: "Comida",
+      accountName: null,
+    });
   });
 });
 
@@ -159,18 +220,13 @@ describe("confirmTransactionProposal / cancelTransactionProposal", () => {
     mockFetchWithAuth.mockReset();
   });
 
-  function seedProposalMessage(store: ReturnType<typeof buildStoreWithAuth>) {
+  function seedProposalMessage(
+    store: ReturnType<typeof buildStoreWithAuth>,
+    proposal: TransactionProposal = createProposal,
+  ) {
     store.dispatch(
       sendChatMessage.fulfilled(
-        {
-          reply: "Confírmalo abajo:",
-          transactionProposal: {
-            amount: 250,
-            type: "expense" as const,
-            description: "Súper",
-            category: "Comida",
-          },
-        },
+        { reply: "Confírmalo abajo:", transactionProposal: proposal },
         "request-id",
         "agrega un gasto de 250 en comida",
       ),
@@ -178,7 +234,7 @@ describe("confirmTransactionProposal / cancelTransactionProposal", () => {
     return store.getState().aiChat.messages[0];
   }
 
-  it("confirmTransactionProposal guarda la transacción y agrega un mensaje de confirmación", async () => {
+  it("confirmar un 'create' guarda la transacción y agrega un mensaje de confirmación", async () => {
     mockFetchWithAuth.mockResolvedValue({
       ok: true,
       json: async () => backendTransaction,
@@ -201,6 +257,74 @@ describe("confirmTransactionProposal / cancelTransactionProposal", () => {
       role: "assistant",
       content: expect.stringContaining("Se agregó tu gasto de $250.00 en Comida"),
     });
+  });
+
+  it("confirmar un 'edit' llama al PATCH y avisa que se actualizó", async () => {
+    mockFetchWithAuth.mockResolvedValue({ ok: true, json: async () => ({}) });
+
+    const store = buildStoreWithAuth();
+    const editProposal: TransactionProposal = {
+      ...createProposal,
+      kind: "edit",
+      transactionId: "7",
+      amount: 300,
+    };
+    const proposalMessage = seedProposalMessage(store, editProposal);
+
+    await store.dispatch(
+      confirmTransactionProposal({
+        messageId: proposalMessage.id,
+        proposal: proposalMessage.transactionProposal!,
+      }) as any,
+    );
+
+    // updateTransaction hace PATCH a .../transactions/{id}/
+    expect(mockFetchWithAuth).toHaveBeenCalledWith(
+      expect.stringContaining("/7/"),
+      expect.objectContaining({ method: "PATCH" }),
+      expect.anything(),
+      expect.anything(),
+    );
+    const state = store.getState().aiChat;
+    expect(state.messages.find((m) => m.id === proposalMessage.id)?.proposalStatus).toBe(
+      "confirmed",
+    );
+    expect(state.messages[state.messages.length - 1].content).toContain(
+      "Se actualizó tu gasto de $300.00",
+    );
+  });
+
+  it("confirmar un 'delete' llama al DELETE y avisa que se eliminó", async () => {
+    mockFetchWithAuth.mockResolvedValue({ ok: true });
+
+    const store = buildStoreWithAuth();
+    const deleteProposal: TransactionProposal = {
+      ...createProposal,
+      kind: "delete",
+      transactionId: "7",
+    };
+    const proposalMessage = seedProposalMessage(store, deleteProposal);
+
+    await store.dispatch(
+      confirmTransactionProposal({
+        messageId: proposalMessage.id,
+        proposal: proposalMessage.transactionProposal!,
+      }) as any,
+    );
+
+    expect(mockFetchWithAuth).toHaveBeenCalledWith(
+      expect.stringContaining("/7/"),
+      expect.objectContaining({ method: "DELETE" }),
+      expect.anything(),
+      expect.anything(),
+    );
+    const state = store.getState().aiChat;
+    expect(state.messages.find((m) => m.id === proposalMessage.id)?.proposalStatus).toBe(
+      "confirmed",
+    );
+    expect(state.messages[state.messages.length - 1].content).toContain(
+      'Se eliminó "Súper"',
+    );
   });
 
   it("confirmTransactionProposal vuelve a `pending` (para reintentar) si falla el guardado", async () => {

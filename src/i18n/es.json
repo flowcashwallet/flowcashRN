@@ -211,7 +211,13 @@
     "genericError": "No pudimos conectar con el asistente. Intenta de nuevo.",
     "retry": "Reintentar",
     "confirmProposal": "Confirmar",
+    "deleteConfirm": "Eliminar",
+    "editTransactionTitle": "Editar transacción",
+    "deleteTransactionTitle": "Eliminar transacción",
+    "accountLabel": "Cuenta",
     "proposalConfirmed": "Agregada ✓",
+    "proposalUpdated": "Actualizada ✓",
+    "proposalDeleted": "Eliminada ✓",
     "proposalCancelled": "Cancelada",
     "proposalConfirmError": "No se pudo guardar. Intenta de nuevo."
   }

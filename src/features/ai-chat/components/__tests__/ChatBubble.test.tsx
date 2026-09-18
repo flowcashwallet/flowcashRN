@@ -1,11 +1,23 @@
 import { Colors } from "@/constants/theme";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { ChatBubble } from "@/features/ai-chat/components/ChatBubble";
-import { ChatMessage } from "@/features/ai-chat/data/aiChatSlice";
+import { ChatMessage, TransactionProposal } from "@/features/ai-chat/data/aiChatSlice";
 import STRINGS from "@/i18n/es.json";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import React from "react";
 import { StyleSheet } from "react-native";
+
+const createProposal: TransactionProposal = {
+  kind: "create",
+  transactionId: null,
+  amount: 250,
+  type: "expense",
+  description: "Súper",
+  category: "Comida",
+  accountId: null,
+  accountName: null,
+  previous: null,
+};
 
 function renderBubble(
   message: ChatMessage,
@@ -65,12 +77,7 @@ describe("ChatBubble", () => {
         role: "assistant",
         content: "Confírmalo abajo:",
         createdAt: Date.now(),
-        transactionProposal: {
-          amount: 250,
-          type: "expense",
-          description: "Súper",
-          category: "Comida",
-        },
+        transactionProposal: createProposal,
         proposalStatus: "pending",
       },
       { onConfirmProposal, onCancelProposal },
