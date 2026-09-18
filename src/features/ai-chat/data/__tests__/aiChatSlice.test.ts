@@ -6,6 +6,7 @@ import aiChatReducer, {
   sendChatMessage,
   sendMessage,
   TransactionProposal,
+  updateProposalAccount,
 } from "@/features/ai-chat/data/aiChatSlice";
 import { fetchWithAuth } from "@/utils/apiClient";
 
@@ -67,12 +68,28 @@ describe("aiChatSlice", () => {
 
   it("sendMessage añade el turno del usuario y pone status en loading, sin esperar la red", () => {
     const store = buildStore();
-    store.dispatch(sendMessage("hola"));
+    store.dispatch(sendMessage({ text: "hola" }));
 
     const state = store.getState().aiChat;
     expect(state.messages).toHaveLength(1);
     expect(state.messages[0]).toMatchObject({ role: "user", content: "hola" });
     expect(state.status).toBe("loading");
+  });
+
+  it("sendMessage guarda los URIs de las imágenes adjuntas como `attachments`", () => {
+    const store = buildStore();
+    store.dispatch(
+      sendMessage({ text: "", attachmentUris: ["file://a.jpg", "file://b.jpg"] }),
+    );
+
+    const message = store.getState().aiChat.messages[0];
+    expect(message.attachments).toEqual(["file://a.jpg", "file://b.jpg"]);
+  });
+
+  it("sendMessage no agrega `attachments` cuando no se mandó ninguna imagen", () => {
+    const store = buildStore();
+    store.dispatch(sendMessage({ text: "hola" }));
+    expect(store.getState().aiChat.messages[0].attachments).toBeUndefined();
   });
 
   it("sendChatMessage.fulfilled añade la respuesta del asistente y vuelve a idle", async () => {
@@ -82,8 +99,8 @@ describe("aiChatSlice", () => {
     });
 
     const store = buildStore();
-    store.dispatch(sendMessage("¿cuánto llevo gastado?"));
-    await store.dispatch(sendChatMessage("¿cuánto llevo gastado?") as any);
+    store.dispatch(sendMessage({ text: "¿cuánto llevo gastado?" }));
+    await store.dispatch(sendChatMessage({ text: "¿cuánto llevo gastado?" }) as any);
 
     const state = store.getState().aiChat;
     expect(state.status).toBe("idle");
@@ -94,12 +111,42 @@ describe("aiChatSlice", () => {
     });
   });
 
-  it("sendChatMessage.rejected pone status en error y guarda el mensaje", async () => {
-    mockFetchWithAuth.mockResolvedValue({ ok: false });
+  it("sendChatMessage manda las imágenes en el body como `images` (media_type/data)", async () => {
+    mockFetchWithAuth.mockResolvedValue({
+      ok: true,
+      json: async () => ({ reply: "ok" }),
+    });
 
     const store = buildStore();
-    store.dispatch(sendMessage("hola"));
-    await store.dispatch(sendChatMessage("hola") as any);
+    await store.dispatch(
+      sendChatMessage({
+        text: "",
+        images: [{ mediaType: "image/jpeg", base64: "abc123" }],
+      }) as any,
+    );
+
+    const [, options] = mockFetchWithAuth.mock.calls[0];
+    const body = JSON.parse(options.body);
+    expect(body.images).toEqual([{ media_type: "image/jpeg", data: "abc123" }]);
+  });
+
+  it("sendChatMessage no manda `images` cuando el turno no adjuntó ninguna", async () => {
+    mockFetchWithAuth.mockResolvedValue({ ok: true, json: async () => ({ reply: "ok" }) });
+
+    const store = buildStore();
+    await store.dispatch(sendChatMessage({ text: "hola" }) as any);
+
+    const [, options] = mockFetchWithAuth.mock.calls[0];
+    const body = JSON.parse(options.body);
+    expect(body.images).toBeUndefined();
+  });
+
+  it("sendChatMessage.rejected pone status en error y guarda el mensaje", async () => {
+    mockFetchWithAuth.mockResolvedValue({ ok: false, json: async () => ({}) });
+
+    const store = buildStore();
+    store.dispatch(sendMessage({ text: "hola" }));
+    await store.dispatch(sendChatMessage({ text: "hola" }) as any);
 
     const state = store.getState().aiChat;
     expect(state.status).toBe("error");
@@ -116,11 +163,11 @@ describe("aiChatSlice", () => {
 
     const store = buildStore();
     for (let i = 0; i < 15; i++) {
-      store.dispatch(sendMessage(`turno ${i}`));
+      store.dispatch(sendMessage({ text: `turno ${i}` }));
     }
     expect(store.getState().aiChat.messages).toHaveLength(15);
 
-    await store.dispatch(sendChatMessage("nuevo turno") as any);
+    await store.dispatch(sendChatMessage({ text: "nuevo turno" }) as any);
 
     const [, options] = mockFetchWithAuth.mock.calls[0];
     const body = JSON.parse(options.body);
@@ -130,7 +177,7 @@ describe("aiChatSlice", () => {
 
   it("clearChat reinicia el estado", () => {
     const store = buildStore();
-    store.dispatch(sendMessage("hola"));
+    store.dispatch(sendMessage({ text: "hola" }));
     store.dispatch(clearChat());
 
     const state = store.getState().aiChat;
@@ -139,30 +186,34 @@ describe("aiChatSlice", () => {
     expect(state.error).toBeNull();
   });
 
-  it("una respuesta con `transaction_proposal` (create) queda pendiente, mapeada a camelCase", async () => {
+  it("una respuesta con `transaction_proposals` (create) queda pendiente, mapeada a camelCase", async () => {
     mockFetchWithAuth.mockResolvedValue({
       ok: true,
       json: async () => ({
         reply: "Confírmalo abajo:",
-        transaction_proposal: {
-          kind: "create",
-          transaction_id: null,
-          amount: 250,
-          type: "expense",
-          description: "Súper",
-          category: "Comida",
-          account_id: "9",
-          account_name: "BBVA",
-          previous: null,
-        },
+        transaction_proposals: [
+          {
+            kind: "create",
+            transaction_id: null,
+            amount: 250,
+            type: "expense",
+            description: "Súper",
+            category: "Comida",
+            account_id: "9",
+            account_name: "BBVA",
+            previous: null,
+          },
+        ],
       }),
     });
 
     const store = buildStore();
-    await store.dispatch(sendChatMessage("agrega un gasto de 250 en comida") as any);
+    await store.dispatch(sendChatMessage({ text: "agrega un gasto de 250 en comida" }) as any);
 
     const message = store.getState().aiChat.messages[0];
-    expect(message.transactionProposal).toEqual({
+    expect(message.proposals).toHaveLength(1);
+    expect(message.proposals![0].status).toBe("pending");
+    expect(message.proposals![0].proposal).toEqual({
       kind: "create",
       transactionId: null,
       amount: 250,
@@ -173,39 +224,81 @@ describe("aiChatSlice", () => {
       accountName: "BBVA",
       previous: null,
     });
-    expect(message.proposalStatus).toBe("pending");
   });
 
-  it("una respuesta con `transaction_proposal` (edit) incluye `previous` mapeado", async () => {
+  it("una respuesta con varias `transaction_proposals` a la vez (captura de un listado) las mapea todas, cada una con su propio id", async () => {
     mockFetchWithAuth.mockResolvedValue({
       ok: true,
       json: async () => ({
-        reply: "Confírmalo abajo:",
-        transaction_proposal: {
-          kind: "edit",
-          transaction_id: "7",
-          amount: 300,
-          type: "expense",
-          description: "Súper",
-          category: "Comida",
-          account_id: null,
-          account_name: null,
-          previous: {
+        reply: "Encontré 2 transacciones. Confírmalas abajo:",
+        transaction_proposals: [
+          {
+            kind: "create",
+            transaction_id: null,
             amount: 250,
             type: "expense",
             description: "Súper",
             category: "Comida",
+            account_id: null,
             account_name: null,
+            previous: null,
           },
-        },
+          {
+            kind: "create",
+            transaction_id: null,
+            amount: 80,
+            type: "expense",
+            description: "Café",
+            category: "Comida",
+            account_id: null,
+            account_name: null,
+            previous: null,
+          },
+        ],
       }),
     });
 
     const store = buildStore();
-    await store.dispatch(sendChatMessage("cambia el monto a 300") as any);
+    await store.dispatch(sendChatMessage({ text: "" }) as any);
 
     const message = store.getState().aiChat.messages[0];
-    expect(message.transactionProposal?.previous).toEqual({
+    expect(message.proposals).toHaveLength(2);
+    expect(message.proposals![0].id).not.toBe(message.proposals![1].id);
+    expect(message.proposals!.map((p) => p.proposal.description)).toEqual(["Súper", "Café"]);
+  });
+
+  it("una respuesta con `transaction_proposals` (edit) incluye `previous` mapeado", async () => {
+    mockFetchWithAuth.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        reply: "Confírmalo abajo:",
+        transaction_proposals: [
+          {
+            kind: "edit",
+            transaction_id: "7",
+            amount: 300,
+            type: "expense",
+            description: "Súper",
+            category: "Comida",
+            account_id: null,
+            account_name: null,
+            previous: {
+              amount: 250,
+              type: "expense",
+              description: "Súper",
+              category: "Comida",
+              account_name: null,
+            },
+          },
+        ],
+      }),
+    });
+
+    const store = buildStore();
+    await store.dispatch(sendChatMessage({ text: "cambia el monto a 300" }) as any);
+
+    const message = store.getState().aiChat.messages[0];
+    expect(message.proposals![0].proposal.previous).toEqual({
       amount: 250,
       type: "expense",
       description: "Súper",
@@ -213,9 +306,21 @@ describe("aiChatSlice", () => {
       accountName: null,
     });
   });
+
+  it("una respuesta sin propuestas no agrega `proposals` al mensaje", async () => {
+    mockFetchWithAuth.mockResolvedValue({
+      ok: true,
+      json: async () => ({ reply: "Este mes has gastado $100.00" }),
+    });
+
+    const store = buildStore();
+    await store.dispatch(sendChatMessage({ text: "¿cuánto llevo gastado?" }) as any);
+
+    expect(store.getState().aiChat.messages[0].proposals).toBeUndefined();
+  });
 });
 
-describe("confirmTransactionProposal / cancelTransactionProposal", () => {
+describe("confirmTransactionProposal / cancelTransactionProposal / updateProposalAccount", () => {
   beforeEach(() => {
     mockFetchWithAuth.mockReset();
   });
@@ -226,12 +331,13 @@ describe("confirmTransactionProposal / cancelTransactionProposal", () => {
   ) {
     store.dispatch(
       sendChatMessage.fulfilled(
-        { reply: "Confírmalo abajo:", transactionProposal: proposal },
+        { reply: "Confírmalo abajo:", proposals: [proposal] },
         "request-id",
-        "agrega un gasto de 250 en comida",
+        { text: "agrega un gasto de 250 en comida" },
       ),
     );
-    return store.getState().aiChat.messages[0];
+    const message = store.getState().aiChat.messages[0];
+    return { messageId: message.id, proposalId: message.proposals![0].id };
   }
 
   it("confirmar un 'create' guarda la transacción y agrega un mensaje de confirmación", async () => {
@@ -241,18 +347,16 @@ describe("confirmTransactionProposal / cancelTransactionProposal", () => {
     });
 
     const store = buildStoreWithAuth();
-    const proposalMessage = seedProposalMessage(store);
+    const { messageId, proposalId } = seedProposalMessage(store);
+    const proposal = store.getState().aiChat.messages[0].proposals![0].proposal;
 
     await store.dispatch(
-      confirmTransactionProposal({
-        messageId: proposalMessage.id,
-        proposal: proposalMessage.transactionProposal!,
-      }) as any,
+      confirmTransactionProposal({ messageId, proposalId, proposal }) as any,
     );
 
     const state = store.getState().aiChat;
-    const updated = state.messages.find((m) => m.id === proposalMessage.id);
-    expect(updated?.proposalStatus).toBe("confirmed");
+    const updated = state.messages.find((m) => m.id === messageId);
+    expect(updated?.proposals![0].status).toBe("confirmed");
     expect(state.messages[state.messages.length - 1]).toMatchObject({
       role: "assistant",
       content: expect.stringContaining("Se agregó tu gasto de $250.00 en Comida"),
@@ -269,13 +373,11 @@ describe("confirmTransactionProposal / cancelTransactionProposal", () => {
       transactionId: "7",
       amount: 300,
     };
-    const proposalMessage = seedProposalMessage(store, editProposal);
+    const { messageId, proposalId } = seedProposalMessage(store, editProposal);
+    const proposal = store.getState().aiChat.messages[0].proposals![0].proposal;
 
     await store.dispatch(
-      confirmTransactionProposal({
-        messageId: proposalMessage.id,
-        proposal: proposalMessage.transactionProposal!,
-      }) as any,
+      confirmTransactionProposal({ messageId, proposalId, proposal }) as any,
     );
 
     // updateTransaction hace PATCH a .../transactions/{id}/
@@ -286,9 +388,9 @@ describe("confirmTransactionProposal / cancelTransactionProposal", () => {
       expect.anything(),
     );
     const state = store.getState().aiChat;
-    expect(state.messages.find((m) => m.id === proposalMessage.id)?.proposalStatus).toBe(
-      "confirmed",
-    );
+    expect(
+      state.messages.find((m) => m.id === messageId)?.proposals![0].status,
+    ).toBe("confirmed");
     expect(state.messages[state.messages.length - 1].content).toContain(
       "Se actualizó tu gasto de $300.00",
     );
@@ -303,13 +405,11 @@ describe("confirmTransactionProposal / cancelTransactionProposal", () => {
       kind: "delete",
       transactionId: "7",
     };
-    const proposalMessage = seedProposalMessage(store, deleteProposal);
+    const { messageId, proposalId } = seedProposalMessage(store, deleteProposal);
+    const proposal = store.getState().aiChat.messages[0].proposals![0].proposal;
 
     await store.dispatch(
-      confirmTransactionProposal({
-        messageId: proposalMessage.id,
-        proposal: proposalMessage.transactionProposal!,
-      }) as any,
+      confirmTransactionProposal({ messageId, proposalId, proposal }) as any,
     );
 
     expect(mockFetchWithAuth).toHaveBeenCalledWith(
@@ -319,12 +419,42 @@ describe("confirmTransactionProposal / cancelTransactionProposal", () => {
       expect.anything(),
     );
     const state = store.getState().aiChat;
-    expect(state.messages.find((m) => m.id === proposalMessage.id)?.proposalStatus).toBe(
-      "confirmed",
-    );
+    expect(
+      state.messages.find((m) => m.id === messageId)?.proposals![0].status,
+    ).toBe("confirmed");
     expect(state.messages[state.messages.length - 1].content).toContain(
       'Se eliminó "Súper"',
     );
+  });
+
+  it("confirmar una propuesta no afecta a las demás del mismo mensaje", async () => {
+    mockFetchWithAuth.mockResolvedValue({ ok: true, json: async () => backendTransaction });
+
+    const store = buildStoreWithAuth();
+    const second: TransactionProposal = { ...createProposal, description: "Café", amount: 80 };
+    store.dispatch(
+      sendChatMessage.fulfilled(
+        { reply: "Confírmalas abajo:", proposals: [createProposal, second] },
+        "request-id",
+        { text: "" },
+      ),
+    );
+    const message = store.getState().aiChat.messages[0];
+    const [first, secondEntry] = message.proposals!;
+
+    await store.dispatch(
+      confirmTransactionProposal({
+        messageId: message.id,
+        proposalId: first.id,
+        proposal: first.proposal,
+      }) as any,
+    );
+
+    const updated = store
+      .getState()
+      .aiChat.messages.find((m) => m.id === message.id)!;
+    expect(updated.proposals!.find((p) => p.id === first.id)?.status).toBe("confirmed");
+    expect(updated.proposals!.find((p) => p.id === secondEntry.id)?.status).toBe("pending");
   });
 
   it("confirmTransactionProposal vuelve a `pending` (para reintentar) si falla el guardado", async () => {
@@ -334,18 +464,16 @@ describe("confirmTransactionProposal / cancelTransactionProposal", () => {
     });
 
     const store = buildStoreWithAuth();
-    const proposalMessage = seedProposalMessage(store);
+    const { messageId, proposalId } = seedProposalMessage(store);
+    const proposal = store.getState().aiChat.messages[0].proposals![0].proposal;
 
     await store.dispatch(
-      confirmTransactionProposal({
-        messageId: proposalMessage.id,
-        proposal: proposalMessage.transactionProposal!,
-      }) as any,
+      confirmTransactionProposal({ messageId, proposalId, proposal }) as any,
     );
 
     const state = store.getState().aiChat;
-    const updated = state.messages.find((m) => m.id === proposalMessage.id);
-    expect(updated?.proposalStatus).toBe("pending");
+    const updated = state.messages.find((m) => m.id === messageId);
+    expect(updated?.proposals![0].status).toBe("pending");
     expect(state.error).toBeTruthy();
     // No se agrega ningún mensaje de confirmación si falló.
     expect(state.messages).toHaveLength(1);
@@ -353,14 +481,38 @@ describe("confirmTransactionProposal / cancelTransactionProposal", () => {
 
   it("cancelTransactionProposal marca la tarjeta como cancelada sin tocar el backend", () => {
     const store = buildStoreWithAuth();
-    const proposalMessage = seedProposalMessage(store);
+    const { messageId, proposalId } = seedProposalMessage(store);
 
-    store.dispatch(cancelTransactionProposal(proposalMessage.id));
+    store.dispatch(cancelTransactionProposal({ messageId, proposalId }));
 
     expect(
-      store.getState().aiChat.messages.find((m) => m.id === proposalMessage.id)
-        ?.proposalStatus,
+      store
+        .getState()
+        .aiChat.messages.find((m) => m.id === messageId)
+        ?.proposals!.find((p) => p.id === proposalId)?.status,
     ).toBe("cancelled");
+    expect(mockFetchWithAuth).not.toHaveBeenCalled();
+  });
+
+  it("updateProposalAccount actualiza la cuenta de una propuesta sin tocar el backend", () => {
+    const store = buildStoreWithAuth();
+    const { messageId, proposalId } = seedProposalMessage(store);
+
+    store.dispatch(
+      updateProposalAccount({
+        messageId,
+        proposalId,
+        accountId: "9",
+        accountName: "BBVA",
+      }),
+    );
+
+    const proposal = store
+      .getState()
+      .aiChat.messages.find((m) => m.id === messageId)
+      ?.proposals!.find((p) => p.id === proposalId)?.proposal;
+    expect(proposal?.accountId).toBe("9");
+    expect(proposal?.accountName).toBe("BBVA");
     expect(mockFetchWithAuth).not.toHaveBeenCalled();
   });
 });

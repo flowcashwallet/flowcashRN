@@ -21,9 +21,11 @@ export default function AiChatScreen() {
     messages,
     isLoading,
     error,
+    visionEntities,
     handleSend,
     handleConfirmProposal,
     handleCancelProposal,
+    handleSelectProposalAccount,
     goBack,
   } = useAiChatScreen();
 
@@ -45,6 +47,8 @@ export default function AiChatScreen() {
             isLoading={isLoading}
             onConfirmProposal={handleConfirmProposal}
             onCancelProposal={handleCancelProposal}
+            onSelectProposalAccount={handleSelectProposalAccount}
+            visionEntities={visionEntities}
           />
           {error ? (
             <Typography

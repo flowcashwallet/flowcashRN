@@ -1,19 +1,25 @@
 import { useTheme } from "@/contexts/ThemeContext";
+import { ChatComposerSubmission } from "@/features/ai-chat/components/ChatComposer";
 import {
   cancelTransactionProposal,
   confirmTransactionProposal,
   sendChatMessage,
   sendMessage,
+  updateProposalAccount,
 } from "@/features/ai-chat/data/aiChatSlice";
+import { fetchVisionEntities } from "@/features/vision/data/visionSlice";
 import { AppDispatch, RootState } from "@/store/store";
 import { useRouter } from "expo-router";
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
 /**
  * v1 es solo de sesión: el historial vive en `state.aiChat` mientras la app
  * esté abierta, sin fetch/persistencia al montar la pantalla (a diferencia de
- * otros hooks de screen que sí cargan datos del backend al entrar).
+ * otros hooks de screen que sí cargan datos del backend al entrar). Las
+ * cuentas de Balance sí se cargan al entrar — el selector de cuenta de cada
+ * tarjeta de propuesta las necesita y el chat puede abrirse sin haber
+ * visitado antes esa pestaña.
  */
 export const useAiChatScreen = () => {
   const router = useRouter();
@@ -23,23 +29,30 @@ export const useAiChatScreen = () => {
   const { messages, status, error } = useSelector(
     (state: RootState) => state.aiChat,
   );
+  const visionEntities = useSelector((state: RootState) => state.vision.entities);
+
+  useEffect(() => {
+    dispatch(fetchVisionEntities());
+  }, [dispatch]);
 
   const handleSend = useCallback(
-    (text: string) => {
-      dispatch(sendMessage(text));
-      dispatch(sendChatMessage(text));
+    ({ text, images, attachmentUris }: ChatComposerSubmission) => {
+      dispatch(sendMessage({ text, attachmentUris }));
+      dispatch(sendChatMessage({ text, images }));
     },
     [dispatch],
   );
 
   const handleConfirmProposal = useCallback(
-    (messageId: string) => {
+    (messageId: string, proposalId: string) => {
       const message = messages.find((m) => m.id === messageId);
-      if (!message?.transactionProposal) return;
+      const entry = message?.proposals?.find((p) => p.id === proposalId);
+      if (!entry) return;
       dispatch(
         confirmTransactionProposal({
           messageId,
-          proposal: message.transactionProposal,
+          proposalId,
+          proposal: entry.proposal,
         }),
       );
     },
@@ -47,8 +60,20 @@ export const useAiChatScreen = () => {
   );
 
   const handleCancelProposal = useCallback(
-    (messageId: string) => {
-      dispatch(cancelTransactionProposal(messageId));
+    (messageId: string, proposalId: string) => {
+      dispatch(cancelTransactionProposal({ messageId, proposalId }));
+    },
+    [dispatch],
+  );
+
+  const handleSelectProposalAccount = useCallback(
+    (
+      messageId: string,
+      proposalId: string,
+      accountId: string | null,
+      accountName: string | null,
+    ) => {
+      dispatch(updateProposalAccount({ messageId, proposalId, accountId, accountName }));
     },
     [dispatch],
   );
@@ -60,9 +85,11 @@ export const useAiChatScreen = () => {
     messages,
     isLoading: status === "loading",
     error,
+    visionEntities,
     handleSend,
     handleConfirmProposal,
     handleCancelProposal,
+    handleSelectProposalAccount,
     goBack,
   };
 };

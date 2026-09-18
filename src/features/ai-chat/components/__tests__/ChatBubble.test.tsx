@@ -68,7 +68,7 @@ describe("ChatBubble", () => {
     expect(screen.getByText("Este mes gastaste $100")).toBeTruthy();
   });
 
-  it("renderiza la tarjeta de propuesta cuando el mensaje trae `transactionProposal`, y avisa al confirmar/cancelar", () => {
+  it("renderiza la tarjeta de propuesta cuando el mensaje trae `proposals`, y avisa al confirmar/cancelar con su id", () => {
     const onConfirmProposal = jest.fn();
     const onCancelProposal = jest.fn();
     renderBubble(
@@ -77,8 +77,7 @@ describe("ChatBubble", () => {
         role: "assistant",
         content: "Confírmalo abajo:",
         createdAt: Date.now(),
-        transactionProposal: createProposal,
-        proposalStatus: "pending",
+        proposals: [{ id: "4-p0", proposal: createProposal, status: "pending" }],
       },
       { onConfirmProposal, onCancelProposal },
     );
@@ -86,19 +85,48 @@ describe("ChatBubble", () => {
     expect(screen.getByText("Súper")).toBeTruthy();
 
     fireEvent.press(screen.getByText(STRINGS.aiChat.confirmProposal));
-    expect(onConfirmProposal).toHaveBeenCalledWith("4");
+    expect(onConfirmProposal).toHaveBeenCalledWith("4", "4-p0");
 
     fireEvent.press(screen.getByText(STRINGS.common.cancel));
-    expect(onCancelProposal).toHaveBeenCalledWith("4");
+    expect(onCancelProposal).toHaveBeenCalledWith("4", "4-p0");
   });
 
-  it("no renderiza ninguna tarjeta cuando el mensaje no trae propuesta", () => {
+  it("renderiza una tarjeta por cada propuesta cuando el turno trae varias", () => {
+    const second: TransactionProposal = { ...createProposal, description: "Café", amount: 80 };
     renderBubble({
       id: "5",
+      role: "assistant",
+      content: "Encontré 2 transacciones:",
+      createdAt: Date.now(),
+      proposals: [
+        { id: "5-p0", proposal: createProposal, status: "pending" },
+        { id: "5-p1", proposal: second, status: "pending" },
+      ],
+    });
+
+    expect(screen.getByText("Súper")).toBeTruthy();
+    expect(screen.getByText("Café")).toBeTruthy();
+  });
+
+  it("no renderiza ninguna tarjeta cuando el mensaje no trae propuestas", () => {
+    renderBubble({
+      id: "6",
       role: "assistant",
       content: "Sin propuesta",
       createdAt: Date.now(),
     });
     expect(screen.queryByText(STRINGS.aiChat.confirmProposal)).toBeNull();
+  });
+
+  it("muestra una miniatura por cada imagen adjunta en un turno del usuario", () => {
+    renderBubble({
+      id: "7",
+      role: "user",
+      content: "",
+      createdAt: Date.now(),
+      attachments: ["file://a.jpg", "file://b.jpg"],
+    });
+    // El placeholder de "foto sin texto" confirma que la burbuja no quedó vacía.
+    expect(screen.getByText("📷")).toBeTruthy();
   });
 });

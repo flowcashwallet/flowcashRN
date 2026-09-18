@@ -647,6 +647,11 @@ def get_chat_reply(user, message, history, images=None):
     model called one or more of the three transaction tools this turn (a
     statement screenshot can legitimately produce several).
     """
+    # Validar el payload de imágenes primero: es un 400 de entrada del
+    # usuario, no un problema del servicio — debe ganarle a la comprobación
+    # de configuración/API key aunque el backend no tenga la key puesta.
+    image_blocks = build_image_blocks(images)
+
     api_key = settings.ANTHROPIC_API_KEY
     if not api_key:
         raise AnthropicServiceError("ANTHROPIC_API_KEY is not configured")
@@ -660,7 +665,6 @@ def get_chat_reply(user, message, history, images=None):
 
     # Las imágenes van antes del texto: es el orden que Anthropic recomienda
     # cuando el texto se refiere a lo que hay en la imagen.
-    image_blocks = build_image_blocks(images)
     if image_blocks:
         content = list(image_blocks)
         content.append({"type": "text", "text": message or "Extrae las transacciones de estas imágenes."})

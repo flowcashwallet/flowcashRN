@@ -76,14 +76,27 @@ function mapProposal(wire: TransactionProposalWire): TransactionProposal {
 
 export type ProposalStatus = "pending" | "confirming" | "confirmed" | "cancelled";
 
+/**
+ * Una tarjeta de propuesta dentro de un turno del asistente. Un solo turno
+ * puede traer varias (p. ej. una foto de un estado de cuenta con varios
+ * cargos), así que cada una necesita su propio id para poder confirmar o
+ * cancelar una sin afectar a las demás del mismo mensaje.
+ */
+export interface ChatProposal {
+  id: string;
+  proposal: TransactionProposal;
+  status: ProposalStatus;
+}
+
 export interface ChatMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
   createdAt: number;
-  /** Solo en turnos del asistente donde el modelo propuso crear/editar/eliminar una transacción. */
-  transactionProposal?: TransactionProposal;
-  proposalStatus?: ProposalStatus;
+  /** Solo en turnos del usuario que adjuntaron una o más imágenes — URIs locales, solo para mostrar la miniatura. */
+  attachments?: string[];
+  /** Solo en turnos del asistente donde el modelo propuso crear/editar/eliminar una o más transacciones. */
+  proposals?: ChatProposal[];
 }
 
 interface AiChatState {
@@ -107,16 +120,22 @@ const initialState: AiChatState = {
  */
 const MAX_HISTORY_TURNS_SENT = 20;
 
+/** Imagen ya leída en base64 (desde `expo-image-picker`), lista para mandar al backend. */
+export interface OutgoingChatImage {
+  mediaType: string;
+  base64: string;
+}
+
 interface SendChatMessageResult {
   reply: string;
-  transactionProposal: TransactionProposal | null;
+  proposals: TransactionProposal[];
 }
 
 export const sendChatMessage = createAsyncThunk<
   SendChatMessageResult,
-  string,
+  { text: string; images?: OutgoingChatImage[] },
   { state: RootState; rejectValue: string }
->("aiChat/sendMessage", async (text, { dispatch, getState, rejectWithValue }) => {
+>("aiChat/sendMessage", async ({ text, images }, { dispatch, getState, rejectWithValue }) => {
   try {
     const state = getState();
     const recentTurns = state.aiChat.messages.slice(-MAX_HISTORY_TURNS_SENT).map((m) => ({
@@ -124,27 +143,36 @@ export const sendChatMessage = createAsyncThunk<
       content: m.content,
     }));
 
+    const body: Record<string, unknown> = { message: text, history: recentTurns };
+    if (images && images.length > 0) {
+      body.images = images.map((img) => ({ media_type: img.mediaType, data: img.base64 }));
+    }
+
     const response = await fetchWithAuth(
       endpoints.wallet.chat,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text, history: recentTurns }),
+        body: JSON.stringify(body),
       },
       dispatch as AppDispatch,
       getState as () => RootState,
     );
 
     if (!response.ok) {
-      throw new Error("chat_request_failed");
+      const errorBody = await response.json().catch(() => null);
+      throw new Error(errorBody?.error ?? "chat_request_failed");
     }
 
     const data = await response.json();
+    const wireProposals: TransactionProposalWire[] = Array.isArray(
+      data.transaction_proposals,
+    )
+      ? data.transaction_proposals
+      : [];
     return {
       reply: data.reply as string,
-      transactionProposal: data.transaction_proposal
-        ? mapProposal(data.transaction_proposal as TransactionProposalWire)
-        : null,
+      proposals: wireProposals.map(mapProposal),
     };
   } catch (error: any) {
     return rejectWithValue(error.message);
@@ -179,12 +207,17 @@ function deletionConfirmationText(summary: ConfirmationSummary) {
  * app (Wallet, formulario manual, comandos de voz) para cada acción.
  */
 export const confirmTransactionProposal = createAsyncThunk<
-  { messageId: string; kind: TransactionProposalKind; summary: ConfirmationSummary },
-  { messageId: string; proposal: TransactionProposal },
+  {
+    messageId: string;
+    proposalId: string;
+    kind: TransactionProposalKind;
+    summary: ConfirmationSummary;
+  },
+  { messageId: string; proposalId: string; proposal: TransactionProposal },
   { state: RootState; dispatch: AppDispatch; rejectValue: string }
 >(
   "aiChat/confirmTransactionProposal",
-  async ({ messageId, proposal }, { dispatch, rejectWithValue }) => {
+  async ({ messageId, proposalId, proposal }, { dispatch, rejectWithValue }) => {
     try {
       const summary: ConfirmationSummary = {
         amount: proposal.amount,
@@ -195,7 +228,7 @@ export const confirmTransactionProposal = createAsyncThunk<
 
       if (proposal.kind === "delete") {
         await dispatch(deleteTransaction(proposal.transactionId!)).unwrap();
-        return { messageId, kind: "delete" as const, summary };
+        return { messageId, proposalId, kind: "delete" as const, summary };
       }
 
       if (proposal.kind === "edit") {
@@ -211,7 +244,7 @@ export const confirmTransactionProposal = createAsyncThunk<
             },
           }),
         ).unwrap();
-        return { messageId, kind: "edit" as const, summary };
+        return { messageId, proposalId, kind: "edit" as const, summary };
       }
 
       await dispatch(
@@ -224,30 +257,65 @@ export const confirmTransactionProposal = createAsyncThunk<
           date: Date.now(),
         }),
       ).unwrap();
-      return { messageId, kind: "create" as const, summary };
+      return { messageId, proposalId, kind: "create" as const, summary };
     } catch (error: any) {
       return rejectWithValue(typeof error === "string" ? error : "confirm_failed");
     }
   },
 );
 
+/** Busca una propuesta específica dentro de un mensaje, o `undefined` si no existe. */
+function findProposalEntry(
+  state: AiChatState,
+  messageId: string,
+  proposalId: string,
+): ChatProposal | undefined {
+  return state.messages
+    .find((m) => m.id === messageId)
+    ?.proposals?.find((p) => p.id === proposalId);
+}
+
 const aiChatSlice = createSlice({
   name: "aiChat",
   initialState,
   reducers: {
-    sendMessage: (state, action: PayloadAction<string>) => {
+    sendMessage: (
+      state,
+      action: PayloadAction<{ text: string; attachmentUris?: string[] }>,
+    ) => {
+      const { text, attachmentUris } = action.payload;
       state.messages.push({
         id: `${Date.now()}-user`,
         role: "user",
-        content: action.payload,
+        content: text,
         createdAt: Date.now(),
+        attachments: attachmentUris && attachmentUris.length > 0 ? attachmentUris : undefined,
       });
       state.status = "loading";
       state.error = null;
     },
-    cancelTransactionProposal: (state, action: PayloadAction<string>) => {
-      const message = state.messages.find((m) => m.id === action.payload);
-      if (message) message.proposalStatus = "cancelled";
+    cancelTransactionProposal: (
+      state,
+      action: PayloadAction<{ messageId: string; proposalId: string }>,
+    ) => {
+      const entry = findProposalEntry(state, action.payload.messageId, action.payload.proposalId);
+      if (entry) entry.status = "cancelled";
+    },
+    /** El usuario elige/cambia la cuenta directamente en la tarjeta, cuando el modelo no propuso ninguna. */
+    updateProposalAccount: (
+      state,
+      action: PayloadAction<{
+        messageId: string;
+        proposalId: string;
+        accountId: string | null;
+        accountName: string | null;
+      }>,
+    ) => {
+      const entry = findProposalEntry(state, action.payload.messageId, action.payload.proposalId);
+      if (entry) {
+        entry.proposal.accountId = action.payload.accountId;
+        entry.proposal.accountName = action.payload.accountName;
+      }
     },
     clearChat: (state) => {
       state.messages = [];
@@ -259,14 +327,21 @@ const aiChatSlice = createSlice({
     builder
       .addCase(sendChatMessage.fulfilled, (state, action) => {
         state.status = "idle";
-        const { reply, transactionProposal } = action.payload;
+        const { reply, proposals } = action.payload;
+        const messageId = `${Date.now()}-assistant`;
         state.messages.push({
-          id: `${Date.now()}-assistant`,
+          id: messageId,
           role: "assistant",
           content: reply,
           createdAt: Date.now(),
-          transactionProposal: transactionProposal ?? undefined,
-          proposalStatus: transactionProposal ? "pending" : undefined,
+          proposals:
+            proposals.length > 0
+              ? proposals.map((proposal, index) => ({
+                  id: `${messageId}-p${index}`,
+                  proposal,
+                  status: "pending" as const,
+                }))
+              : undefined,
         });
       })
       .addCase(sendChatMessage.rejected, (state, action) => {
@@ -274,15 +349,17 @@ const aiChatSlice = createSlice({
         state.error = action.payload ?? "chat_request_failed";
       })
       .addCase(confirmTransactionProposal.pending, (state, action) => {
-        const message = state.messages.find(
-          (m) => m.id === action.meta.arg.messageId,
+        const entry = findProposalEntry(
+          state,
+          action.meta.arg.messageId,
+          action.meta.arg.proposalId,
         );
-        if (message) message.proposalStatus = "confirming";
+        if (entry) entry.status = "confirming";
       })
       .addCase(confirmTransactionProposal.fulfilled, (state, action) => {
-        const { messageId, kind, summary } = action.payload;
-        const message = state.messages.find((m) => m.id === messageId);
-        if (message) message.proposalStatus = "confirmed";
+        const { messageId, proposalId, kind, summary } = action.payload;
+        const entry = findProposalEntry(state, messageId, proposalId);
+        if (entry) entry.status = "confirmed";
         state.messages.push({
           id: `${Date.now()}-assistant-confirm`,
           role: "assistant",
@@ -294,16 +371,22 @@ const aiChatSlice = createSlice({
         });
       })
       .addCase(confirmTransactionProposal.rejected, (state, action) => {
-        const message = state.messages.find(
-          (m) => m.id === action.meta.arg.messageId,
+        const entry = findProposalEntry(
+          state,
+          action.meta.arg.messageId,
+          action.meta.arg.proposalId,
         );
         // Vuelve a "pending" para poder reintentar, no se pierde la tarjeta.
-        if (message) message.proposalStatus = "pending";
+        if (entry) entry.status = "pending";
         state.error = action.payload ?? "confirm_failed";
       });
   },
 });
 
-export const { sendMessage, cancelTransactionProposal, clearChat } =
-  aiChatSlice.actions;
+export const {
+  sendMessage,
+  cancelTransactionProposal,
+  updateProposalAccount,
+  clearChat,
+} = aiChatSlice.actions;
 export default aiChatSlice.reducer;

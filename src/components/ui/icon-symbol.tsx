@@ -93,6 +93,9 @@ const MAPPING = {
   // Añadido en el pase visual de Auth (2026-09-03): `AuthErrorBanner` lo usa
   // como icono de estado de error real, sin estar mapeado todavía.
   "exclamationmark.triangle.fill": "warning",
+  // Añadido para el botón de adjuntar imagen del chat de IA — el resto de
+  // esa barra ya usa `camera`/`xmark.circle.fill`, ambos mapeados arriba.
+  paperclip: "attach-file",
 } as Record<string, ComponentProps<typeof MaterialIcons>["name"]>;
 
 /**

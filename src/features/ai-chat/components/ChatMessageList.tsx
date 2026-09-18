@@ -3,6 +3,7 @@ import { Spacing } from "@/constants/theme";
 import { ChatBubble } from "@/features/ai-chat/components/ChatBubble";
 import { ChatTypingIndicator } from "@/features/ai-chat/components/ChatTypingIndicator";
 import { ChatMessage } from "@/features/ai-chat/data/aiChatSlice";
+import { VisionEntity } from "@/features/vision/data/visionSlice";
 import STRINGS from "@/i18n/es.json";
 import React, { useRef } from "react";
 import { FlatList, StyleSheet, View } from "react-native";
@@ -10,8 +11,15 @@ import { FlatList, StyleSheet, View } from "react-native";
 interface ChatMessageListProps {
   messages: ChatMessage[];
   isLoading: boolean;
-  onConfirmProposal: (messageId: string) => void;
-  onCancelProposal: (messageId: string) => void;
+  onConfirmProposal: (messageId: string, proposalId: string) => void;
+  onCancelProposal: (messageId: string, proposalId: string) => void;
+  onSelectProposalAccount?: (
+    messageId: string,
+    proposalId: string,
+    accountId: string | null,
+    accountName: string | null,
+  ) => void;
+  visionEntities?: VisionEntity[];
 }
 
 /**
@@ -24,6 +32,8 @@ export function ChatMessageList({
   isLoading,
   onConfirmProposal,
   onCancelProposal,
+  onSelectProposalAccount,
+  visionEntities,
 }: ChatMessageListProps) {
   const listRef = useRef<FlatList<ChatMessage>>(null);
 
@@ -50,6 +60,8 @@ export function ChatMessageList({
           message={item}
           onConfirmProposal={onConfirmProposal}
           onCancelProposal={onCancelProposal}
+          onSelectProposalAccount={onSelectProposalAccount}
+          visionEntities={visionEntities}
         />
       )}
       contentContainerStyle={styles.content}

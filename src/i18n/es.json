@@ -219,6 +219,16 @@
     "proposalUpdated": "Actualizada ✓",
     "proposalDeleted": "Eliminada ✓",
     "proposalCancelled": "Cancelada",
-    "proposalConfirmError": "No se pudo guardar. Intenta de nuevo."
+    "proposalConfirmError": "No se pudo guardar. Intenta de nuevo.",
+    "selectAccountPlaceholder": "Selecciona una cuenta",
+    "attachImage": "Adjuntar imagen",
+    "attachFromCamera": "Tomar foto",
+    "attachFromGallery": "Elegir de galería",
+    "removeImage": "Quitar imagen",
+    "permissionRequiredTitle": "Permiso requerido",
+    "cameraPermissionMessage": "Se requiere acceso a la cámara para tomar una foto.",
+    "libraryPermissionMessage": "Se requiere acceso a la galería para elegir una imagen.",
+    "imagePickerErrorTitle": "No se pudo adjuntar",
+    "imageMissingDataMessage": "Una o más imágenes no se pudieron leer. Intenta de nuevo."
   }
 }
