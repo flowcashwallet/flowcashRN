@@ -13,3 +13,5 @@ openpyxl
 reportlab
 python-dateutil
 anthropic
+cryptography
+requests

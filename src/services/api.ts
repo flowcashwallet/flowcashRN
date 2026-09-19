@@ -24,6 +24,11 @@ export const endpoints = {
     pushTokens: `${API_BASE_URL}/wallet/push-tokens/`,
     chat: `${API_BASE_URL}/wallet/chat/message/`,
   },
+  binance: {
+    status: `${API_BASE_URL}/wallet/binance/status/`,
+    connect: `${API_BASE_URL}/wallet/binance/connect/`,
+    sync: `${API_BASE_URL}/wallet/binance/sync/`,
+  },
 };
 
 export const getAuthHeaders = (token: string) => ({

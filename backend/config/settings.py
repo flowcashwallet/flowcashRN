@@ -28,6 +28,16 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-i!br3!)i_#b(n)0$p_ky&
 # insecure default — the chat endpoint fails closed (502) if unset.
 ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY')
 
+# Fernet key used to encrypt Binance API credentials at rest
+# (backend/wallet/secrets_crypto.py). No insecure default — connecting/
+# syncing a Binance account fails closed if unset. Generate one with:
+#   python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+BINANCE_ENCRYPTION_KEY = os.environ.get('BINANCE_ENCRYPTION_KEY')
+
+# Override to "https://testnet.binance.vision" in development to test the
+# connect/sync flow without touching a real account.
+BINANCE_API_BASE_URL = os.environ.get('BINANCE_API_BASE_URL', 'https://api.binance.com')
+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = 'RENDER' not in os.environ and 'DYNO' not in os.environ and 'VERCEL' not in os.environ
 
@@ -93,6 +103,19 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
+    # First use of throttling in this project — scoped to the Binance
+    # connect/sync endpoints only (backend/wallet/views.py's BinanceViewSet).
+    # Uses Django's default in-memory cache, which is per-process: on a
+    # serverless deploy (Vercel) this is best-effort (stops a runaway client
+    # loop within one warm instance), not a hard defense against distributed
+    # abuse. See docs/refactor-plan.md or the Binance feature plan for why.
+    'DEFAULT_THROTTLE_CLASSES': (
+        'rest_framework.throttling.ScopedRateThrottle',
+    ),
+    'DEFAULT_THROTTLE_RATES': {
+        'binance-connect': '5/hour',
+        'binance-sync': '12/hour',
+    },
 }
 
 CORS_ALLOW_ALL_ORIGINS = True  # For development only

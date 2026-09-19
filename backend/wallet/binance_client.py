@@ -1,0 +1,120 @@
+"""
+Deliberately narrow client for Binance's REST API — exactly two calls exist
+here, both read-only:
+
+- `check_read_only_permissions` — verifies a key has no trading/withdrawal
+  permissions before we ever store or use it.
+- `fetch_spot_balances` — reads SPOT wallet balances.
+
+This is intentionally NOT a general-purpose Binance SDK wrapper. Adding a
+new call here should mean adding a new named, reviewed function — never a
+generic "call any endpoint" method — so nothing in this codebase can
+accidentally reach a trading/withdrawal endpoint through this module.
+
+(Python 3.9 in production — `from __future__ import annotations` lets the
+`dict | None`/`list[dict]` hints below work without a runtime error.)
+"""
+from __future__ import annotations
+
+import hashlib
+import hmac
+import time
+from urllib.parse import urlencode
+
+import requests
+from django.conf import settings
+
+_REQUEST_TIMEOUT = 10
+_RECV_WINDOW = 5000
+
+
+class BinanceCredentialsError(ValueError):
+    """The supplied api_key/api_secret are invalid, or the key has more than
+    read-only permissions. Maps to a 400 in views.py — a problem with the
+    user's input, not our service."""
+
+
+class BinanceServiceError(Exception):
+    """Binance didn't respond, timed out, or returned something we can't
+    parse. Maps to a 502 in views.py — mirrors ai_chat.py's AnthropicServiceError."""
+
+
+def _base_url() -> str:
+    return settings.BINANCE_API_BASE_URL
+
+
+def _sign(secret: str, query: str) -> str:
+    return hmac.new(secret.encode(), query.encode(), hashlib.sha256).hexdigest()
+
+
+def _signed_get(path: str, api_key: str, api_secret: str, params: dict | None = None) -> dict:
+    """Sends one signed GET to Binance. Private on purpose — everything else
+    in this module goes through the two allowlisted functions below."""
+    query_params = dict(params or {})
+    query_params["timestamp"] = int(time.time() * 1000)
+    query_params.setdefault("recvWindow", _RECV_WINDOW)
+    query = urlencode(query_params)
+    signature = _sign(api_secret, query)
+    url = f"{_base_url()}{path}?{query}&signature={signature}"
+
+    try:
+        response = requests.get(
+            url,
+            headers={"X-MBX-APIKEY": api_key},
+            timeout=_REQUEST_TIMEOUT,
+        )
+    except requests.RequestException as exc:
+        raise BinanceServiceError(f"binance_request_failed: {exc}") from exc
+
+    if response.status_code in (400, 401):
+        # Binance returns 400/401 with {"code": -2015, "msg": "..."} for a bad
+        # key/secret/signature, a clock-skew timestamp, or an IP restriction —
+        # this is a credentials problem (400 to our own client), not an outage.
+        raise BinanceCredentialsError(f"invalid_binance_credentials: {response.text[:200]}")
+    if not response.ok:
+        raise BinanceServiceError(f"binance_returned_{response.status_code}: {response.text[:200]}")
+
+    try:
+        return response.json()
+    except ValueError as exc:
+        raise BinanceServiceError("binance_response_not_json") from exc
+
+
+def check_read_only_permissions(api_key: str, api_secret: str) -> dict:
+    """
+    GET /sapi/v1/account/apiRestrictions — raises BinanceCredentialsError if
+    ANY permission other than `enableReading` is True, or if reading itself
+    is disabled.
+
+    This is an allowlist, not a denylist: it rejects every `enable*` field
+    that isn't `enableReading`, so a permission Binance adds in the future
+    is rejected by default instead of silently passing through unnoticed.
+    """
+    data = _signed_get("/sapi/v1/account/apiRestrictions", api_key, api_secret)
+    dangerous = [
+        key for key, value in data.items()
+        if key.startswith("enable") and key != "enableReading" and value
+    ]
+    if dangerous or not data.get("enableReading"):
+        reason = ",".join(dangerous) if dangerous else "reading_disabled"
+        raise BinanceCredentialsError(f"key_not_read_only:{reason}")
+    return data
+
+
+def fetch_spot_balances(api_key: str, api_secret: str) -> list[dict]:
+    """
+    GET /api/v3/account — returns only the non-zero SPOT wallet balances,
+    as `[{"asset": "BTC", "free": 0.5, "locked": 0.0}, ...]`. Funding/Earn/
+    Margin/Futures wallets are out of scope for v1.
+    """
+    data = _signed_get("/api/v3/account", api_key, api_secret)
+    balances = []
+    for entry in data.get("balances", []):
+        try:
+            free = float(entry["free"])
+            locked = float(entry["locked"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        if free + locked > 0:
+            balances.append({"asset": entry["asset"], "free": free, "locked": locked})
+    return balances

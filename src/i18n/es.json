@@ -9,6 +9,48 @@
     "error": "Error",
     "search": "Buscar..."
   },
+  "menu": {
+    "settings": "Ajustes",
+    "openMenu": "Abrir menú"
+  },
+  "settings": {
+    "title": "Ajustes",
+    "connectionsRow": "Conexión con cuentas externas",
+    "connectionsRowSubtitle": "Binance",
+    "connectionsTitle": "Conexiones",
+    "connectedLabel": "Conectado",
+    "notConnectedLabel": "No conectado"
+  },
+  "binance": {
+    "title": "Binance",
+    "apiKeyLabel": "API Key",
+    "apiKeyPlaceholder": "Pega aquí tu API Key",
+    "apiSecretLabel": "API Secret",
+    "apiSecretPlaceholder": "Pega aquí tu API Secret",
+    "readOnlyWarningTitle": "Usa una API key de SOLO LECTURA",
+    "readOnlyWarningBody": "En Binance, al crear la key deja marcado únicamente 'Habilitar lectura'. Nunca actives trading ni retiros — esta app los rechaza de todos modos, pero tu key nunca debe tenerlos habilitados.",
+    "noIpRestrictionNote": "Esta app no tiene una IP fija, así que no restrinjas la key por IP en Binance — la protección real es dejarla de solo lectura.",
+    "connect": "Conectar",
+    "connecting": "Conectando…",
+    "connectedSince": "Conectado",
+    "maskedKeyLabel": "Key",
+    "lastSyncedLabel": "Última sincronización",
+    "neverSynced": "Nunca",
+    "syncNow": "Sincronizar ahora",
+    "syncing": "Sincronizando…",
+    "disconnect": "Desconectar",
+    "disconnectConfirmTitle": "Desconectar Binance",
+    "disconnectConfirmMessage": "¿Estás seguro de que quieres desconectar tu cuenta de Binance? Se borrará la conexión guardada.",
+    "portfolioTitle": "Portafolio",
+    "totalLabel": "Total estimado",
+    "noPriceAvailable": "Sin precio disponible",
+    "emptyPortfolio": "No se encontraron saldos en tu wallet SPOT.",
+    "errorApiKeyAndSecretRequired": "Ingresa tu API Key y tu API Secret.",
+    "errorKeyNotReadOnly": "Esta key tiene permisos de más. Edítala en Binance para dejar solo 'Habilitar lectura' e intenta de nuevo.",
+    "errorServiceUnavailable": "No pudimos conectar con Binance. Intenta de nuevo en un momento.",
+    "errorGeneric": "Algo salió mal. Intenta de nuevo.",
+    "errorNotConnected": "Conecta tu cuenta primero."
+  },
   "tabs": {
     "wallet": "Wallet",
     "budget": "Presupuesto",

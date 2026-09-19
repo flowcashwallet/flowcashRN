@@ -1,8 +1,14 @@
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useMenuPanel } from "@/contexts/MenuPanelContext";
+import STRINGS from "@/i18n/es.json";
 import { Stack } from "expo-router";
+import React from "react";
+import { TouchableOpacity } from "react-native";
 
 export default function BalanceLayout() {
   const { colors } = useTheme();
+  const { open: openMenu } = useMenuPanel();
 
   return (
     <Stack>
@@ -13,6 +19,11 @@ export default function BalanceLayout() {
           headerTransparent: true,
           headerTitle: "Balance",
           headerLargeTitle: false,
+          headerLeft: () => (
+            <TouchableOpacity onPress={openMenu} accessibilityRole="button" accessibilityLabel={STRINGS.menu.openMenu}>
+              <IconSymbol name="line.3.horizontal" size={20} color={colors.text} />
+            </TouchableOpacity>
+          ),
           contentStyle: {
             backgroundColor: colors.background,
           },

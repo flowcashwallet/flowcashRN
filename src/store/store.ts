@@ -2,6 +2,7 @@ import { configureStore } from "@reduxjs/toolkit";
 import aiChatReducer from "../features/ai-chat/data/aiChatSlice";
 import authReducer from "../features/auth/authSlice";
 import budgetReducer from "../features/budget/budgetSlice";
+import binanceReducer from "../features/exchange/data/binanceSlice";
 import visionReducer from "../features/vision/data/visionSlice";
 import categoriesReducer from "../features/wallet/data/categoriesSlice";
 import gamificationReducer from "../features/wallet/data/gamificationSlice";
@@ -20,6 +21,7 @@ export const store = configureStore({
     gamification: gamificationReducer,
     settings: settingsReducer,
     aiChat: aiChatReducer,
+    binance: binanceReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

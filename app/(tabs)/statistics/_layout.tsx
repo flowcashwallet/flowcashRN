@@ -6,7 +6,14 @@ import { Stack } from "expo-router";
 import React from "react";
 import { TouchableOpacity } from "react-native";
 
-export default function BudgetLayout() {
+/**
+ * Antes `app/(tabs)/statistics.tsx` era un archivo plano sin ningún Stack
+ * propio, así que no tenía header/chrome nativo — no había dónde colgar el
+ * ícono de menú. Convertirlo en carpeta (mismo patrón que budget/balance)
+ * le da ese header sin cambiar el nombre de ruta que ya usa
+ * `NativeTabs.Trigger name="statistics"` en `(tabs)/_layout.tsx`.
+ */
+export default function StatisticsLayout() {
   const { colors } = useTheme();
   const { open: openMenu } = useMenuPanel();
 
@@ -17,7 +24,7 @@ export default function BudgetLayout() {
         options={{
           headerShown: true,
           headerTransparent: true,
-          headerTitle: "Presupuesto",
+          headerTitle: STRINGS.tabs.statistics,
           headerLargeTitle: false,
           headerLeft: () => (
             <TouchableOpacity onPress={openMenu} accessibilityRole="button" accessibilityLabel={STRINGS.menu.openMenu}>

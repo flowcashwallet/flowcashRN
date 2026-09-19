@@ -125,6 +125,27 @@ class VisionEntity(models.Model):
     def __str__(self):
         return f"{self.name} ({self.type})"
 
+class BinanceConnection(models.Model):
+    """
+    One per user. `api_key_encrypted`/`api_secret_encrypted` are Fernet
+    tokens (see `secrets_crypto.py`) — the raw credential is never stored,
+    logged, or returned by the API. `masked_key_preview` is the only piece
+    kept in plaintext, and it's just enough for the UI to confirm which key
+    is connected (first/last few characters), never enough to reconstruct it.
+    """
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='binance_connection')
+    api_key_encrypted = models.TextField()
+    api_secret_encrypted = models.TextField()
+    masked_key_preview = models.CharField(max_length=20)
+    is_read_only_confirmed = models.BooleanField(default=False)
+    permissions_checked_at = models.DateTimeField(null=True, blank=True)
+    last_synced_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Binance connection for {self.user.username} ({self.masked_key_preview})"
+
 class GamificationStats(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='gamification_stats')
     streak_freezes = models.IntegerField(default=3)

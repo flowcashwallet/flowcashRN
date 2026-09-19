@@ -1,4 +1,5 @@
 import { useTheme } from "@/contexts/ThemeContext";
+import { useMenuPanel } from "@/contexts/MenuPanelContext";
 import { registerForPushNotificationsAsync } from "@/services/notifications";
 import { Stack, useRouter } from "expo-router";
 import React from "react";
@@ -10,6 +11,7 @@ import {
 export default function WalletLayout() {
   const router = useRouter();
   const { colors } = useTheme();
+  const { open: openMenu } = useMenuPanel();
   const isIOS = Platform.OS === "ios";
 
   const handleNotificationPress = async () => {
@@ -136,7 +138,7 @@ export default function WalletLayout() {
                   name: "line.3.horizontal",
                 },
                 tintColor: colors.text,
-                onPress: () => {},
+                onPress: openMenu,
               },
             ],
           }}

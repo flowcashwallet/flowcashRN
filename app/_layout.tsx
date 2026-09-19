@@ -19,6 +19,8 @@ import "react-native-reanimated";
 import { Provider, useDispatch, useSelector } from "react-redux";
 
 import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
+import { MenuPanelProvider } from "@/contexts/MenuPanelContext";
+import { SideMenuPanel } from "@/components/organisms/SideMenuPanel";
 
 export const unstable_settings = {
   initialRouteName: "index",
@@ -267,7 +269,17 @@ export default function RootLayout() {
     <Provider store={store}>
       <ThemeProvider>
         <GestureHandlerRootView>
-          <RootLayoutNav />
+          {/*
+            Montado una sola vez, por encima de todo el árbol (autenticado o
+            no) — así el botón de hamburguesa de cualquier pestaña puede
+            abrirlo sin pasar nada a través de la navegación. No toca
+            `NativeTabs`/`Stack.Protected`/deep links de `RootLayoutNav`: es
+            un overlay aparte, no un Drawer real envolviendo el Stack.
+          */}
+          <MenuPanelProvider>
+            <RootLayoutNav />
+            <SideMenuPanel />
+          </MenuPanelProvider>
         </GestureHandlerRootView>
       </ThemeProvider>
     </Provider>

@@ -5,7 +5,7 @@ import { SymbolWeight } from "expo-symbols";
 import { ComponentProps } from "react";
 import { OpaqueColorValue, type StyleProp, type TextStyle } from "react-native";
 
-type IconSymbolName = keyof typeof MAPPING;
+export type IconSymbolName = keyof typeof MAPPING;
 
 /**
  * Add your SF Symbols to Material Icons mappings here.
@@ -96,6 +96,11 @@ const MAPPING = {
   // Añadido para el botón de adjuntar imagen del chat de IA — el resto de
   // esa barra ya usa `camera`/`xmark.circle.fill`, ambos mapeados arriba.
   paperclip: "attach-file",
+  // Añadido para la fila "Ajustes" del panel lateral (`SideMenuPanel`).
+  gearshape: "settings",
+  // Añadido para la fila "Conexión con cuentas externas" de Ajustes.
+  // El chevron de navegación de las filas reusa "chevron.right", ya mapeado.
+  link: "link",
 } as Record<string, ComponentProps<typeof MaterialIcons>["name"]>;
 
 /**

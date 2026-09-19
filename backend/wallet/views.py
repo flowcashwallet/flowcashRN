@@ -2,13 +2,20 @@ from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from decimal import Decimal
-from .models import Transaction, Budget, Category, VisionEntity, GamificationStats, DevicePushToken
+from .models import Transaction, Budget, Category, VisionEntity, GamificationStats, DevicePushToken, BinanceConnection
 from .serializers import TransactionSerializer, BudgetSerializer, CategorySerializer, VisionEntitySerializer, GamificationStatsSerializer, DevicePushTokenSerializer
 from .ml import predict_category_for_user
 from .nlp import parse_voice_command
 from .analytics import predict_runway
 from .recurrence import process_recurring_transactions
 from .ai_chat import AnthropicServiceError, ImagePayloadError, get_chat_reply
+from .binance_client import (
+    BinanceCredentialsError,
+    BinanceServiceError,
+    check_read_only_permissions,
+    fetch_spot_balances,
+)
+from .secrets_crypto import encrypt_secret, decrypt_secret, SecretEncryptionError
 from django.utils import timezone
 from django.conf import settings
 import os
@@ -186,6 +193,107 @@ class ChatViewSet(viewsets.ViewSet):
         if transaction_proposals:
             payload["transaction_proposals"] = transaction_proposals
         return Response(payload)
+
+class BinanceViewSet(viewsets.ViewSet):
+    """
+    Connects a user's read-only Binance API key so the app can show their
+    portfolio. The credentials are validated (read-only permissions only)
+    and encrypted before ever touching the database — see
+    `secrets_crypto.py`/`binance_client.py` for the security-critical parts.
+    Nothing here ever returns the raw key/secret back to the client.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    # `@action(throttle_scope=...)` isn't a valid ViewSet.as_view() kwarg in
+    # this DRF version — instead, get_throttles() below sets this per-action
+    # right before ScopedRateThrottle reads it.
+    throttle_scope = None
+
+    def get_throttles(self):
+        self.throttle_scope = {'connect': 'binance-connect', 'sync': 'binance-sync'}.get(self.action)
+        return super().get_throttles()
+
+    def _serialize_status(self, connection):
+        return {
+            "connected": connection is not None,
+            "masked_api_key": connection.masked_key_preview if connection else None,
+            "last_synced_at": connection.last_synced_at.isoformat() if connection and connection.last_synced_at else None,
+        }
+
+    @action(detail=False, methods=['get'], url_path='status')
+    def status(self, request):
+        connection = BinanceConnection.objects.filter(user=request.user).first()
+        return Response(self._serialize_status(connection))
+
+    @action(detail=False, methods=['post', 'delete'], url_path='connect')
+    def connect(self, request):
+        if request.method == 'DELETE':
+            BinanceConnection.objects.filter(user=request.user).delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+        api_key = (request.data.get('api_key') or '').strip()
+        api_secret = (request.data.get('api_secret') or '').strip()
+        if not api_key or not api_secret:
+            return Response({"error": "api_key_and_secret_required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # Never store a key with anything beyond read access — see
+            # binance_client.check_read_only_permissions's allowlist logic.
+            check_read_only_permissions(api_key, api_secret)
+        except BinanceCredentialsError as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except BinanceServiceError:
+            return Response({"error": "binance_service_unavailable"}, status=status.HTTP_502_BAD_GATEWAY)
+
+        masked = f"{api_key[:4]}…{api_key[-4:]}" if len(api_key) > 8 else "••••"
+        connection, _ = BinanceConnection.objects.update_or_create(
+            user=request.user,
+            defaults={
+                "api_key_encrypted": encrypt_secret(api_key),
+                "api_secret_encrypted": encrypt_secret(api_secret),
+                "masked_key_preview": masked,
+                "is_read_only_confirmed": True,
+                "permissions_checked_at": timezone.now(),
+            },
+        )
+        return Response(self._serialize_status(connection))
+
+    @action(detail=False, methods=['post'], url_path='sync')
+    def sync(self, request):
+        connection = BinanceConnection.objects.filter(user=request.user).first()
+        if not connection:
+            return Response({"error": "not_connected"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            api_key = decrypt_secret(connection.api_key_encrypted)
+            api_secret = decrypt_secret(connection.api_secret_encrypted)
+        except SecretEncryptionError:
+            # Can't be decrypted with the current key (e.g. a key rotation
+            # that didn't re-encrypt this row) — the connection is unusable,
+            # drop it instead of leaving a dead row the user can't fix.
+            connection.delete()
+            return Response({"error": "stored_credentials_unreadable"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # Revalidated on EVERY sync, not just at connect time: if the
+            # user later grants this same key trading/withdrawal permissions
+            # in Binance, this disconnects it instead of trusting a stale
+            # check. Any credentials-shaped error here (including a
+            # transient signed-request rejection from Binance) disconnects —
+            # deliberately conservative given what's at stake; the user can
+            # just reconnect if it was a fluke.
+            check_read_only_permissions(api_key, api_secret)
+            balances = fetch_spot_balances(api_key, api_secret)
+        except BinanceCredentialsError as exc:
+            connection.delete()
+            return Response({"error": str(exc), "disconnected": True}, status=status.HTTP_400_BAD_REQUEST)
+        except BinanceServiceError:
+            return Response({"error": "binance_service_unavailable"}, status=status.HTTP_502_BAD_GATEWAY)
+
+        connection.last_synced_at = timezone.now()
+        connection.permissions_checked_at = timezone.now()
+        connection.save(update_fields=['last_synced_at', 'permissions_checked_at'])
+
+        return Response({"balances": balances, "synced_at": connection.last_synced_at.isoformat()})
 
 class CategoryViewSet(viewsets.ModelViewSet):
     serializer_class = CategorySerializer

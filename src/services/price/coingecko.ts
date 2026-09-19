@@ -17,6 +17,69 @@ const BASE_URL = IS_PRO
   : "https://api.coingecko.com/api/v3";
 
 /**
+ * Símbolos de Binance más comunes → id de CoinGecko. Deliberadamente una
+ * lista explícita y acotada (no una búsqueda dinámica contra
+ * `/coins/list`): cualquier activo fuera de este mapa se muestra igual
+ * (cantidad visible) pero sin precio, en vez de romper la pantalla.
+ */
+const SYMBOL_TO_COINGECKO_ID: Record<string, string> = {
+  BTC: "bitcoin",
+  ETH: "ethereum",
+  USDT: "tether",
+  USDC: "usd-coin",
+  BNB: "binancecoin",
+  SOL: "solana",
+  XRP: "ripple",
+  ADA: "cardano",
+  DOGE: "dogecoin",
+  DOT: "polkadot",
+  MATIC: "matic-network",
+  POL: "polygon-ecosystem-token",
+  LTC: "litecoin",
+  LINK: "chainlink",
+  AVAX: "avalanche-2",
+  TRX: "tron",
+  SHIB: "shiba-inu",
+  ATOM: "cosmos",
+  UNI: "uniswap",
+  XLM: "stellar",
+  ETC: "ethereum-classic",
+  FIL: "filecoin",
+  APT: "aptos",
+  ARB: "arbitrum",
+  OP: "optimism",
+  NEAR: "near",
+  ALGO: "algorand",
+  VET: "vechain",
+  ICP: "internet-computer",
+  FTM: "fantom",
+};
+
+/**
+ * Obtiene el precio en MXN de una lista de símbolos de Binance (p. ej.
+ * `["BTC", "ETH", "XYZ"]`) — pensado para el portafolio de Binance
+ * (`BinanceConnectScreen`), que trabaja con tickers, no con ids de
+ * CoinGecko. Los símbolos sin mapeo quedan en `null`, nunca tiran el resto.
+ */
+export const fetchCryptoPricesBySymbol = async (
+  symbols: string[],
+): Promise<Record<string, number | null>> => {
+  const uniqueSymbols = Array.from(new Set(symbols.map((s) => s.toUpperCase())));
+  const mappedIds = uniqueSymbols
+    .map((symbol) => SYMBOL_TO_COINGECKO_ID[symbol])
+    .filter((id): id is string => Boolean(id));
+
+  const prices = mappedIds.length > 0 ? await fetchCryptoPrices(mappedIds) : null;
+
+  const result: Record<string, number | null> = {};
+  for (const symbol of uniqueSymbols) {
+    const coinId = SYMBOL_TO_COINGECKO_ID[symbol];
+    result[symbol] = coinId && prices ? prices[coinId] ?? null : null;
+  }
+  return result;
+};
+
+/**
  * Obtiene el precio en MXN de las monedas especificadas.
  * @param coinIds Puede ser un string único 'bitcoin' o un array ['bitcoin', 'tether']
  */
