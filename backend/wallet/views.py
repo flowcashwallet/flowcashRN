@@ -209,7 +209,15 @@ class BinanceViewSet(viewsets.ViewSet):
     throttle_scope = None
 
     def get_throttles(self):
-        self.throttle_scope = {'connect': 'binance-connect', 'sync': 'binance-sync'}.get(self.action)
+        # `connect` handles both POST (calls Binance — throttled) and DELETE
+        # (local-only disconnect). Disconnecting must never be rate-limited:
+        # if a user suspects a key leaked, revoking it has to always work.
+        if self.action == 'connect' and self.request.method == 'POST':
+            self.throttle_scope = 'binance-connect'
+        elif self.action == 'sync':
+            self.throttle_scope = 'binance-sync'
+        else:
+            self.throttle_scope = None
         return super().get_throttles()
 
     def _serialize_status(self, connection):
@@ -241,15 +249,27 @@ class BinanceViewSet(viewsets.ViewSet):
             check_read_only_permissions(api_key, api_secret)
         except BinanceCredentialsError as exc:
             return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
-        except BinanceServiceError:
+        except BinanceServiceError as exc:
+            # Never logs api_key/api_secret — only Binance's own error text,
+            # which never echoes the request's credentials back.
+            print(f"[BinanceViewSet.connect] {exc}")
             return Response({"error": "binance_service_unavailable"}, status=status.HTTP_502_BAD_GATEWAY)
+
+        try:
+            encrypted_key = encrypt_secret(api_key)
+            encrypted_secret = encrypt_secret(api_secret)
+        except SecretEncryptionError as exc:
+            # BINANCE_ENCRYPTION_KEY missing/invalid — a deploy config
+            # problem, not the user's key. 500, not 502: it's our server.
+            print(f"[BinanceViewSet.connect] {exc}")
+            return Response({"error": "encryption_not_configured"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         masked = f"{api_key[:4]}…{api_key[-4:]}" if len(api_key) > 8 else "••••"
         connection, _ = BinanceConnection.objects.update_or_create(
             user=request.user,
             defaults={
-                "api_key_encrypted": encrypt_secret(api_key),
-                "api_secret_encrypted": encrypt_secret(api_secret),
+                "api_key_encrypted": encrypted_key,
+                "api_secret_encrypted": encrypted_secret,
                 "masked_key_preview": masked,
                 "is_read_only_confirmed": True,
                 "permissions_checked_at": timezone.now(),
@@ -284,9 +304,11 @@ class BinanceViewSet(viewsets.ViewSet):
             check_read_only_permissions(api_key, api_secret)
             balances = fetch_spot_balances(api_key, api_secret)
         except BinanceCredentialsError as exc:
+            print(f"[BinanceViewSet.sync] {exc}")
             connection.delete()
             return Response({"error": str(exc), "disconnected": True}, status=status.HTTP_400_BAD_REQUEST)
-        except BinanceServiceError:
+        except BinanceServiceError as exc:
+            print(f"[BinanceViewSet.sync] {exc}")
             return Response({"error": "binance_service_unavailable"}, status=status.HTTP_502_BAD_GATEWAY)
 
         connection.last_synced_at = timezone.now()

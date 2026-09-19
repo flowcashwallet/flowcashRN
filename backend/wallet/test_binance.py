@@ -7,6 +7,7 @@ and there's no reason to depend on Binance's uptime to run the suite).
 from unittest.mock import MagicMock, patch
 
 from django.contrib.auth.models import User
+from django.core.cache import cache
 from django.test import TestCase, override_settings
 from django.utils import timezone
 from rest_framework.test import APIClient
@@ -138,6 +139,10 @@ class BinanceClientTests(TestCase):
 @override_settings(BINANCE_ENCRYPTION_KEY=TEST_KEY)
 class BinanceEndpointTests(TestCase):
     def setUp(self):
+        # `ScopedRateThrottle` uses Django's default cache, which is
+        # process-wide and persists across test methods — clear it so one
+        # test's requests never eat into another's rate-limit budget.
+        cache.clear()
         self.user = User.objects.create_user(username="binanceuser", password="password")
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
@@ -207,6 +212,23 @@ class BinanceEndpointTests(TestCase):
 
         self.assertEqual(response.status_code, 502)
         self.assertEqual(response.data["error"], "binance_service_unavailable")
+
+    @override_settings(BINANCE_ENCRYPTION_KEY=None)
+    @patch("wallet.views.check_read_only_permissions")
+    def test_connect_returns_500_when_encryption_key_is_missing(self, mock_check):
+        # A deploy config problem (BINANCE_ENCRYPTION_KEY unset), not the
+        # user's key — the key already passed the permissions check.
+        mock_check.return_value = {"enableReading": True}
+
+        response = self.client.post(
+            "/api/wallet/binance/connect/",
+            {"api_key": "abcd1234efgh5678", "api_secret": "supersecretvalue"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 500)
+        self.assertEqual(response.data["error"], "encryption_not_configured")
+        self.assertFalse(BinanceConnection.objects.filter(user=self.user).exists())
 
     def test_disconnect_removes_the_connection(self):
         BinanceConnection.objects.create(
