@@ -4,11 +4,10 @@
 #
 
 app = 'flowcash-binance-relay'
-# Fly ya no tiene ninguna región de México/Latinoamérica hispanohablante
-# disponible (qro y gdl deprecadas). Ámsterdam es la opción más neutral: no
-# es EE. UU. y no tiene fricción regulatoria conocida con Binance (a
-# diferencia de Toronto, donde Binance sí tuvo un historial con Ontario).
-primary_region = 'ams'
+# qro/gdl (México) deprecadas por Fly. Ámsterdam dio 451 igual que Dallas —
+# probando Fráncfort por si usa un rango de IP distinto dentro de Fly antes
+# de concluir que el bloqueo de Binance es a todo Fly.io, no por región.
+primary_region = 'fra'
 
 [build]
 [env]

@@ -115,22 +115,27 @@ def _signed_get(path: str, api_key: str, api_secret: str, params: dict | None = 
     url = _build_signed_url(path, api_secret, params)
 
     relay_url = settings.BINANCE_RELAY_URL
+    via_relay = bool(relay_url)
     status_code, text = (
-        _execute_via_relay(url, api_key, relay_url) if relay_url else _execute_direct(url, api_key)
+        _execute_via_relay(url, api_key, relay_url) if via_relay else _execute_direct(url, api_key)
     )
+    # Tagged explicitly so a log line can never be ambiguous about which path
+    # was actually taken — a relay call that reaches Binance but still gets
+    # rejected looks identical to a direct call otherwise.
+    source = "relay" if via_relay else "direct"
 
     if status_code in (400, 401):
         # Binance returns 400/401 with {"code": -2015, "msg": "..."} for a bad
         # key/secret/signature, a clock-skew timestamp, or an IP restriction —
         # this is a credentials problem (400 to our own client), not an outage.
-        raise BinanceCredentialsError(f"invalid_binance_credentials: {text[:200]}")
+        raise BinanceCredentialsError(f"invalid_binance_credentials [{source}]: {text[:200]}")
     if status_code < 200 or status_code >= 300:
-        raise BinanceServiceError(f"binance_returned_{status_code}: {text[:200]}")
+        raise BinanceServiceError(f"binance_returned_{status_code} [{source}]: {text[:200]}")
 
     try:
         return json.loads(text)
     except (ValueError, TypeError) as exc:
-        raise BinanceServiceError("binance_response_not_json") from exc
+        raise BinanceServiceError(f"binance_response_not_json [{source}]") from exc
 
 
 def check_read_only_permissions(api_key: str, api_secret: str) -> dict:
