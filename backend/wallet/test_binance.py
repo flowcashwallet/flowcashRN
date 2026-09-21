@@ -4,6 +4,7 @@ otherwise hit Binance's real API is mocked — these tests never make a real
 network call, on principle (a leaked test credential would be catastrophic
 and there's no reason to depend on Binance's uptime to run the suite).
 """
+import json
 from unittest.mock import MagicMock, patch
 
 from django.contrib.auth.models import User
@@ -24,11 +25,14 @@ from .secrets_crypto import SecretEncryptionError, decrypt_secret, encrypt_secre
 TEST_KEY = "uQ2W-BZR5QZ8iguiwaWJcaGlWWIsevbjQi_qMEzgmss="
 
 
-def _mock_response(status_code=200, json_data=None, text=""):
+def _mock_response(status_code=200, json_data=None, text=None):
+    """`binance_client._execute_direct` now reads `.text` (not `.json()`) —
+    mirrors what `requests` actually gives you, so this builds `.text` from
+    `json_data` when a raw `text` override isn't given (e.g. a malformed body)."""
     response = MagicMock()
     response.status_code = status_code
     response.ok = 200 <= status_code < 400
-    response.text = text
+    response.text = text if text is not None else json.dumps(json_data if json_data is not None else {})
     response.json.return_value = json_data if json_data is not None else {}
     return response
 
@@ -134,6 +138,56 @@ class BinanceClientTests(TestCase):
         mock_get.return_value = _mock_response(status_code=500, text="internal error")
         with self.assertRaises(BinanceServiceError):
             check_read_only_permissions("key", "secret")
+
+
+@override_settings(
+    BINANCE_ENCRYPTION_KEY=TEST_KEY,
+    BINANCE_RELAY_URL="https://flowcash-binance-relay.fly.dev",
+    BINANCE_RELAY_SHARED_SECRET="relay-secret",
+)
+class BinanceRelayTests(TestCase):
+    """When `BINANCE_RELAY_URL` is set, requests go through `binance-relay/`
+    instead of straight to Binance — see that service's own README for why
+    (Binance 451s Vercel's AWS IPs). The relay never receives `api_secret`."""
+
+    @patch("wallet.binance_client.requests.post")
+    def test_forwards_through_the_relay_with_the_shared_secret(self, mock_post):
+        mock_post.return_value = _mock_response(json_data={"status_code": 200, "body": {"enableReading": True}})
+
+        result = check_read_only_permissions("mykey", "mysecret")
+
+        self.assertTrue(result["enableReading"])
+        call = mock_post.call_args
+        self.assertEqual(call.args[0], "https://flowcash-binance-relay.fly.dev/forward")
+        self.assertEqual(call.kwargs["headers"]["X-Relay-Auth"], "relay-secret")
+        # The relay gets the already-signed URL and the (non-secret) api_key
+        # header — never the raw api_secret in the request body/headers.
+        self.assertIn("mykey", call.kwargs["json"]["headers"]["X-MBX-APIKEY"])
+        self.assertNotIn("mysecret", str(call.kwargs))
+
+    @patch("wallet.binance_client.requests.post")
+    def test_binance_credentials_error_passes_through_the_relay(self, mock_post):
+        mock_post.return_value = _mock_response(
+            json_data={"status_code": 400, "body": '{"code":-2015,"msg":"bad key"}'}
+        )
+        with self.assertRaises(BinanceCredentialsError):
+            check_read_only_permissions("mykey", "mysecret")
+
+    @patch("wallet.binance_client.requests.post")
+    def test_relay_auth_failure_is_a_service_error_not_a_credentials_error(self, mock_post):
+        # A 403 from the relay itself (wrong shared secret, misconfiguration)
+        # is OUR infra's fault — must never look like the user's key is bad.
+        mock_post.return_value = _mock_response(status_code=403, text="unauthorized")
+        with self.assertRaises(BinanceServiceError):
+            check_read_only_permissions("mykey", "mysecret")
+
+    @patch("wallet.binance_client.requests.post")
+    def test_relay_unreachable_is_a_service_error(self, mock_post):
+        import requests
+
+        mock_post.side_effect = requests.ConnectionError("boom")
+        with self.assertRaises(BinanceServiceError):
+            check_read_only_permissions("mykey", "mysecret")
 
 
 @override_settings(BINANCE_ENCRYPTION_KEY=TEST_KEY)

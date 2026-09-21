@@ -11,6 +11,15 @@ new call here should mean adding a new named, reviewed function — never a
 generic "call any endpoint" method — so nothing in this codebase can
 accidentally reach a trading/withdrawal endpoint through this module.
 
+**Routing via the relay.** Vercel's serverless functions run on AWS US
+infrastructure, and Binance rejects those requests with a 451 ("restricted
+location") — a block on the calling IP, not on the user's credentials. When
+`settings.BINANCE_RELAY_URL` is set, the already-signed request is forwarded
+through a small standalone service deployed outside Vercel, in a region
+Binance doesn't block (see `binance-relay/`) — that service never receives
+`api_secret`, only the fully-signed URL. With `BINANCE_RELAY_URL` unset,
+this calls Binance directly, unchanged from before the relay existed.
+
 (Python 3.9 in production — `from __future__ import annotations` lets the
 `dict | None`/`list[dict]` hints below work without a runtime error.)
 """
@@ -18,6 +27,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import json
 import time
 from urllib.parse import urlencode
 
@@ -47,36 +57,79 @@ def _sign(secret: str, query: str) -> str:
     return hmac.new(secret.encode(), query.encode(), hashlib.sha256).hexdigest()
 
 
-def _signed_get(path: str, api_key: str, api_secret: str, params: dict | None = None) -> dict:
-    """Sends one signed GET to Binance. Private on purpose — everything else
-    in this module goes through the two allowlisted functions below."""
+def _build_signed_url(path: str, api_secret: str, params: dict | None = None) -> str:
     query_params = dict(params or {})
     query_params["timestamp"] = int(time.time() * 1000)
     query_params.setdefault("recvWindow", _RECV_WINDOW)
     query = urlencode(query_params)
     signature = _sign(api_secret, query)
-    url = f"{_base_url()}{path}?{query}&signature={signature}"
+    return f"{_base_url()}{path}?{query}&signature={signature}"
 
+
+def _execute_direct(url: str, api_key: str) -> tuple[int, str]:
+    """Calls Binance directly — the original path, still used whenever
+    `BINANCE_RELAY_URL` isn't set (e.g. local dev, or if the block is ever lifted)."""
     try:
-        response = requests.get(
-            url,
-            headers={"X-MBX-APIKEY": api_key},
-            timeout=_REQUEST_TIMEOUT,
-        )
+        response = requests.get(url, headers={"X-MBX-APIKEY": api_key}, timeout=_REQUEST_TIMEOUT)
     except requests.RequestException as exc:
         raise BinanceServiceError(f"binance_request_failed: {exc}") from exc
+    return response.status_code, response.text
 
-    if response.status_code in (400, 401):
+
+def _execute_via_relay(url: str, api_key: str, relay_url: str) -> tuple[int, str]:
+    """Forwards the already-signed URL through `binance-relay/` — which never
+    receives `api_secret`, only this URL and the (non-secret) api_key header."""
+    shared_secret = settings.BINANCE_RELAY_SHARED_SECRET
+    if not shared_secret:
+        raise BinanceServiceError("BINANCE_RELAY_SHARED_SECRET is not configured")
+
+    try:
+        relay_response = requests.post(
+            f"{relay_url}/forward",
+            json={"url": url, "headers": {"X-MBX-APIKEY": api_key}},
+            headers={"X-Relay-Auth": shared_secret},
+            timeout=_REQUEST_TIMEOUT + 5,
+        )
+    except requests.RequestException as exc:
+        raise BinanceServiceError(f"relay_request_failed: {exc}") from exc
+
+    if not relay_response.ok:
+        # A non-2xx from the relay itself (bad shared secret, host not
+        # allowlisted, relay unreachable to Binance) is OUR infra's fault,
+        # never the user's key — always a service error, never credentials.
+        raise BinanceServiceError(f"relay_returned_{relay_response.status_code}: {relay_response.text[:200]}")
+
+    try:
+        payload = relay_response.json()
+    except ValueError as exc:
+        raise BinanceServiceError("relay_response_not_json") from exc
+
+    body = payload.get("body")
+    return payload["status_code"], body if isinstance(body, str) else json.dumps(body)
+
+
+def _signed_get(path: str, api_key: str, api_secret: str, params: dict | None = None) -> dict:
+    """Sends one signed GET to Binance, directly or via the relay. Private on
+    purpose — everything else in this module goes through the two
+    allowlisted functions below."""
+    url = _build_signed_url(path, api_secret, params)
+
+    relay_url = settings.BINANCE_RELAY_URL
+    status_code, text = (
+        _execute_via_relay(url, api_key, relay_url) if relay_url else _execute_direct(url, api_key)
+    )
+
+    if status_code in (400, 401):
         # Binance returns 400/401 with {"code": -2015, "msg": "..."} for a bad
         # key/secret/signature, a clock-skew timestamp, or an IP restriction —
         # this is a credentials problem (400 to our own client), not an outage.
-        raise BinanceCredentialsError(f"invalid_binance_credentials: {response.text[:200]}")
-    if not response.ok:
-        raise BinanceServiceError(f"binance_returned_{response.status_code}: {response.text[:200]}")
+        raise BinanceCredentialsError(f"invalid_binance_credentials: {text[:200]}")
+    if status_code < 200 or status_code >= 300:
+        raise BinanceServiceError(f"binance_returned_{status_code}: {text[:200]}")
 
     try:
-        return response.json()
-    except ValueError as exc:
+        return json.loads(text)
+    except (ValueError, TypeError) as exc:
         raise BinanceServiceError("binance_response_not_json") from exc
 
 

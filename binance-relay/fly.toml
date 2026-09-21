@@ -1,0 +1,24 @@
+# fly.toml app configuration file generated for flowcash-binance-relay on 2026-09-21T11:54:57-06:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'flowcash-binance-relay'
+primary_region = 'qro' # Querétaro, México — todo el punto de este servicio es NO salir de EE. UU.
+
+[build]
+[env]
+  PORT = '8080'
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[vm]]
+  size = 'shared-cpu-1x'
+  memory = '256mb'
+  cpus = 1
+  memory_mb = 256

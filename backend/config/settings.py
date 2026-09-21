@@ -38,6 +38,14 @@ BINANCE_ENCRYPTION_KEY = os.environ.get('BINANCE_ENCRYPTION_KEY')
 # connect/sync flow without touching a real account.
 BINANCE_API_BASE_URL = os.environ.get('BINANCE_API_BASE_URL', 'https://api.binance.com')
 
+# Optional: URL of the standalone relay (see binance-relay/) that forwards
+# already-signed Binance requests from a region Binance doesn't block —
+# Vercel's serverless functions run on AWS US infra and get a 451 from
+# Binance otherwise. Unset (the default) means calling Binance directly,
+# unchanged from before the relay existed.
+BINANCE_RELAY_URL = os.environ.get('BINANCE_RELAY_URL')
+BINANCE_RELAY_SHARED_SECRET = os.environ.get('BINANCE_RELAY_SHARED_SECRET')
+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = 'RENDER' not in os.environ and 'DYNO' not in os.environ and 'VERCEL' not in os.environ
 
