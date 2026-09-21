@@ -122,6 +122,32 @@ class BinanceClientTests(TestCase):
         )
 
     @patch("wallet.binance_client.requests.get")
+    def test_fetch_spot_balances_skips_locked_earn_wrapper_tokens(self, mock_get):
+        # Regression test for a real double-counting bug: Binance lists a
+        # Simple Earn Locked subscription BOTH as its own Spot balance
+        # ("LDBTC") AND via the Simple Earn position endpoints, for the same
+        # quantity. Counting it here too (even after stripping the prefix)
+        # doubled the user's portfolio total. It must be skipped here
+        # entirely — `fetch_earn_balances` is its only source.
+        mock_get.return_value = _mock_response(
+            json_data={
+                "balances": [
+                    {"asset": "BTC", "free": "0.2", "locked": "0"},
+                    {"asset": "LDBTC", "free": "0.5", "locked": "0"},
+                    {"asset": "LDO", "free": "10", "locked": "0"},
+                ]
+            }
+        )
+        balances = fetch_spot_balances("key", "secret")
+        self.assertEqual(
+            balances,
+            [
+                {"asset": "BTC", "free": 0.2, "locked": 0.0},
+                {"asset": "LDO", "free": 10.0, "locked": 0.0},
+            ],
+        )
+
+    @patch("wallet.binance_client.requests.get")
     def test_fetch_earn_balances_combines_flexible_and_locked(self, mock_get):
         mock_get.side_effect = [
             _mock_response(json_data={"rows": [{"asset": "BTC", "totalAmount": "0.3"}]}),

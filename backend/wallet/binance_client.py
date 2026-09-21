@@ -182,61 +182,59 @@ def check_read_only_permissions(api_key: str, api_secret: str) -> dict:
     return data
 
 
-def fetch_spot_balances(api_key: str, api_secret: str) -> list[dict]:
-    """
-    GET /api/v3/account — returns only the non-zero SPOT wallet balances,
-    as `[{"asset": "BTC", "free": 0.5, "locked": 0.0}, ...]`. Funding/Margin/
-    Futures wallets are still out of scope — Simple Earn is covered by
-    `fetch_earn_balances` below.
-
-    Binance also lists a Simple Earn subscription's wrapped receipt token
-    (e.g. "LDBTC") as a regular Spot balance, not only via the Simple Earn
-    position endpoints — confirmed against a real account. `_strip_locked_earn_prefix`
-    (defined below `fetch_earn_balances`, but Python resolves this at call
-    time so definition order doesn't matter) unwraps it here too, or it
-    never merges with the same asset's real Spot/Earn balance.
-    """
-    data = _signed_get("/api/v3/account", api_key, api_secret)
-    balances = []
-    for entry in data.get("balances", []):
-        try:
-            free = float(entry["free"])
-            locked = float(entry["locked"])
-        except (KeyError, TypeError, ValueError):
-            continue
-        if free + locked > 0:
-            balances.append({"asset": _strip_locked_earn_prefix(entry["asset"]), "free": free, "locked": locked})
-    # TEMPORARY diagnostic — remove once we confirm whether LD-wrapped tokens
-    # actually appear here (vs. only via fetch_earn_balances). No secrets:
-    # asset symbols and public amounts only.
-    print(f"[fetch_spot_balances] raw assets: {[e.get('asset') for e in data.get('balances', []) if float(e.get('free', 0)) + float(e.get('locked', 0)) > 0]}")
-    return balances
-
-
 _KNOWN_LD_ASSETS = {
     "LDBTC", "LDETH", "LDUSDT", "LDUSDC", "LDBNB", "LDSOL", "LDXRP", "LDADA",
     "LDDOGE", "LDDOT", "LDMATIC", "LDLTC", "LDLINK", "LDAVAX", "LDTRX",
 }
 
 
-def _strip_locked_earn_prefix(asset: str) -> str:
+def _is_locked_earn_wrapper_token(asset: str) -> bool:
     """
     Binance's Simple Earn *Locked* positions come back with an `LD` prefix
     on the asset (`LDBTC` for a locked BTC position, confirmed against a
-    real account — not documented consistently) — the underlying asset is
-    still plain BTC, redeemable 1:1. Without stripping this, locked
-    positions never merge with the same asset held in Spot/Flexible, and
-    never find a price (there's no "LDBTCUSDT" trading pair).
+    real account — not documented consistently). The underlying asset is
+    still plain BTC, redeemable 1:1.
 
-    Checks an explicit allowlist first (safest); falls back to stripping any
-    "LD" prefix on a 3+ char remainder, since Binance doesn't otherwise use
-    that prefix for real ticker symbols.
+    Checks an explicit allowlist first (safest); falls back to any "LD"
+    prefix on a 3+ char remainder, since Binance doesn't otherwise use that
+    prefix for real ticker symbols (a genuine "LDO" — Lido — is 3 chars,
+    correctly excluded by the length check).
     """
-    if asset in _KNOWN_LD_ASSETS:
-        return asset[2:]
-    if asset.startswith("LD") and len(asset) > 4:
-        return asset[2:]
-    return asset
+    return asset in _KNOWN_LD_ASSETS or (asset.startswith("LD") and len(asset) > 4)
+
+
+def _strip_locked_earn_prefix(asset: str) -> str:
+    return asset[2:] if _is_locked_earn_wrapper_token(asset) else asset
+
+
+def fetch_spot_balances(api_key: str, api_secret: str) -> list[dict]:
+    """
+    GET /api/v3/account — returns only the non-zero SPOT wallet balances,
+    as `[{"asset": "BTC", "free": 0.5, "locked": 0.0}, ...]`. Funding/Margin/
+    Futures wallets are still out of scope.
+
+    Binance ALSO lists a Simple Earn subscription's wrapped receipt token
+    (e.g. "LDBTC") as its own separate Spot balance, for the exact same
+    quantity `fetch_earn_balances` already reports via the Simple Earn
+    position endpoints — confirmed against a real account (both listed the
+    same 0.5 BTC, doubling the portfolio total once naively merged). These
+    are SKIPPED here entirely, not stripped-and-counted, so they're counted
+    exactly once — via `fetch_earn_balances`, which has the correct home for
+    a locked position, not here.
+    """
+    data = _signed_get("/api/v3/account", api_key, api_secret)
+    balances = []
+    for entry in data.get("balances", []):
+        if _is_locked_earn_wrapper_token(entry.get("asset", "")):
+            continue
+        try:
+            free = float(entry["free"])
+            locked = float(entry["locked"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        if free + locked > 0:
+            balances.append({"asset": entry["asset"], "free": free, "locked": locked})
+    return balances
 
 
 def fetch_earn_balances(api_key: str, api_secret: str) -> list[dict]:
@@ -248,6 +246,10 @@ def fetch_earn_balances(api_key: str, api_secret: str) -> list[dict]:
     asset can appear more than once if held in both products — merged by
     the caller, not here, to keep this function a plain data source).
 
+    This is the SOLE source for locked-earn quantities — `fetch_spot_balances`
+    deliberately skips the same holding's wrapped "LDxxx" token instead of
+    also counting it, or it would be double-counted.
+
     Field names below match Binance's documented Simple Earn response shape
     at the time this was written; if Binance ever renames a field, this
     silently returns fewer/zero rows rather than raising — acceptable for a
@@ -257,10 +259,7 @@ def fetch_earn_balances(api_key: str, api_secret: str) -> list[dict]:
     balances = []
 
     flexible = _signed_get("/sapi/v1/simple-earn/flexible/position", api_key, api_secret)
-    flexible_rows = flexible.get("rows", [])
-    # TEMPORARY diagnostic — see fetch_spot_balances's note above.
-    print(f"[fetch_earn_balances] raw flexible rows: {[(r.get('asset'), r.get('totalAmount'), r.get('amount')) for r in flexible_rows]}")
-    for row in flexible_rows:
+    for row in flexible.get("rows", []):
         try:
             amount = float(row.get("totalAmount", row.get("amount", 0)))
         except (TypeError, ValueError):
@@ -269,9 +268,7 @@ def fetch_earn_balances(api_key: str, api_secret: str) -> list[dict]:
             balances.append({"asset": _strip_locked_earn_prefix(row["asset"]), "amount": amount})
 
     locked = _signed_get("/sapi/v1/simple-earn/locked/position", api_key, api_secret)
-    locked_rows = locked.get("rows", [])
-    print(f"[fetch_earn_balances] raw locked rows: {[(r.get('asset'), r.get('amount')) for r in locked_rows]}")
-    for row in locked_rows:
+    for row in locked.get("rows", []):
         try:
             amount = float(row.get("amount", 0))
         except (TypeError, ValueError):
@@ -279,7 +276,6 @@ def fetch_earn_balances(api_key: str, api_secret: str) -> list[dict]:
         if amount > 0:
             balances.append({"asset": _strip_locked_earn_prefix(row["asset"]), "amount": amount})
 
-    print(f"[fetch_earn_balances] stripped result: {balances}")
     return balances
 
 
