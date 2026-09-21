@@ -7,6 +7,8 @@ export interface BinanceBalance {
   asset: string;
   /** Cantidad total del activo, ya combinada entre SPOT y Simple Earn (Flexible + Bloqueado) por el backend. */
   amount: number;
+  /** En USD, ya calculado por el backend vía el ticker público de Binance — `null` si el activo no tiene par contra USDT. */
+  valueUsd: number | null;
 }
 
 interface BinanceState {
@@ -14,6 +16,7 @@ interface BinanceState {
   maskedApiKey: string | null;
   lastSyncedAt: number | null;
   balances: BinanceBalance[];
+  totalValueUsd: number;
   status: "idle" | "connecting" | "syncing" | "error";
   error: string | null;
 }
@@ -23,6 +26,7 @@ const initialState: BinanceState = {
   maskedApiKey: null,
   lastSyncedAt: null,
   balances: [],
+  totalValueUsd: 0,
   status: "idle",
   error: null,
 };
@@ -109,9 +113,22 @@ export const disconnectBinance = createAsyncThunk<
   }
 });
 
+interface BalanceWire {
+  asset: string;
+  amount: number;
+  value_usd: number | null;
+}
+
+interface SyncResponseWire {
+  balances: BalanceWire[];
+  total_value_usd: number;
+  synced_at: string;
+}
+
 interface SyncResponse {
   balances: BinanceBalance[];
-  synced_at: string;
+  totalValueUsd: number;
+  syncedAt: string;
 }
 
 interface SyncRejection {
@@ -132,14 +149,22 @@ export const syncBinancePortfolio = createAsyncThunk<
       dispatch as AppDispatch,
       getState as () => RootState,
     );
-    const data = await response.json().catch(() => null);
+    const data = (await response.json().catch(() => null)) as SyncResponseWire | null;
     if (!response.ok) {
       return rejectWithValue({
-        message: data?.error ?? "binance_sync_failed",
-        disconnected: Boolean(data?.disconnected),
+        message: (data as any)?.error ?? "binance_sync_failed",
+        disconnected: Boolean((data as any)?.disconnected),
       });
     }
-    return data as SyncResponse;
+    return {
+      balances: (data?.balances ?? []).map((row) => ({
+        asset: row.asset,
+        amount: row.amount,
+        valueUsd: row.value_usd,
+      })),
+      totalValueUsd: data?.total_value_usd ?? 0,
+      syncedAt: data?.synced_at ?? new Date().toISOString(),
+    };
   } catch (error: any) {
     return rejectWithValue({ message: error.message ?? "binance_sync_failed", disconnected: false });
   }
@@ -178,6 +203,7 @@ const binanceSlice = createSlice({
         state.maskedApiKey = null;
         state.lastSyncedAt = null;
         state.balances = [];
+        state.totalValueUsd = 0;
       })
       .addCase(syncBinancePortfolio.pending, (state) => {
         state.status = "syncing";
@@ -186,7 +212,8 @@ const binanceSlice = createSlice({
       .addCase(syncBinancePortfolio.fulfilled, (state, action) => {
         state.status = "idle";
         state.balances = action.payload.balances;
-        state.lastSyncedAt = parseTimestamp(action.payload.synced_at);
+        state.totalValueUsd = action.payload.totalValueUsd;
+        state.lastSyncedAt = parseTimestamp(action.payload.syncedAt);
       })
       .addCase(syncBinancePortfolio.rejected, (state, action) => {
         state.status = "error";
@@ -196,6 +223,7 @@ const binanceSlice = createSlice({
           state.maskedApiKey = null;
           state.lastSyncedAt = null;
           state.balances = [];
+          state.totalValueUsd = 0;
         }
       });
   },

@@ -15,6 +15,7 @@ from .binance_client import (
     check_read_only_permissions,
     fetch_earn_balances,
     fetch_spot_balances,
+    fetch_usdt_prices,
 )
 from .secrets_crypto import encrypt_secret, decrypt_secret, SecretEncryptionError
 from django.utils import timezone
@@ -326,14 +327,36 @@ class BinanceViewSet(viewsets.ViewSet):
             combined[row["asset"]] = combined.get(row["asset"], 0) + row["free"] + row["locked"]
         for row in earn:
             combined[row["asset"]] = combined.get(row["asset"], 0) + row["amount"]
-        balances = [{"asset": asset, "amount": amount} for asset, amount in combined.items() if amount > 0]
+        amounts = {asset: amount for asset, amount in combined.items() if amount > 0}
+
+        # Pricing is best-effort too, same reasoning as Earn above: a hiccup
+        # here must still return the quantities, just without dollar values.
+        try:
+            prices = fetch_usdt_prices(list(amounts.keys()))
+        except BinanceServiceError as exc:
+            print(f"[BinanceViewSet.sync] prices skipped: {exc}")
+            prices = {}
+
+        balances = [
+            {
+                "asset": asset,
+                "amount": amount,
+                "value_usd": amount * prices[asset] if prices.get(asset) is not None else None,
+            }
+            for asset, amount in amounts.items()
+        ]
+        total_value_usd = sum(row["value_usd"] for row in balances if row["value_usd"] is not None)
 
         connection.last_synced_at = timezone.now()
         connection.permissions_checked_at = timezone.now()
         connection.last_balances = balances
         connection.save(update_fields=['last_synced_at', 'permissions_checked_at', 'last_balances'])
 
-        return Response({"balances": balances, "synced_at": connection.last_synced_at.isoformat()})
+        return Response({
+            "balances": balances,
+            "total_value_usd": total_value_usd,
+            "synced_at": connection.last_synced_at.isoformat(),
+        })
 
 class CategoryViewSet(viewsets.ModelViewSet):
     serializer_class = CategorySerializer

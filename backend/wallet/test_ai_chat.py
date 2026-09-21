@@ -94,14 +94,28 @@ class BuildFinancialContextTests(TestCase):
             api_key_encrypted="x",
             api_secret_encrypted="x",
             masked_key_preview="abcd…5678",
-            last_balances=[{"asset": "BTC", "amount": 0.5}, {"asset": "USDT", "amount": 100.0}],
+            last_balances=[
+                {"asset": "BTC", "amount": 0.5, "value_usd": 30000.0},
+                {"asset": "USDT", "amount": 100.0, "value_usd": 100.0},
+            ],
         )
         context = build_financial_context(self.user)
         self.assertIn("PORTAFOLIO BINANCE", context)
-        self.assertIn("BTC: 0.5", context)
-        self.assertIn("USDT: 100.0", context)
-        # Nunca debe convertir cripto a pesos por su cuenta — no tiene el precio real.
-        self.assertIn("No conviertas estas cantidades a pesos", context)
+        self.assertIn("BTC: 0.5 (~$30,000.00 USD)", context)
+        self.assertIn("USDT: 100.0 (~$100.00 USD)", context)
+        # Nunca debe convertir/recalcular el valor por su cuenta — ya viene calculado.
+        self.assertIn("nunca lo inventes, lo recalcules ni lo", context)
+
+    def test_shows_binance_holdings_without_a_price_as_unpriced(self):
+        BinanceConnection.objects.create(
+            user=self.user,
+            api_key_encrypted="x",
+            api_secret_encrypted="x",
+            masked_key_preview="abcd…5678",
+            last_balances=[{"asset": "SOMEOBSCURECOIN", "amount": 12.0, "value_usd": None}],
+        )
+        context = build_financial_context(self.user)
+        self.assertIn("SOMEOBSCURECOIN: 12.0 (sin precio disponible)", context)
 
     def test_binance_section_notes_when_connected_but_never_synced(self):
         BinanceConnection.objects.create(

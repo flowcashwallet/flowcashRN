@@ -19,17 +19,6 @@ jest.mock("@/utils/apiClient", () => ({
   fetchWithAuth: jest.fn(),
 }));
 
-jest.mock("@/services/price/coingecko", () => ({
-  fetchCryptoPricesBySymbol: jest.fn(async (symbols: string[]) => {
-    // Precio fijo para BTC en los tests, cualquier otro símbolo queda sin precio.
-    const result: Record<string, number | null> = {};
-    symbols.forEach((s) => {
-      result[s.toUpperCase()] = s.toUpperCase() === "BTC" ? 1000000 : null;
-    });
-    return result;
-  }),
-}));
-
 const mockFetchWithAuth = fetchWithAuth as jest.Mock;
 
 function renderScreen() {
@@ -73,7 +62,7 @@ describe("BinanceConnectScreen — no conectado", () => {
     });
     mockFetchWithAuth.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ balances: [], synced_at: "2026-09-17T12:00:00Z" }),
+      json: async () => ({ balances: [], total_value_usd: 0, synced_at: "2026-09-17T12:00:00Z" }),
     });
 
     renderScreen();
@@ -128,13 +117,38 @@ describe("BinanceConnectScreen — conectado", () => {
     });
   }
 
-  it("muestra la key enmascarada, el portafolio y su valor en fiat", async () => {
+  it("muestra la key enmascarada y el estado vacío antes de sincronizar", async () => {
     mockConnectedStatus();
     renderScreen();
 
     await waitFor(() => expect(screen.getByText("abcd…5678")).toBeTruthy());
     // Sin sync todavía en este test — el estado vacío se muestra.
     expect(screen.getByText(STRINGS.binance.emptyPortfolio)).toBeTruthy();
+  });
+
+  it("al sincronizar, muestra el portafolio con el valor en USD que ya manda el backend", async () => {
+    mockConnectedStatus();
+    mockFetchWithAuth.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        balances: [
+          { asset: "BTC", amount: 0.5, value_usd: 30000 },
+          { asset: "SOMEOBSCURECOIN", amount: 12, value_usd: null },
+        ],
+        total_value_usd: 30000,
+        synced_at: "2026-09-17T12:00:00Z",
+      }),
+    });
+
+    renderScreen();
+    await waitFor(() => expect(screen.getByText("abcd…5678")).toBeTruthy());
+    fireEvent.press(screen.getByText(STRINGS.binance.syncNow));
+
+    await waitFor(() => expect(screen.getByText("BTC")).toBeTruthy());
+    // Aparece dos veces: el valor de BTC y el total (coinciden porque el
+    // otro activo del portafolio no tiene precio y no aporta al total).
+    expect(screen.getAllByText("$30,000.00")).toHaveLength(2);
+    expect(screen.getByText(STRINGS.binance.noPriceAvailable)).toBeTruthy();
   });
 
   it("desconectar pide confirmación destructiva antes de llamar al backend", async () => {

@@ -288,13 +288,25 @@ def _binance_portfolio_lines(user):
     (`BinanceConnection.last_balances`) — never calls Binance/the relay live
     during a chat turn, that stays a display-triggered action the user does
     from the Binance screen. Returns `(lines, connection_or_none)`.
+
+    `value_usd` (already computed server-side at sync time, via Binance's own
+    ticker) is included per row when available — the model never has to
+    (and must not) convert crypto to a currency itself.
     """
     connection = BinanceConnection.objects.filter(user=user).first()
     if not connection:
         return [], None
     if not connection.last_balances:
         return ["(conectado, aún sin sincronizar — abre Ajustes > Conexiones > Binance)"], connection
-    return [f"- {row['asset']}: {row['amount']}" for row in connection.last_balances], connection
+
+    lines = []
+    for row in connection.last_balances:
+        value_usd = row.get("value_usd")
+        if value_usd is not None:
+            lines.append(f"- {row['asset']}: {row['amount']} (~{_format_currency(value_usd)} USD)")
+        else:
+            lines.append(f"- {row['asset']}: {row['amount']} (sin precio disponible)")
+    return lines, connection
 
 
 def _recent_transactions_lines(user):
@@ -379,11 +391,13 @@ def build_financial_context(user):
     # Solo aparece si el usuario conectó Binance — ver Ajustes > Conexiones.
     if binance_connection is not None:
         sections.append("")
-        sections.append("=== PORTAFOLIO BINANCE (cantidades, no en pesos) ===")
+        sections.append("=== PORTAFOLIO BINANCE (valores en USD, de la última sincronización) ===")
         sections.extend(binance_lines)
         sections.append(
-            "No conviertas estas cantidades a pesos tú mismo — no tienes el precio actual. "
-            "Si preguntan el valor en pesos, dirige a la pantalla de Binance en la app."
+            "El valor en USD ya viene calculado — nunca lo inventes, lo recalcules ni lo "
+            "conviertas a otra moneda tú mismo. Es del momento de la última sincronización, "
+            "no en vivo; si preguntan por el valor actual, sugiere sincronizar de nuevo desde "
+            "la pantalla de Binance en la app."
         )
 
     sections.append("")

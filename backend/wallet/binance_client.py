@@ -66,19 +66,20 @@ def _build_signed_url(path: str, api_secret: str, params: dict | None = None) ->
     return f"{_base_url()}{path}?{query}&signature={signature}"
 
 
-def _execute_direct(url: str, api_key: str) -> tuple[int, str]:
+def _execute_direct(url: str, headers: dict) -> tuple[int, str]:
     """Calls Binance directly — the original path, still used whenever
     `BINANCE_RELAY_URL` isn't set (e.g. local dev, or if the block is ever lifted)."""
     try:
-        response = requests.get(url, headers={"X-MBX-APIKEY": api_key}, timeout=_REQUEST_TIMEOUT)
+        response = requests.get(url, headers=headers, timeout=_REQUEST_TIMEOUT)
     except requests.RequestException as exc:
         raise BinanceServiceError(f"binance_request_failed: {exc}") from exc
     return response.status_code, response.text
 
 
-def _execute_via_relay(url: str, api_key: str, relay_url: str) -> tuple[int, str]:
-    """Forwards the already-signed URL through `binance-relay/` — which never
-    receives `api_secret`, only this URL and the (non-secret) api_key header."""
+def _execute_via_relay(url: str, headers: dict, relay_url: str) -> tuple[int, str]:
+    """Forwards the already-built URL through `binance-relay/` — which never
+    receives `api_secret`, only this URL and whatever (non-secret) headers
+    the caller supplies (an API key header for signed calls, none for public ones)."""
     shared_secret = settings.BINANCE_RELAY_SHARED_SECRET
     if not shared_secret:
         raise BinanceServiceError("BINANCE_RELAY_SHARED_SECRET is not configured")
@@ -86,7 +87,7 @@ def _execute_via_relay(url: str, api_key: str, relay_url: str) -> tuple[int, str
     try:
         relay_response = requests.post(
             f"{relay_url}/forward",
-            json={"url": url, "headers": {"X-MBX-APIKEY": api_key}},
+            json={"url": url, "headers": headers},
             headers={"X-Relay-Auth": shared_secret},
             timeout=_REQUEST_TIMEOUT + 5,
         )
@@ -108,21 +109,26 @@ def _execute_via_relay(url: str, api_key: str, relay_url: str) -> tuple[int, str
     return payload["status_code"], body if isinstance(body, str) else json.dumps(body)
 
 
-def _signed_get(path: str, api_key: str, api_secret: str, params: dict | None = None) -> dict:
-    """Sends one signed GET to Binance, directly or via the relay. Private on
-    purpose — everything else in this module goes through the two
-    allowlisted functions below."""
-    url = _build_signed_url(path, api_secret, params)
-
+def _execute(url: str, headers: dict) -> tuple[int, str, str]:
+    """Runs the actual HTTP call, directly or via the relay. Returns
+    `(status_code, body_text, source)` — `source` ("direct"/"relay") is
+    tagged into every error message downstream so a log line can never be
+    ambiguous about which path was taken (a relay call that reaches Binance
+    but still gets rejected looks identical to a direct call otherwise)."""
     relay_url = settings.BINANCE_RELAY_URL
     via_relay = bool(relay_url)
     status_code, text = (
-        _execute_via_relay(url, api_key, relay_url) if via_relay else _execute_direct(url, api_key)
+        _execute_via_relay(url, headers, relay_url) if via_relay else _execute_direct(url, headers)
     )
-    # Tagged explicitly so a log line can never be ambiguous about which path
-    # was actually taken — a relay call that reaches Binance but still gets
-    # rejected looks identical to a direct call otherwise.
-    source = "relay" if via_relay else "direct"
+    return status_code, text, ("relay" if via_relay else "direct")
+
+
+def _signed_get(path: str, api_key: str, api_secret: str, params: dict | None = None) -> dict:
+    """Sends one signed GET to Binance, directly or via the relay. Private on
+    purpose — everything else in this module goes through the allowlisted
+    functions below."""
+    url = _build_signed_url(path, api_secret, params)
+    status_code, text, source = _execute(url, {"X-MBX-APIKEY": api_key})
 
     if status_code in (400, 401):
         # Binance returns 400/401 with {"code": -2015, "msg": "..."} for a bad
@@ -132,6 +138,23 @@ def _signed_get(path: str, api_key: str, api_secret: str, params: dict | None = 
     if status_code < 200 or status_code >= 300:
         raise BinanceServiceError(f"binance_returned_{status_code} [{source}]: {text[:200]}")
 
+    try:
+        return json.loads(text)
+    except (ValueError, TypeError) as exc:
+        raise BinanceServiceError(f"binance_response_not_json [{source}]") from exc
+
+
+def _public_get(path: str, params: dict | None = None) -> dict:
+    """Sends one GET to a PUBLIC Binance endpoint — no signature, no API key,
+    no user credentials involved at all. Still routed through the relay when
+    configured: Binance's IP block applies to the connection itself, before
+    it even looks at whether the request is signed."""
+    query = urlencode(params or {})
+    url = f"{_base_url()}{path}" + (f"?{query}" if query else "")
+    status_code, text, source = _execute(url, {})
+
+    if status_code < 200 or status_code >= 300:
+        raise BinanceServiceError(f"binance_returned_{status_code} [{source}]: {text[:200]}")
     try:
         return json.loads(text)
     except (ValueError, TypeError) as exc:
@@ -215,3 +238,31 @@ def fetch_earn_balances(api_key: str, api_secret: str) -> list[dict]:
             balances.append({"asset": row["asset"], "amount": amount})
 
     return balances
+
+
+# Stablecoins pegged ~1:1 to the dollar — Binance has no "USDTUSDT" pair, so
+# these are priced as 1.0 without a ticker call instead of erroring.
+_USD_STABLECOINS = {"USDT", "USDC", "BUSD", "FDUSD", "TUSD", "DAI", "USDP"}
+
+
+def fetch_usdt_prices(assets: list[str]) -> dict[str, float | None]:
+    """
+    Prices each asset in USDT (~1:1 with USD) via Binance's public ticker —
+    `GET /api/v3/ticker/price`, no signature or API key needed. This covers
+    virtually every asset actually held on Binance (anything with a
+    `{ASSET}USDT` trading pair), unlike a hand-picked CoinGecko symbol list.
+    An asset with no such pair (delisted, or only trades against another
+    quote currency) maps to `None` — still shown with its quantity, just
+    without a dollar value, instead of failing the whole portfolio.
+    """
+    prices: dict[str, float | None] = {}
+    for asset in assets:
+        if asset in _USD_STABLECOINS:
+            prices[asset] = 1.0
+            continue
+        try:
+            data = _public_get("/api/v3/ticker/price", {"symbol": f"{asset}USDT"})
+            prices[asset] = float(data["price"])
+        except (BinanceServiceError, KeyError, TypeError, ValueError):
+            prices[asset] = None
+    return prices

@@ -27,8 +27,8 @@ export default function BinanceConnectScreen() {
     connected,
     maskedApiKey,
     lastSyncedAt,
-    pricedBalances,
-    totalFiatValue,
+    balances,
+    totalValueUsd,
     isConnecting,
     isSyncing,
     apiKey,
@@ -83,7 +83,7 @@ export default function BinanceConnectScreen() {
                 {STRINGS.binance.portfolioTitle}
               </Typography>
 
-              {pricedBalances.length === 0 ? (
+              {balances.length === 0 ? (
                 <Typography variant="body" muted style={styles.emptyText}>
                   {STRINGS.binance.emptyPortfolio}
                 </Typography>
@@ -92,7 +92,7 @@ export default function BinanceConnectScreen() {
                   style={styles.card}
                   fallbackStyle={[styles.flatCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
                 >
-                  {pricedBalances.map((balance) => (
+                  {balances.map((balance) => (
                     <View key={balance.asset} style={styles.balanceRow}>
                       <View>
                         <Typography variant="body" weight="semibold">
@@ -103,8 +103,8 @@ export default function BinanceConnectScreen() {
                         </Typography>
                       </View>
                       <Typography variant="body">
-                        {balance.fiatValue != null
-                          ? formatCurrency(balance.fiatValue)
+                        {balance.valueUsd != null
+                          ? formatCurrency(balance.valueUsd)
                           : STRINGS.binance.noPriceAvailable}
                       </Typography>
                     </View>
@@ -113,7 +113,7 @@ export default function BinanceConnectScreen() {
                     <Typography variant="body" weight="semibold">
                       {STRINGS.binance.totalLabel}
                     </Typography>
-                    <Typography variant="number">{formatCurrency(totalFiatValue)}</Typography>
+                    <Typography variant="number">{formatCurrency(totalValueUsd)}</Typography>
                   </View>
                 </GlassSurface>
               )}

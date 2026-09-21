@@ -42,7 +42,7 @@
     "disconnectConfirmTitle": "Desconectar Binance",
     "disconnectConfirmMessage": "¿Estás seguro de que quieres desconectar tu cuenta de Binance? Se borrará la conexión guardada.",
     "portfolioTitle": "Portafolio",
-    "totalLabel": "Total estimado",
+    "totalLabel": "Total estimado (USD)",
     "noPriceAvailable": "Sin precio disponible",
     "emptyPortfolio": "No se encontraron saldos en tu wallet SPOT.",
     "errorApiKeyAndSecretRequired": "Ingresa tu API Key y tu API Secret.",

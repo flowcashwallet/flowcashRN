@@ -19,6 +19,7 @@ from .binance_client import (
     check_read_only_permissions,
     fetch_earn_balances,
     fetch_spot_balances,
+    fetch_usdt_prices,
 )
 from .models import BinanceConnection
 from .secrets_crypto import SecretEncryptionError, decrypt_secret, encrypt_secret
@@ -136,6 +137,27 @@ class BinanceClientTests(TestCase):
             _mock_response(json_data={"rows": []}),
         ]
         self.assertEqual(fetch_earn_balances("key", "secret"), [])
+
+    @patch("wallet.binance_client.requests.get")
+    def test_fetch_usdt_prices_prices_a_regular_asset_via_the_public_ticker(self, mock_get):
+        mock_get.return_value = _mock_response(json_data={"symbol": "BTCUSDT", "price": "60000.50"})
+        prices = fetch_usdt_prices(["BTC"])
+        self.assertEqual(prices, {"BTC": 60000.50})
+        # Public endpoint — never signed, no API key.
+        called_url = mock_get.call_args.args[0]
+        self.assertNotIn("signature=", called_url)
+
+    def test_fetch_usdt_prices_treats_stablecoins_as_one_dollar_without_a_call(self):
+        with patch("wallet.binance_client.requests.get") as mock_get:
+            prices = fetch_usdt_prices(["USDT", "USDC"])
+        mock_get.assert_not_called()
+        self.assertEqual(prices, {"USDT": 1.0, "USDC": 1.0})
+
+    @patch("wallet.binance_client.requests.get")
+    def test_fetch_usdt_prices_returns_none_for_an_asset_with_no_pair(self, mock_get):
+        mock_get.return_value = _mock_response(status_code=400, text='{"code":-1121,"msg":"Invalid symbol."}')
+        prices = fetch_usdt_prices(["SOMEOBSCURECOIN"])
+        self.assertEqual(prices, {"SOMEOBSCURECOIN": None})
 
     @patch("wallet.binance_client.requests.get")
     def test_invalid_signature_maps_to_credentials_error(self, mock_get):
@@ -334,13 +356,19 @@ class BinanceEndpointTests(TestCase):
             masked_key_preview="abcd…5678",
         )
 
-        response = self.client.post("/api/wallet/binance/sync/")
+        with patch("wallet.views.fetch_usdt_prices", return_value={"BTC": 60000.0}):
+            response = self.client.post("/api/wallet/binance/sync/")
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data["balances"], [{"asset": "BTC", "amount": 0.5}])
+        self.assertEqual(
+            response.data["balances"], [{"asset": "BTC", "amount": 0.5, "value_usd": 30000.0}]
+        )
+        self.assertEqual(response.data["total_value_usd"], 30000.0)
         connection.refresh_from_db()
         self.assertIsNotNone(connection.last_synced_at)
-        self.assertEqual(connection.last_balances, [{"asset": "BTC", "amount": 0.5}])
+        self.assertEqual(
+            connection.last_balances, [{"asset": "BTC", "amount": 0.5, "value_usd": 30000.0}]
+        )
 
     @patch("wallet.views.fetch_earn_balances")
     @patch("wallet.views.fetch_spot_balances")
@@ -356,7 +384,8 @@ class BinanceEndpointTests(TestCase):
             masked_key_preview="abcd…5678",
         )
 
-        response = self.client.post("/api/wallet/binance/sync/")
+        with patch("wallet.views.fetch_usdt_prices", return_value={"BTC": 1.0, "USDT": 1.0}):
+            response = self.client.post("/api/wallet/binance/sync/")
 
         self.assertEqual(response.status_code, 200)
         balances = {row["asset"]: row["amount"] for row in response.data["balances"]}
@@ -379,11 +408,41 @@ class BinanceEndpointTests(TestCase):
             masked_key_preview="abcd…5678",
         )
 
+        with patch("wallet.views.fetch_usdt_prices", return_value={"BTC": 60000.0}):
+            response = self.client.post("/api/wallet/binance/sync/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.data["balances"], [{"asset": "BTC", "amount": 0.5, "value_usd": 30000.0}]
+        )
+        self.assertTrue(BinanceConnection.objects.filter(user=self.user).exists())
+
+    @patch("wallet.views.fetch_usdt_prices")
+    @patch("wallet.views.fetch_earn_balances")
+    @patch("wallet.views.fetch_spot_balances")
+    @patch("wallet.views.check_read_only_permissions")
+    def test_sync_still_returns_amounts_when_pricing_fails(self, mock_check, mock_spot, mock_earn, mock_prices):
+        # A pricing hiccup must never take down the sync either — quantities
+        # matter even without a dollar value.
+        mock_check.return_value = {"enableReading": True}
+        mock_spot.return_value = [{"asset": "BTC", "free": 0.5, "locked": 0.0}]
+        mock_earn.return_value = []
+        mock_prices.side_effect = BinanceServiceError("timeout")
+
+        BinanceConnection.objects.create(
+            user=self.user,
+            api_key_encrypted=encrypt_secret("k"),
+            api_secret_encrypted=encrypt_secret("s"),
+            masked_key_preview="abcd…5678",
+        )
+
         response = self.client.post("/api/wallet/binance/sync/")
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data["balances"], [{"asset": "BTC", "amount": 0.5}])
-        self.assertTrue(BinanceConnection.objects.filter(user=self.user).exists())
+        self.assertEqual(
+            response.data["balances"], [{"asset": "BTC", "amount": 0.5, "value_usd": None}]
+        )
+        self.assertEqual(response.data["total_value_usd"], 0)
 
     @patch("wallet.views.check_read_only_permissions")
     def test_sync_disconnects_if_permissions_were_escalated_after_connecting(self, mock_check):
