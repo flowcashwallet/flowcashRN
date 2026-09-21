@@ -131,6 +131,37 @@ class BinanceClientTests(TestCase):
         self.assertEqual(balances, [{"asset": "BTC", "amount": 0.3}, {"asset": "ETH", "amount": 1.5}])
 
     @patch("wallet.binance_client.requests.get")
+    def test_fetch_earn_balances_strips_the_ld_prefix_from_locked_positions(self, mock_get):
+        # Confirmed against a real account: Binance's Locked Simple Earn
+        # positions come back as "LDBTC", not "BTC" — without stripping this
+        # they never merge with Spot/Flexible holdings of the same asset,
+        # and never find a USDT price.
+        mock_get.side_effect = [
+            _mock_response(json_data={"rows": []}),
+            _mock_response(
+                json_data={
+                    "rows": [
+                        {"asset": "LDBTC", "amount": "0.5"},
+                        {"asset": "LDSOL", "amount": "21.8"},
+                    ]
+                }
+            ),
+        ]
+        balances = fetch_earn_balances("key", "secret")
+        self.assertEqual(balances, [{"asset": "BTC", "amount": 0.5}, {"asset": "SOL", "amount": 21.8}])
+
+    @patch("wallet.binance_client.requests.get")
+    def test_fetch_earn_balances_leaves_real_ld_prefixed_tickers_alone(self, mock_get):
+        # A real ticker that happens to start with "LD" but isn't a known
+        # locked-earn wrapper must not get mangled.
+        mock_get.side_effect = [
+            _mock_response(json_data={"rows": [{"asset": "LDO", "totalAmount": "10"}]}),
+            _mock_response(json_data={"rows": []}),
+        ]
+        balances = fetch_earn_balances("key", "secret")
+        self.assertEqual(balances, [{"asset": "LDO", "amount": 10.0}])
+
+    @patch("wallet.binance_client.requests.get")
     def test_fetch_earn_balances_drops_zero_and_malformed_rows(self, mock_get):
         mock_get.side_effect = [
             _mock_response(json_data={"rows": [{"asset": "BTC", "totalAmount": "0"}]}),

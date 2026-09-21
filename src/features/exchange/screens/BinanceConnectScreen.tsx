@@ -7,18 +7,67 @@ import { BorderRadius, Spacing } from "@/constants/theme";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Typography } from "@/components/atoms/Typography";
 import { StatisticsScreenStackHeader } from "@/features/analytics/components/StatisticsScreenStackHeader";
-import { useBinanceConnectScreen } from "@/features/exchange/hooks/useBinanceConnectScreen";
+import {
+  DisplayBalance,
+  formatCryptoAmount,
+  useBinanceConnectScreen,
+} from "@/features/exchange/hooks/useBinanceConnectScreen";
 import STRINGS from "@/i18n/es.json";
 import { formatCurrency } from "@/utils/format";
 import { useRouter } from "expo-router";
 import React from "react";
-import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+
+/** Disco de iniciales por moneda — no hay logos reales, así que cada símbolo cae siempre en el mismo color (ver `hashString` en el hook). */
+function AssetBadge({ asset, color }: { asset: string; color: string }) {
+  return (
+    <View style={[styles.badge, { backgroundColor: color }]}>
+      <Typography variant="caption" weight="bold" style={styles.badgeText}>
+        {asset.slice(0, 3)}
+      </Typography>
+    </View>
+  );
+}
+
+function BalanceRow({ balance }: { balance: DisplayBalance }) {
+  const { colors } = useTheme();
+  return (
+    <View style={styles.balanceRow}>
+      <AssetBadge asset={balance.asset} color={balance.color} />
+      <View style={styles.balanceInfo}>
+        <Typography variant="body" weight="semibold">
+          {balance.asset}
+        </Typography>
+        <Typography variant="caption" muted>
+          {formatCryptoAmount(balance.amount)}
+        </Typography>
+      </View>
+      <View style={styles.balanceValue}>
+        {balance.valueUsd != null ? (
+          <>
+            <Typography variant="number">{formatCurrency(balance.valueUsd)}</Typography>
+            {balance.percentOfTotal != null ? (
+              <Typography variant="caption" muted>
+                {(balance.percentOfTotal * 100).toFixed(1)}%
+              </Typography>
+            ) : null}
+          </>
+        ) : (
+          <Typography variant="caption" muted style={{ color: colors.textSecondary }}>
+            {STRINGS.binance.noPriceAvailable}
+          </Typography>
+        )}
+      </View>
+    </View>
+  );
+}
 
 /**
  * Ruta stack de nivel superior (`app/settings/connections/binance.tsx`),
- * llegada desde Ajustes → Conexión con cuentas externas → Binance. El
- * secreto que teclea el usuario vive solo en el estado local del hook
- * hasta el POST de conectar — ver `binanceSlice.ts`/`useBinanceConnectScreen.ts`.
+ * llegada desde Ajustes → Conexión con cuentas externas → Binance (o el
+ * atajo directo del menú lateral). El secreto que teclea el usuario vive
+ * solo en el estado local del hook hasta el POST de conectar — ver
+ * `binanceSlice.ts`/`useBinanceConnectScreen.ts`.
  */
 export default function BinanceConnectScreen() {
   const router = useRouter();
@@ -54,34 +103,39 @@ export default function BinanceConnectScreen() {
           {connected ? (
             <>
               <GlassSurface
-                style={styles.card}
+                style={styles.heroCard}
                 fallbackStyle={[styles.flatCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
               >
-                <View style={styles.row}>
-                  <Typography variant="bodySmall" muted>
-                    {STRINGS.binance.maskedKeyLabel}
-                  </Typography>
-                  <Typography variant="body">{maskedApiKey}</Typography>
+                <View style={styles.heroTop}>
+                  <View style={styles.heroCopy}>
+                    <Typography variant="overline" muted>
+                      {STRINGS.binance.totalLabel}
+                    </Typography>
+                    <Typography variant="title">{formatCurrency(totalValueUsd)}</Typography>
+                  </View>
+                  <TouchableOpacity
+                    onPress={handleSync}
+                    disabled={isSyncing}
+                    accessibilityRole="button"
+                    accessibilityLabel={STRINGS.binance.syncNow}
+                    style={[styles.syncIconButton, { backgroundColor: colors.surfaceHighlight }]}
+                  >
+                    {isSyncing ? (
+                      <ActivityIndicator size="small" color={colors.text} />
+                    ) : (
+                      <IconSymbol name="arrow.triangle.2.circlepath" size={18} color={colors.text} />
+                    )}
+                  </TouchableOpacity>
                 </View>
-                <View style={styles.row}>
-                  <Typography variant="bodySmall" muted>
-                    {STRINGS.binance.lastSyncedLabel}
+                <View style={[styles.heroFooter, { borderTopColor: colors.border }]}>
+                  <Typography variant="caption" muted>
+                    {maskedApiKey} · {balances.length} {STRINGS.binance.assetsCountLabel}
                   </Typography>
-                  <Typography variant="body">
+                  <Typography variant="caption" muted>
                     {lastSyncedAt ? new Date(lastSyncedAt).toLocaleString() : STRINGS.binance.neverSynced}
                   </Typography>
                 </View>
-                <Button
-                  title={isSyncing ? STRINGS.binance.syncing : STRINGS.binance.syncNow}
-                  loading={isSyncing}
-                  onPress={handleSync}
-                  style={styles.syncButton}
-                />
               </GlassSurface>
-
-              <Typography variant="subheading" style={styles.sectionTitle}>
-                {STRINGS.binance.portfolioTitle}
-              </Typography>
 
               {balances.length === 0 ? (
                 <Typography variant="body" muted style={styles.emptyText}>
@@ -92,29 +146,14 @@ export default function BinanceConnectScreen() {
                   style={styles.card}
                   fallbackStyle={[styles.flatCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
                 >
-                  {balances.map((balance) => (
-                    <View key={balance.asset} style={styles.balanceRow}>
-                      <View>
-                        <Typography variant="body" weight="semibold">
-                          {balance.asset}
-                        </Typography>
-                        <Typography variant="caption" muted>
-                          {balance.amount}
-                        </Typography>
-                      </View>
-                      <Typography variant="body">
-                        {balance.valueUsd != null
-                          ? formatCurrency(balance.valueUsd)
-                          : STRINGS.binance.noPriceAvailable}
-                      </Typography>
+                  {balances.map((balance, index) => (
+                    <View key={balance.asset}>
+                      {index > 0 ? (
+                        <View style={[styles.rowSeparator, { backgroundColor: colors.border }]} />
+                      ) : null}
+                      <BalanceRow balance={balance} />
                     </View>
                   ))}
-                  <View style={[styles.balanceRow, styles.totalRow, { borderTopColor: colors.border }]}>
-                    <Typography variant="body" weight="semibold">
-                      {STRINGS.binance.totalLabel}
-                    </Typography>
-                    <Typography variant="number">{formatCurrency(totalValueUsd)}</Typography>
-                  </View>
                 </GlassSurface>
               )}
 
@@ -192,45 +231,76 @@ const styles = StyleSheet.create({
     padding: Spacing.m,
   },
   card: {
-    padding: Spacing.m,
     borderRadius: BorderRadius.l,
     overflow: "hidden",
-    gap: Spacing.s,
+    marginBottom: Spacing.m,
+  },
+  heroCard: {
+    borderRadius: BorderRadius.l,
+    overflow: "hidden",
     marginBottom: Spacing.m,
   },
   flatCard: {
     borderWidth: StyleSheet.hairlineWidth,
   },
   warningCard: {
-    borderWidth: StyleSheet.hairlineWidth,
+    padding: Spacing.m,
+    gap: Spacing.s,
   },
   warningBody: {
     marginTop: Spacing.xs,
   },
-  row: {
+  heroTop: {
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "flex-start",
+    padding: Spacing.m,
+  },
+  heroCopy: {
+    gap: Spacing.xs,
+  },
+  syncIconButton: {
+    width: 36,
+    height: 36,
+    borderRadius: BorderRadius.round,
     alignItems: "center",
+    justifyContent: "center",
   },
-  syncButton: {
-    marginTop: Spacing.s,
-  },
-  sectionTitle: {
-    marginBottom: Spacing.s,
+  heroFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: Spacing.m,
+    paddingVertical: Spacing.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
   emptyText: {
     marginBottom: Spacing.m,
   },
   balanceRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: Spacing.xs,
+    gap: Spacing.s,
+    padding: Spacing.m,
   },
-  totalRow: {
-    marginTop: Spacing.s,
-    paddingTop: Spacing.s,
-    borderTopWidth: StyleSheet.hairlineWidth,
+  rowSeparator: {
+    height: StyleSheet.hairlineWidth,
+    marginLeft: Spacing.m + 36 + Spacing.s,
+  },
+  badge: {
+    width: 36,
+    height: 36,
+    borderRadius: BorderRadius.round,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  badgeText: {
+    color: "#fff",
+  },
+  balanceInfo: {
+    flex: 1,
+  },
+  balanceValue: {
+    alignItems: "flex-end",
   },
   connectButton: {
     marginTop: Spacing.m,

@@ -202,6 +202,32 @@ def fetch_spot_balances(api_key: str, api_secret: str) -> list[dict]:
     return balances
 
 
+_KNOWN_LD_ASSETS = {
+    "LDBTC", "LDETH", "LDUSDT", "LDUSDC", "LDBNB", "LDSOL", "LDXRP", "LDADA",
+    "LDDOGE", "LDDOT", "LDMATIC", "LDLTC", "LDLINK", "LDAVAX", "LDTRX",
+}
+
+
+def _strip_locked_earn_prefix(asset: str) -> str:
+    """
+    Binance's Simple Earn *Locked* positions come back with an `LD` prefix
+    on the asset (`LDBTC` for a locked BTC position, confirmed against a
+    real account — not documented consistently) — the underlying asset is
+    still plain BTC, redeemable 1:1. Without stripping this, locked
+    positions never merge with the same asset held in Spot/Flexible, and
+    never find a price (there's no "LDBTCUSDT" trading pair).
+
+    Checks an explicit allowlist first (safest); falls back to stripping any
+    "LD" prefix on a 3+ char remainder, since Binance doesn't otherwise use
+    that prefix for real ticker symbols.
+    """
+    if asset in _KNOWN_LD_ASSETS:
+        return asset[2:]
+    if asset.startswith("LD") and len(asset) > 4:
+        return asset[2:]
+    return asset
+
+
 def fetch_earn_balances(api_key: str, api_secret: str) -> list[dict]:
     """
     Simple Earn positions — Flexible (`/sapi/v1/simple-earn/flexible/position`)
@@ -226,7 +252,7 @@ def fetch_earn_balances(api_key: str, api_secret: str) -> list[dict]:
         except (TypeError, ValueError):
             continue
         if amount > 0:
-            balances.append({"asset": row["asset"], "amount": amount})
+            balances.append({"asset": _strip_locked_earn_prefix(row["asset"]), "amount": amount})
 
     locked = _signed_get("/sapi/v1/simple-earn/locked/position", api_key, api_secret)
     for row in locked.get("rows", []):
@@ -235,7 +261,7 @@ def fetch_earn_balances(api_key: str, api_secret: str) -> list[dict]:
         except (TypeError, ValueError):
             continue
         if amount > 0:
-            balances.append({"asset": row["asset"], "amount": amount})
+            balances.append({"asset": _strip_locked_earn_prefix(row["asset"]), "amount": amount})
 
     return balances
 

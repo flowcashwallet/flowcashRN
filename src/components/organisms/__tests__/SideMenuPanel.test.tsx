@@ -71,6 +71,14 @@ describe("SideMenuPanel", () => {
     expect(mockPush).toHaveBeenCalledWith("/settings");
   });
 
+  it("navega directo a Binance, sin pasar por Ajustes", () => {
+    renderPanel();
+    fireEvent.press(screen.getByText("abrir"));
+    fireEvent.press(screen.getByLabelText(STRINGS.menu.binance));
+
+    expect(mockPush).toHaveBeenCalledWith("/settings/connections/binance");
+  });
+
   it("se cierra al tocar el backdrop", () => {
     renderPanel();
     fireEvent.press(screen.getByText("abrir"));

@@ -72,7 +72,8 @@ describe("BinanceConnectScreen — no conectado", () => {
     fireEvent.changeText(screen.getByPlaceholderText(STRINGS.binance.apiSecretPlaceholder), "supersecretvalue");
     fireEvent.press(screen.getByText(STRINGS.binance.connect));
 
-    await waitFor(() => expect(screen.getByText(STRINGS.binance.maskedKeyLabel)).toBeTruthy());
+    // Pasó a la vista conectada — confirmado por el total (solo se renderiza ahí).
+    await waitFor(() => expect(screen.getByText(STRINGS.binance.totalLabel)).toBeTruthy());
 
     const connectCall = mockFetchWithAuth.mock.calls[1];
     expect(JSON.parse(connectCall[1].body)).toEqual({
@@ -100,7 +101,7 @@ describe("BinanceConnectScreen — no conectado", () => {
       expect(alertSpy).toHaveBeenCalledWith(STRINGS.common.error, STRINGS.binance.errorKeyNotReadOnly),
     );
     // Sigue en la vista de formulario — no "conectó" nada.
-    expect(screen.queryByText(STRINGS.binance.maskedKeyLabel)).toBeNull();
+    expect(screen.queryByText(STRINGS.binance.totalLabel)).toBeNull();
   });
 });
 
@@ -121,7 +122,8 @@ describe("BinanceConnectScreen — conectado", () => {
     mockConnectedStatus();
     renderScreen();
 
-    await waitFor(() => expect(screen.getByText("abcd…5678")).toBeTruthy());
+    // La key enmascarada va junto con el conteo de activos en un solo texto compuesto.
+    await waitFor(() => expect(screen.getByText(/abcd…5678/)).toBeTruthy());
     // Sin sync todavía en este test — el estado vacío se muestra.
     expect(screen.getByText(STRINGS.binance.emptyPortfolio)).toBeTruthy();
   });
@@ -141,12 +143,15 @@ describe("BinanceConnectScreen — conectado", () => {
     });
 
     renderScreen();
-    await waitFor(() => expect(screen.getByText("abcd…5678")).toBeTruthy());
-    fireEvent.press(screen.getByText(STRINGS.binance.syncNow));
+    await waitFor(() => expect(screen.getByText(/abcd…5678/)).toBeTruthy());
+    // El botón de sincronizar ahora es un ícono compacto (sin texto visible), identificado por su accessibilityLabel.
+    fireEvent.press(screen.getByLabelText(STRINGS.binance.syncNow));
 
-    await waitFor(() => expect(screen.getByText("BTC")).toBeTruthy());
-    // Aparece dos veces: el valor de BTC y el total (coinciden porque el
-    // otro activo del portafolio no tiene precio y no aporta al total).
+    // "BTC" aparece dos veces por fila: el disco de color (iniciales) y el
+    // nombre del activo — confirmamos que la fila se renderizó, no un texto único.
+    await waitFor(() => expect(screen.getAllByText("BTC").length).toBeGreaterThan(0));
+    // El valor aparece dos veces: el de la fila de BTC y el total (coinciden
+    // porque el otro activo del portafolio no tiene precio y no aporta al total).
     expect(screen.getAllByText("$30,000.00")).toHaveLength(2);
     expect(screen.getByText(STRINGS.binance.noPriceAvailable)).toBeTruthy();
   });

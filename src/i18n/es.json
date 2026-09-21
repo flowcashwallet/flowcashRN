@@ -11,7 +11,8 @@
   },
   "menu": {
     "settings": "Ajustes",
-    "openMenu": "Abrir menú"
+    "openMenu": "Abrir menú",
+    "binance": "Binance"
   },
   "settings": {
     "title": "Ajustes",
@@ -43,6 +44,7 @@
     "disconnectConfirmMessage": "¿Estás seguro de que quieres desconectar tu cuenta de Binance? Se borrará la conexión guardada.",
     "portfolioTitle": "Portafolio",
     "totalLabel": "Total estimado (USD)",
+    "assetsCountLabel": "activos",
     "noPriceAvailable": "Sin precio disponible",
     "emptyPortfolio": "No se encontraron saldos en tu wallet SPOT.",
     "errorApiKeyAndSecretRequired": "Ingresa tu API Key y tu API Secret.",

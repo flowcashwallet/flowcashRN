@@ -25,14 +25,19 @@ const PANEL_WIDTH = Math.min(WINDOW_WIDTH * 0.78, 320);
 interface MenuItem {
   icon: IconSymbolName;
   label: string;
-  route: "/settings";
+  route: "/settings" | "/settings/connections/binance";
 }
 
 /**
- * Lista de opciones del panel — corta a propósito en v1 (un único item).
- * Añadir otra opción más adelante es un renglón más aquí, nada más.
+ * Lista de opciones del panel. "Binance" es un atajo directo a esa pantalla
+ * (antes eran 3 taps más desde Ajustes: menú → Ajustes → Conexiones →
+ * Binance) — el resto del camino sigue existiendo en Ajustes, este es solo
+ * un acceso rápido al destino más usado.
  */
-const MENU_ITEMS: MenuItem[] = [{ icon: "gearshape", label: STRINGS.menu.settings, route: "/settings" }];
+const MENU_ITEMS: MenuItem[] = [
+  { icon: "gearshape", label: STRINGS.menu.settings, route: "/settings" },
+  { icon: "bitcoinsign.circle", label: STRINGS.menu.binance, route: "/settings/connections/binance" },
+];
 
 /**
  * Panel lateral de navegación, hecho a mano (no `@react-navigation/drawer`,

@@ -1,4 +1,5 @@
 import {
+  BinanceBalance,
   connectBinance,
   disconnectBinance,
   fetchBinanceStatus,
@@ -6,9 +7,42 @@ import {
 } from "@/features/exchange/data/binanceSlice";
 import STRINGS from "@/i18n/es.json";
 import { AppDispatch, RootState } from "@/store/store";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
+
+/** Mismo tipo de paleta+hash que ya usa `useDashboardScreen.ts` para colorear categorías — cada moneda cae siempre en el mismo color mientras no cambie su símbolo. */
+const PORTFOLIO_PALETTE = [
+  "#8fb1ff",
+  "#ff6b6b",
+  "#4ade80",
+  "#FFD166",
+  "#C084FC",
+  "#60A5FA",
+  "#F97316",
+  "#34D399",
+];
+
+function hashString(value: string): number {
+  let h = 0;
+  for (let i = 0; i < value.length; i++) {
+    h = (h * 31 + value.charCodeAt(i)) >>> 0;
+  }
+  return h;
+}
+
+export interface DisplayBalance extends BinanceBalance {
+  /** 0-1, o `null` si no tiene valor en USD — no cuenta para el porcentaje. */
+  percentOfTotal: number | null;
+  color: string;
+}
+
+const AMOUNT_FORMATTER = new Intl.NumberFormat("en-US", { maximumFractionDigits: 8 });
+
+/** "0.50000000" → "0.5", con separador de miles para cantidades grandes. */
+export function formatCryptoAmount(amount: number): string {
+  return AMOUNT_FORMATTER.format(amount);
+}
 
 /** Traduce el código de error del backend a un mensaje que el usuario entienda. */
 function mapBinanceError(code: string | null | undefined): string {
@@ -44,6 +78,20 @@ export const useBinanceConnectScreen = () => {
   useEffect(() => {
     dispatch(fetchBinanceStatus());
   }, [dispatch]);
+
+  // Ordenado por valor (los que sí tienen precio primero, de mayor a menor);
+  // lo demás queda al final, en el orden en que llegó del backend.
+  const displayBalances = useMemo<DisplayBalance[]>(() => {
+    const priced = balances.filter((b) => b.valueUsd != null);
+    const unpriced = balances.filter((b) => b.valueUsd == null);
+    priced.sort((a, b) => b.valueUsd! - a.valueUsd!);
+    return [...priced, ...unpriced].map((balance) => ({
+      ...balance,
+      percentOfTotal:
+        totalValueUsd > 0 && balance.valueUsd != null ? balance.valueUsd / totalValueUsd : null,
+      color: PORTFOLIO_PALETTE[hashString(balance.asset) % PORTFOLIO_PALETTE.length],
+    }));
+  }, [balances, totalValueUsd]);
 
   const handleConnect = useCallback(async () => {
     const result = await dispatch(connectBinance({ apiKey: apiKey.trim(), apiSecret: apiSecret.trim() }));
@@ -83,7 +131,7 @@ export const useBinanceConnectScreen = () => {
     connected,
     maskedApiKey,
     lastSyncedAt,
-    balances,
+    balances: displayBalances,
     totalValueUsd,
     isConnecting: status === "connecting",
     isSyncing: status === "syncing",
