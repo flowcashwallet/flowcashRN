@@ -4,7 +4,11 @@
 #
 
 app = 'flowcash-binance-relay'
-primary_region = 'qro' # Querétaro, México — todo el punto de este servicio es NO salir de EE. UU.
+# Fly ya no tiene ninguna región de México/Latinoamérica hispanohablante
+# disponible (qro y gdl deprecadas). Ámsterdam es la opción más neutral: no
+# es EE. UU. y no tiene fricción regulatoria conocida con Binance (a
+# diferencia de Toronto, donde Binance sí tuvo un historial con Ontario).
+primary_region = 'ams'
 
 [build]
 [env]
