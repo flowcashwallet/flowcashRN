@@ -162,8 +162,9 @@ def check_read_only_permissions(api_key: str, api_secret: str) -> dict:
 def fetch_spot_balances(api_key: str, api_secret: str) -> list[dict]:
     """
     GET /api/v3/account — returns only the non-zero SPOT wallet balances,
-    as `[{"asset": "BTC", "free": 0.5, "locked": 0.0}, ...]`. Funding/Earn/
-    Margin/Futures wallets are out of scope for v1.
+    as `[{"asset": "BTC", "free": 0.5, "locked": 0.0}, ...]`. Funding/Margin/
+    Futures wallets are still out of scope — Simple Earn is covered by
+    `fetch_earn_balances` below.
     """
     data = _signed_get("/api/v3/account", api_key, api_secret)
     balances = []
@@ -175,4 +176,42 @@ def fetch_spot_balances(api_key: str, api_secret: str) -> list[dict]:
             continue
         if free + locked > 0:
             balances.append({"asset": entry["asset"], "free": free, "locked": locked})
+    return balances
+
+
+def fetch_earn_balances(api_key: str, api_secret: str) -> list[dict]:
+    """
+    Simple Earn positions — Flexible (`/sapi/v1/simple-earn/flexible/position`)
+    and Locked (`/sapi/v1/simple-earn/locked/position`), both read-only under
+    the same "Enable Reading" permission as everything else here. Returns
+    `[{"asset": "BTC", "amount": 0.01}, ...]`, one entry per position (an
+    asset can appear more than once if held in both products — merged by
+    the caller, not here, to keep this function a plain data source).
+
+    Field names below match Binance's documented Simple Earn response shape
+    at the time this was written; if Binance ever renames a field, this
+    silently returns fewer/zero rows rather than raising — acceptable for a
+    portfolio *display* feature, but worth a quick manual check against a
+    real account after any Binance API changes.
+    """
+    balances = []
+
+    flexible = _signed_get("/sapi/v1/simple-earn/flexible/position", api_key, api_secret)
+    for row in flexible.get("rows", []):
+        try:
+            amount = float(row.get("totalAmount", row.get("amount", 0)))
+        except (TypeError, ValueError):
+            continue
+        if amount > 0:
+            balances.append({"asset": row["asset"], "amount": amount})
+
+    locked = _signed_get("/sapi/v1/simple-earn/locked/position", api_key, api_secret)
+    for row in locked.get("rows", []):
+        try:
+            amount = float(row.get("amount", 0))
+        except (TypeError, ValueError):
+            continue
+        if amount > 0:
+            balances.append({"asset": row["asset"], "amount": amount})
+
     return balances

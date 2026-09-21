@@ -5,8 +5,8 @@ import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 
 export interface BinanceBalance {
   asset: string;
-  free: number;
-  locked: number;
+  /** Cantidad total del activo, ya combinada entre SPOT y Simple Earn (Flexible + Bloqueado) por el backend. */
+  amount: number;
 }
 
 interface BinanceState {

@@ -19,7 +19,7 @@ from .ai_chat import (
     build_financial_context,
     build_image_blocks,
 )
-from .models import Budget, Category, FixedExpense, Transaction, VisionEntity
+from .models import BinanceConnection, Budget, Category, FixedExpense, Transaction, VisionEntity
 
 
 class BuildFinancialContextTests(TestCase):
@@ -83,6 +83,36 @@ class BuildFinancialContextTests(TestCase):
         self.assertNotIn("GASTOS FIJOS", context)
         self.assertIn("(sin transacciones registradas)", context)
         self.assertIn("(sin cuentas registradas en Balance)", context)
+
+    def test_omits_binance_section_when_not_connected(self):
+        context = build_financial_context(self.user)
+        self.assertNotIn("PORTAFOLIO BINANCE", context)
+
+    def test_includes_binance_holdings_from_the_cached_snapshot(self):
+        BinanceConnection.objects.create(
+            user=self.user,
+            api_key_encrypted="x",
+            api_secret_encrypted="x",
+            masked_key_preview="abcd…5678",
+            last_balances=[{"asset": "BTC", "amount": 0.5}, {"asset": "USDT", "amount": 100.0}],
+        )
+        context = build_financial_context(self.user)
+        self.assertIn("PORTAFOLIO BINANCE", context)
+        self.assertIn("BTC: 0.5", context)
+        self.assertIn("USDT: 100.0", context)
+        # Nunca debe convertir cripto a pesos por su cuenta — no tiene el precio real.
+        self.assertIn("No conviertas estas cantidades a pesos", context)
+
+    def test_binance_section_notes_when_connected_but_never_synced(self):
+        BinanceConnection.objects.create(
+            user=self.user,
+            api_key_encrypted="x",
+            api_secret_encrypted="x",
+            masked_key_preview="abcd…5678",
+        )
+        context = build_financial_context(self.user)
+        self.assertIn("PORTAFOLIO BINANCE", context)
+        self.assertIn("aún sin sincronizar", context)
 
 
 class SanitizeHistoryTests(TestCase):

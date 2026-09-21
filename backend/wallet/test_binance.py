@@ -17,6 +17,7 @@ from .binance_client import (
     BinanceCredentialsError,
     BinanceServiceError,
     check_read_only_permissions,
+    fetch_earn_balances,
     fetch_spot_balances,
 )
 from .models import BinanceConnection
@@ -118,6 +119,23 @@ class BinanceClientTests(TestCase):
                 {"asset": "USDT", "free": 0.0, "locked": 100.25},
             ],
         )
+
+    @patch("wallet.binance_client.requests.get")
+    def test_fetch_earn_balances_combines_flexible_and_locked(self, mock_get):
+        mock_get.side_effect = [
+            _mock_response(json_data={"rows": [{"asset": "BTC", "totalAmount": "0.3"}]}),
+            _mock_response(json_data={"rows": [{"asset": "ETH", "amount": "1.5"}]}),
+        ]
+        balances = fetch_earn_balances("key", "secret")
+        self.assertEqual(balances, [{"asset": "BTC", "amount": 0.3}, {"asset": "ETH", "amount": 1.5}])
+
+    @patch("wallet.binance_client.requests.get")
+    def test_fetch_earn_balances_drops_zero_and_malformed_rows(self, mock_get):
+        mock_get.side_effect = [
+            _mock_response(json_data={"rows": [{"asset": "BTC", "totalAmount": "0"}]}),
+            _mock_response(json_data={"rows": []}),
+        ]
+        self.assertEqual(fetch_earn_balances("key", "secret"), [])
 
     @patch("wallet.binance_client.requests.get")
     def test_invalid_signature_maps_to_credentials_error(self, mock_get):
@@ -302,11 +320,13 @@ class BinanceEndpointTests(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data["error"], "not_connected")
 
+    @patch("wallet.views.fetch_earn_balances")
     @patch("wallet.views.fetch_spot_balances")
     @patch("wallet.views.check_read_only_permissions")
-    def test_sync_returns_balances_and_updates_last_synced_at(self, mock_check, mock_fetch):
+    def test_sync_returns_balances_and_updates_last_synced_at(self, mock_check, mock_spot, mock_earn):
         mock_check.return_value = {"enableReading": True}
-        mock_fetch.return_value = [{"asset": "BTC", "free": 0.5, "locked": 0.0}]
+        mock_spot.return_value = [{"asset": "BTC", "free": 0.5, "locked": 0.0}]
+        mock_earn.return_value = []
         connection = BinanceConnection.objects.create(
             user=self.user,
             api_key_encrypted=encrypt_secret("k"),
@@ -317,9 +337,53 @@ class BinanceEndpointTests(TestCase):
         response = self.client.post("/api/wallet/binance/sync/")
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data["balances"], [{"asset": "BTC", "free": 0.5, "locked": 0.0}])
+        self.assertEqual(response.data["balances"], [{"asset": "BTC", "amount": 0.5}])
         connection.refresh_from_db()
         self.assertIsNotNone(connection.last_synced_at)
+        self.assertEqual(connection.last_balances, [{"asset": "BTC", "amount": 0.5}])
+
+    @patch("wallet.views.fetch_earn_balances")
+    @patch("wallet.views.fetch_spot_balances")
+    @patch("wallet.views.check_read_only_permissions")
+    def test_sync_combines_spot_and_earn_for_the_same_asset(self, mock_check, mock_spot, mock_earn):
+        mock_check.return_value = {"enableReading": True}
+        mock_spot.return_value = [{"asset": "BTC", "free": 0.2, "locked": 0.0}]
+        mock_earn.return_value = [{"asset": "BTC", "amount": 0.3}, {"asset": "USDT", "amount": 50.0}]
+        BinanceConnection.objects.create(
+            user=self.user,
+            api_key_encrypted=encrypt_secret("k"),
+            api_secret_encrypted=encrypt_secret("s"),
+            masked_key_preview="abcd…5678",
+        )
+
+        response = self.client.post("/api/wallet/binance/sync/")
+
+        self.assertEqual(response.status_code, 200)
+        balances = {row["asset"]: row["amount"] for row in response.data["balances"]}
+        self.assertAlmostEqual(balances["BTC"], 0.5)
+        self.assertEqual(balances["USDT"], 50.0)
+
+    @patch("wallet.views.fetch_earn_balances")
+    @patch("wallet.views.fetch_spot_balances")
+    @patch("wallet.views.check_read_only_permissions")
+    def test_sync_still_returns_spot_when_earn_fails(self, mock_check, mock_spot, mock_earn):
+        # A hiccup fetching Earn must never take down an otherwise-successful
+        # sync, nor disconnect the account.
+        mock_check.return_value = {"enableReading": True}
+        mock_spot.return_value = [{"asset": "BTC", "free": 0.5, "locked": 0.0}]
+        mock_earn.side_effect = BinanceServiceError("timeout")
+        BinanceConnection.objects.create(
+            user=self.user,
+            api_key_encrypted=encrypt_secret("k"),
+            api_secret_encrypted=encrypt_secret("s"),
+            masked_key_preview="abcd…5678",
+        )
+
+        response = self.client.post("/api/wallet/binance/sync/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["balances"], [{"asset": "BTC", "amount": 0.5}])
+        self.assertTrue(BinanceConnection.objects.filter(user=self.user).exists())
 
     @patch("wallet.views.check_read_only_permissions")
     def test_sync_disconnects_if_permissions_were_escalated_after_connecting(self, mock_check):

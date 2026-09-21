@@ -140,6 +140,11 @@ class BinanceConnection(models.Model):
     is_read_only_confirmed = models.BooleanField(default=False)
     permissions_checked_at = models.DateTimeField(null=True, blank=True)
     last_synced_at = models.DateTimeField(null=True, blank=True)
+    # Cached snapshot from the last successful /sync/ — [{"asset": "BTC",
+    # "amount": 0.5}, ...]. Lets the AI chat's context include the user's
+    # Binance holdings (build_financial_context) without calling Binance/the
+    # relay live during a chat turn — that stays a display-triggered action.
+    last_balances = models.JSONField(default=list, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

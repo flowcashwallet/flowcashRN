@@ -47,6 +47,7 @@
     "emptyPortfolio": "No se encontraron saldos en tu wallet SPOT.",
     "errorApiKeyAndSecretRequired": "Ingresa tu API Key y tu API Secret.",
     "errorKeyNotReadOnly": "Esta key tiene permisos de más. Edítala en Binance para dejar solo 'Habilitar lectura' e intenta de nuevo.",
+    "errorInvalidCredentials": "Binance rechazó tu API Key/Secret. Revisa que estén bien copiados (sin espacios) y que la key NO tenga activada la restricción de IP en Binance.",
     "errorServiceUnavailable": "No pudimos conectar con Binance. Intenta de nuevo en un momento.",
     "errorGeneric": "Algo salió mal. Intenta de nuevo.",
     "errorNotConnected": "Conecta tu cuenta primero."

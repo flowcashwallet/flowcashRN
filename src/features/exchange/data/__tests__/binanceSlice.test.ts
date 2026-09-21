@@ -113,7 +113,7 @@ describe("binanceSlice", () => {
     mockFetchWithAuth.mockResolvedValue({
       ok: true,
       json: async () => ({
-        balances: [{ asset: "BTC", free: 0.5, locked: 0 }],
+        balances: [{ asset: "BTC", amount: 0.5 }],
         synced_at: "2026-09-17T12:00:00Z",
       }),
     });
@@ -122,7 +122,7 @@ describe("binanceSlice", () => {
     await store.dispatch(syncBinancePortfolio() as any);
 
     const state = store.getState().binance;
-    expect(state.balances).toEqual([{ asset: "BTC", free: 0.5, locked: 0 }]);
+    expect(state.balances).toEqual([{ asset: "BTC", amount: 0.5 }]);
     expect(state.lastSyncedAt).not.toBeNull();
   });
 

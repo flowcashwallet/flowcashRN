@@ -99,7 +99,7 @@ export default function BinanceConnectScreen() {
                           {balance.asset}
                         </Typography>
                         <Typography variant="caption" muted>
-                          {balance.free + balance.locked}
+                          {balance.amount}
                         </Typography>
                       </View>
                       <Typography variant="body">

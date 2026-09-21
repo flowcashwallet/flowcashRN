@@ -35,7 +35,7 @@ from django.conf import settings
 from django.db.models import Sum
 
 from .analytics import get_exclusion_filter, predict_runway
-from .models import Category, Transaction, VisionEntity
+from .models import BinanceConnection, Category, Transaction, VisionEntity
 
 MODEL_NAME = "claude-haiku-4-5-20251001"
 MAX_HISTORY_MESSAGES = 20
@@ -282,6 +282,21 @@ def _user_accounts_lines(user):
     ]
 
 
+def _binance_portfolio_lines(user):
+    """
+    Uses the cached snapshot from the last successful `/api/wallet/binance/sync/`
+    (`BinanceConnection.last_balances`) — never calls Binance/the relay live
+    during a chat turn, that stays a display-triggered action the user does
+    from the Binance screen. Returns `(lines, connection_or_none)`.
+    """
+    connection = BinanceConnection.objects.filter(user=user).first()
+    if not connection:
+        return [], None
+    if not connection.last_balances:
+        return ["(conectado, aún sin sincronizar — abre Ajustes > Conexiones > Binance)"], connection
+    return [f"- {row['asset']}: {row['amount']}" for row in connection.last_balances], connection
+
+
 def _recent_transactions_lines(user):
     rows = (
         Transaction.objects.filter(user=user)
@@ -317,6 +332,7 @@ def build_financial_context(user):
     top_categories = _top_categories_this_month(user, now_local)
     category_names = _user_category_names(user)
     account_lines = _user_accounts_lines(user)
+    binance_lines, binance_connection = _binance_portfolio_lines(user)
     recent_lines = _recent_transactions_lines(user)
 
     sections = [
@@ -359,6 +375,16 @@ def build_financial_context(user):
     sections.append("")
     sections.append("=== CUENTAS DEL USUARIO (activos y pasivos) ===")
     sections.extend(account_lines if account_lines else ["(sin cuentas registradas en Balance)"])
+
+    # Solo aparece si el usuario conectó Binance — ver Ajustes > Conexiones.
+    if binance_connection is not None:
+        sections.append("")
+        sections.append("=== PORTAFOLIO BINANCE (cantidades, no en pesos) ===")
+        sections.extend(binance_lines)
+        sections.append(
+            "No conviertas estas cantidades a pesos tú mismo — no tienes el precio actual. "
+            "Si preguntan el valor en pesos, dirige a la pantalla de Binance en la app."
+        )
 
     sections.append("")
     sections.append(f"=== ÚLTIMAS {RECENT_TRANSACTIONS_LIMIT} TRANSACCIONES ===")

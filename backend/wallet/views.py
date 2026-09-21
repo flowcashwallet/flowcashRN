@@ -13,6 +13,7 @@ from .binance_client import (
     BinanceCredentialsError,
     BinanceServiceError,
     check_read_only_permissions,
+    fetch_earn_balances,
     fetch_spot_balances,
 )
 from .secrets_crypto import encrypt_secret, decrypt_secret, SecretEncryptionError
@@ -302,7 +303,7 @@ class BinanceViewSet(viewsets.ViewSet):
             # deliberately conservative given what's at stake; the user can
             # just reconnect if it was a fluke.
             check_read_only_permissions(api_key, api_secret)
-            balances = fetch_spot_balances(api_key, api_secret)
+            spot = fetch_spot_balances(api_key, api_secret)
         except BinanceCredentialsError as exc:
             print(f"[BinanceViewSet.sync] {exc}")
             connection.delete()
@@ -311,9 +312,26 @@ class BinanceViewSet(viewsets.ViewSet):
             print(f"[BinanceViewSet.sync] {exc}")
             return Response({"error": "binance_service_unavailable"}, status=status.HTTP_502_BAD_GATEWAY)
 
+        # Simple Earn is best-effort: a hiccup fetching it must never nuke a
+        # connection or an otherwise-successful Spot sync — worst case the
+        # user just sees Spot-only for this one sync and tries again later.
+        try:
+            earn = fetch_earn_balances(api_key, api_secret)
+        except (BinanceCredentialsError, BinanceServiceError) as exc:
+            print(f"[BinanceViewSet.sync] earn balances skipped: {exc}")
+            earn = []
+
+        combined: dict = {}
+        for row in spot:
+            combined[row["asset"]] = combined.get(row["asset"], 0) + row["free"] + row["locked"]
+        for row in earn:
+            combined[row["asset"]] = combined.get(row["asset"], 0) + row["amount"]
+        balances = [{"asset": asset, "amount": amount} for asset, amount in combined.items() if amount > 0]
+
         connection.last_synced_at = timezone.now()
         connection.permissions_checked_at = timezone.now()
-        connection.save(update_fields=['last_synced_at', 'permissions_checked_at'])
+        connection.last_balances = balances
+        connection.save(update_fields=['last_synced_at', 'permissions_checked_at', 'last_balances'])
 
         return Response({"balances": balances, "synced_at": connection.last_synced_at.isoformat()})
 

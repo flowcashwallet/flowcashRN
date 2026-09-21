@@ -22,6 +22,12 @@ function mapBinanceError(code: string | null | undefined): string {
   if (!code) return STRINGS.binance.errorGeneric;
   if (code === "api_key_and_secret_required") return STRINGS.binance.errorApiKeyAndSecretRequired;
   if (code.startsWith("key_not_read_only")) return STRINGS.binance.errorKeyNotReadOnly;
+  // Binance rechazó la petición firmada en sí (código -2015 típicamente) —
+  // casi siempre key/secret mal copiados, o la key tiene restricción de IP
+  // activada en Binance (nuestro servidor no tiene una IP que puedas fijar
+  // ahí). Distinto de "key_not_read_only": aquí Binance ni siquiera llegó a
+  // evaluar los permisos.
+  if (code.startsWith("invalid_binance_credentials")) return STRINGS.binance.errorInvalidCredentials;
   if (code === "binance_service_unavailable") return STRINGS.binance.errorServiceUnavailable;
   if (code === "not_connected") return STRINGS.binance.errorNotConnected;
   return STRINGS.binance.errorGeneric;
@@ -61,7 +67,7 @@ export const useBinanceConnectScreen = () => {
             ...balance,
             fiatValue:
               prices[balance.asset.toUpperCase()] != null
-                ? prices[balance.asset.toUpperCase()]! * (balance.free + balance.locked)
+                ? prices[balance.asset.toUpperCase()]! * balance.amount
                 : null,
           })),
         );
