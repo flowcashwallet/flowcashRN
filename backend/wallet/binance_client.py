@@ -224,8 +224,10 @@ def fetch_spot_balances(api_key: str, api_secret: str) -> list[dict]:
     """
     data = _signed_get("/api/v3/account", api_key, api_secret)
     balances = []
+    skipped = []
     for entry in data.get("balances", []):
         if _is_locked_earn_wrapper_token(entry.get("asset", "")):
+            skipped.append(entry.get("asset"))
             continue
         try:
             free = float(entry["free"])
@@ -234,6 +236,11 @@ def fetch_spot_balances(api_key: str, api_secret: str) -> list[dict]:
             continue
         if free + locked > 0:
             balances.append({"asset": entry["asset"], "free": free, "locked": locked})
+    # TEMPORARY diagnostic (round 2) — need to see exactly what got skipped
+    # here vs. what fetch_earn_balances reports, to find why USDT vanished
+    # instead of just being counted once. No secrets, public data only.
+    print(f"[fetch_spot_balances] kept: {balances}")
+    print(f"[fetch_spot_balances] skipped as locked-earn wrapper tokens: {skipped}")
     return balances
 
 
@@ -259,7 +266,11 @@ def fetch_earn_balances(api_key: str, api_secret: str) -> list[dict]:
     balances = []
 
     flexible = _signed_get("/sapi/v1/simple-earn/flexible/position", api_key, api_secret)
-    for row in flexible.get("rows", []):
+    flexible_rows = flexible.get("rows", [])
+    # TEMPORARY diagnostic (round 2) — see fetch_spot_balances's note above.
+    print(f"[fetch_earn_balances] raw flexible rows (asset, totalAmount, amount): "
+          f"{[(r.get('asset'), r.get('totalAmount'), r.get('amount')) for r in flexible_rows]}")
+    for row in flexible_rows:
         try:
             amount = float(row.get("totalAmount", row.get("amount", 0)))
         except (TypeError, ValueError):
@@ -268,7 +279,10 @@ def fetch_earn_balances(api_key: str, api_secret: str) -> list[dict]:
             balances.append({"asset": _strip_locked_earn_prefix(row["asset"]), "amount": amount})
 
     locked = _signed_get("/sapi/v1/simple-earn/locked/position", api_key, api_secret)
-    for row in locked.get("rows", []):
+    locked_rows = locked.get("rows", [])
+    print(f"[fetch_earn_balances] raw locked rows (asset, amount): "
+          f"{[(r.get('asset'), r.get('amount')) for r in locked_rows]}")
+    for row in locked_rows:
         try:
             amount = float(row.get("amount", 0))
         except (TypeError, ValueError):
@@ -276,6 +290,7 @@ def fetch_earn_balances(api_key: str, api_secret: str) -> list[dict]:
         if amount > 0:
             balances.append({"asset": _strip_locked_earn_prefix(row["asset"]), "amount": amount})
 
+    print(f"[fetch_earn_balances] final result: {balances}")
     return balances
 
 
