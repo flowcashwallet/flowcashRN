@@ -124,3 +124,72 @@ class TransactionListCatchUpTests(TestCase):
         mock_process.side_effect = Exception("boom")
         response = self.client.get("/api/wallet/transactions/")
         self.assertEqual(response.status_code, 200)
+
+
+class FixLegacyRecurrenceDatesMigrationTests(TestCase):
+    """
+    `0012_fix_legacy_recurrence_dates` re-anchors `last_recurrence_date`
+    values stamped at UTC midnight by the pre-fix code (see recurrence.py)
+    so they read back as the originally-intended calendar day in Mexico
+    time, instead of one day early.
+    """
+
+    def setUp(self):
+        self.user = User.objects.create_user(username="miguser", password="password")
+
+    def test_legacy_utc_midnight_value_is_shifted_to_mexico_midnight(self):
+        from importlib import import_module
+
+        module = import_module("wallet.migrations.0012_fix_legacy_recurrence_dates")
+
+        tx = Transaction.objects.create(
+            user=self.user,
+            amount=Decimal("100.00"),
+            type="expense",
+            description="Renta",
+            category="Vivienda",
+            date=_mexico(2026, 8, 1),
+            is_recurring=True,
+            recurrence_frequency="monthly",
+            last_recurrence_date=datetime(2026, 9, 1, 0, 0, tzinfo=dt_timezone.utc),
+        )
+
+        class _FakeApps:
+            def get_model(self, app_label, model_name):
+                assert (app_label, model_name) == ("wallet", "Transaction")
+                return Transaction
+
+        module.fix_legacy_recurrence_dates(_FakeApps(), None)
+
+        tx.refresh_from_db()
+        self.assertEqual(
+            tx.last_recurrence_date.astimezone(MEXICO_TZ),
+            _mexico(2026, 9, 1),
+        )
+
+    def test_already_correct_value_is_left_untouched(self):
+        from importlib import import_module
+
+        module = import_module("wallet.migrations.0012_fix_legacy_recurrence_dates")
+
+        correct_value = _mexico(2026, 9, 1)
+        tx = Transaction.objects.create(
+            user=self.user,
+            amount=Decimal("100.00"),
+            type="expense",
+            description="Renta",
+            category="Vivienda",
+            date=_mexico(2026, 8, 1),
+            is_recurring=True,
+            recurrence_frequency="monthly",
+            last_recurrence_date=correct_value,
+        )
+
+        class _FakeApps:
+            def get_model(self, app_label, model_name):
+                return Transaction
+
+        module.fix_legacy_recurrence_dates(_FakeApps(), None)
+
+        tx.refresh_from_db()
+        self.assertEqual(tx.last_recurrence_date.astimezone(MEXICO_TZ), correct_value)
