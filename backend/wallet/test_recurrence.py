@@ -1,0 +1,126 @@
+"""
+Tests for recurring-transaction generation (`recurrence.py`). There were
+zero tests for this before — the timezone bug this closes (day boundaries
+computed in the server's UTC instead of the user's real calendar day) went
+unnoticed because of that gap.
+"""
+import zoneinfo
+from datetime import datetime, timezone as dt_timezone
+from decimal import Decimal
+from unittest.mock import patch
+
+from django.contrib.auth.models import User
+from django.test import TestCase
+from django.utils import timezone as django_timezone
+from rest_framework.test import APIClient
+
+from .models import Transaction
+from .recurrence import USER_TZ, process_recurring_transactions
+
+MEXICO_TZ = zoneinfo.ZoneInfo("America/Mexico_City")
+
+
+def _mexico(year, month, day, hour=0, minute=0):
+    """Builds a tz-aware datetime directly in America/Mexico_City."""
+    return datetime(year, month, day, hour, minute, tzinfo=MEXICO_TZ)
+
+
+class ProcessRecurringTransactionsTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="recuser", password="password")
+
+    def _make_recurring(self, anchor_date, frequency="monthly", description="Renta", **extra):
+        return Transaction.objects.create(
+            user=self.user,
+            amount=Decimal("100.00"),
+            type="expense",
+            description=description,
+            category="Vivienda",
+            date=anchor_date,
+            is_recurring=True,
+            recurrence_frequency=frequency,
+            **extra,
+        )
+
+    def test_generates_a_child_on_the_due_date_in_mexico_time(self):
+        # Anchored on Sep 1st (Mexico midnight) — next occurrence is Oct 1st.
+        tx = self._make_recurring(_mexico(2026, 9, 1))
+
+        result = process_recurring_transactions(now=_mexico(2026, 10, 1, 6, 0))
+
+        self.assertEqual(result["processed"], 1)
+        child = Transaction.objects.exclude(id=tx.id).get()
+        self.assertEqual(child.description, "Renta")
+        self.assertFalse(child.is_recurring)
+        # The regression this fixes: the child's own date, read back in the
+        # user's timezone, must land on Oct 1st — not Sep 30th or Oct 2nd.
+        self.assertEqual(child.date.astimezone(MEXICO_TZ).date().isoformat(), "2026-10-01")
+
+    def test_does_not_generate_before_the_due_date(self):
+        self._make_recurring(_mexico(2026, 9, 1))
+
+        result = process_recurring_transactions(now=_mexico(2026, 9, 30, 23, 0))
+
+        self.assertEqual(result["processed"], 0)
+        self.assertEqual(Transaction.objects.count(), 1)  # just the anchor
+
+    def test_a_cron_run_that_landed_in_utc_tomorrow_does_not_generate_early(self):
+        # The exact shape of the bug this fixes: a cron tick at 02:00 UTC on
+        # Oct 1st is already "Oct 1st" in UTC, but it's still Sep 30th,
+        # 8:00 PM in Mexico City (UTC-6) — the recurrence must NOT fire yet.
+        self._make_recurring(_mexico(2026, 9, 1))
+        now_utc = datetime(2026, 10, 1, 2, 0, tzinfo=dt_timezone.utc)
+        self.assertEqual(now_utc.astimezone(MEXICO_TZ).date().isoformat(), "2026-09-30")
+
+        result = process_recurring_transactions(now=now_utc)
+
+        self.assertEqual(result["processed"], 0)
+
+    def test_respects_recurrence_months_and_turns_off_after_the_end_date(self):
+        tx = self._make_recurring(_mexico(2026, 8, 1), recurrence_months=1)
+        # One month in (Sep 1st) is still within the 1-month window.
+        process_recurring_transactions(now=_mexico(2026, 9, 1, 6, 0))
+        tx.refresh_from_db()
+        self.assertTrue(tx.is_recurring)
+
+        # Two months in (Oct 1st) is past the 1-month end date — turns off,
+        # no further child generated for this transaction.
+        before = Transaction.objects.count()
+        process_recurring_transactions(now=_mexico(2026, 10, 1, 6, 0))
+        tx.refresh_from_db()
+        self.assertFalse(tx.is_recurring)
+        self.assertEqual(Transaction.objects.count(), before)
+
+    def test_weekly_and_yearly_frequencies(self):
+        self._make_recurring(_mexico(2026, 9, 1), frequency="weekly", description="Suscripción")
+        self._make_recurring(_mexico(2025, 10, 1), frequency="yearly", description="Seguro")
+
+        result = process_recurring_transactions(now=_mexico(2026, 10, 1, 6, 0))
+
+        self.assertEqual(result["processed"], 2)
+        weekly_child = Transaction.objects.get(description="Suscripción", is_recurring=False)
+        self.assertEqual(weekly_child.date.astimezone(MEXICO_TZ).date().isoformat(), "2026-09-08")
+        yearly_child = Transaction.objects.get(description="Seguro", is_recurring=False)
+        self.assertEqual(yearly_child.date.astimezone(MEXICO_TZ).date().isoformat(), "2026-10-01")
+
+
+class TransactionListCatchUpTests(TestCase):
+    """`TransactionViewSet.list` opportunistically runs the recurrence catch-up."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(username="listuser", password="password")
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+
+    @patch("wallet.views.process_recurring_transactions")
+    def test_list_triggers_the_recurrence_catch_up(self, mock_process):
+        mock_process.return_value = {"processed": 0, "generated": []}
+        response = self.client.get("/api/wallet/transactions/")
+        self.assertEqual(response.status_code, 200)
+        mock_process.assert_called_once()
+
+    @patch("wallet.views.process_recurring_transactions")
+    def test_list_still_works_if_the_catch_up_raises(self, mock_process):
+        mock_process.side_effect = Exception("boom")
+        response = self.client.get("/api/wallet/transactions/")
+        self.assertEqual(response.status_code, 200)

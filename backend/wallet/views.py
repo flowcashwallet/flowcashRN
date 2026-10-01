@@ -478,6 +478,21 @@ class TransactionViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return Transaction.objects.filter(user=self.request.user).order_by('-date')
 
+    def list(self, request, *args, **kwargs):
+        # Opportunistic catch-up: the only other trigger is a Vercel cron
+        # (config/../vercel.json, "0 12 * * *"), and Vercel's Hobby-tier
+        # cron doesn't guarantee an exact fire time — a delayed run can
+        # mean a transaction due "today" doesn't exist yet when the user
+        # opens Wallet. This is cheap (plain date comparisons, no external
+        # calls) and idempotent — a no-op once a cycle's transaction
+        # already exists — so running it on every list is safe. Never lets
+        # a recurrence bug break the simple "see my transactions" flow.
+        try:
+            process_recurring_transactions()
+        except Exception as exc:
+            print(f"[TransactionViewSet.list] process_recurring_transactions failed: {exc}")
+        return super().list(request, *args, **kwargs)
+
     @action(detail=False, methods=['get'], url_path='export/excel')
     def export_excel(self, request):
         """
