@@ -193,3 +193,78 @@ class FixLegacyRecurrenceDatesMigrationTests(TestCase):
 
         tx.refresh_from_db()
         self.assertEqual(tx.last_recurrence_date.astimezone(MEXICO_TZ), correct_value)
+
+
+class RealignRecurrenceAnchorDayMigrationTests(TestCase):
+    """
+    `0013_realign_recurrence_anchor_day` fixes the "Netflix" case: a
+    transaction anchored on the 2nd (Mexico time) whose very first
+    `start_date` was miscalculated against the UTC day (the 3rd) by the
+    pre-fix code, so every monthly cycle since kept landing on the 3rd
+    instead of the 2nd.
+    """
+
+    def setUp(self):
+        self.user = User.objects.create_user(username="realignuser", password="password")
+
+    def _migration_fn(self):
+        from importlib import import_module
+
+        return import_module("wallet.migrations.0013_realign_recurrence_anchor_day").realign_recurrence_anchor_day
+
+    def test_corrects_a_day_of_month_drifted_by_the_legacy_bug(self):
+        # Created April 3rd 03:30 UTC — still April 2nd, 9:30 PM in Mexico.
+        anchor = datetime(2026, 4, 3, 3, 30, tzinfo=dt_timezone.utc)
+        tx = Transaction.objects.create(
+            user=self.user,
+            amount=Decimal("249.00"),
+            type="expense",
+            description="Netflix",
+            category="Entretenimiento",
+            date=anchor,
+            is_recurring=True,
+            recurrence_frequency="monthly",
+            # Poisoned by the legacy bug: landed on the 3rd every month
+            # instead of the 2nd.
+            last_recurrence_date=_mexico(2026, 9, 3),
+        )
+
+        class _FakeApps:
+            def get_model(self, app_label, model_name):
+                return Transaction
+
+        self._migration_fn()(_FakeApps(), None)
+
+        tx.refresh_from_db()
+        self.assertEqual(tx.last_recurrence_date.astimezone(MEXICO_TZ), _mexico(2026, 9, 2))
+
+        # And the next cycle now correctly lands on Oct 2nd, not Oct 3rd.
+        result = process_recurring_transactions(now=_mexico(2026, 10, 2, 6, 0))
+        self.assertEqual(result["processed"], 1)
+        child = Transaction.objects.get(description="Netflix", is_recurring=False)
+        self.assertEqual(child.date.astimezone(MEXICO_TZ).date().isoformat(), "2026-10-02")
+
+    def test_leaves_an_unaffected_transaction_untouched(self):
+        # Anchor's UTC day and Mexico day already match — no drift to fix.
+        anchor = _mexico(2026, 4, 2, 10, 0)
+        correct_value = _mexico(2026, 9, 2)
+        tx = Transaction.objects.create(
+            user=self.user,
+            amount=Decimal("100.00"),
+            type="expense",
+            description="Spotify",
+            category="Entretenimiento",
+            date=anchor,
+            is_recurring=True,
+            recurrence_frequency="monthly",
+            last_recurrence_date=correct_value,
+        )
+
+        class _FakeApps:
+            def get_model(self, app_label, model_name):
+                return Transaction
+
+        self._migration_fn()(_FakeApps(), None)
+
+        tx.refresh_from_db()
+        self.assertEqual(tx.last_recurrence_date.astimezone(MEXICO_TZ), correct_value)
