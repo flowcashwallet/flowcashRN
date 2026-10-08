@@ -1,25 +1,39 @@
+from datetime import timedelta
 from decimal import Decimal
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.contrib.auth.models import User
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.utils import timezone
 from rest_framework.test import APIClient
 
 from .ai_chat import (
     MAX_IMAGE_BASE64_CHARS,
     MAX_IMAGES_PER_TURN,
+    MAX_TOOL_LOOP_ROUNDS,
     AnthropicServiceError,
     ImagePayloadError,
     _resolve_account,
     _sanitize_history,
+    _search_transactions,
     _validate_create_proposal,
     _validate_delete_proposal,
     _validate_edit_proposal,
+    _validate_entity_edit_proposal,
     build_financial_context,
     build_image_blocks,
+    get_chat_reply,
 )
 from .models import BinanceConnection, Budget, Category, FixedExpense, Transaction, VisionEntity
+
+
+def _text_block(text):
+    return SimpleNamespace(type="text", text=text)
+
+
+def _tool_use_block(block_id, name, tool_input):
+    return SimpleNamespace(type="tool_use", id=block_id, name=name, input=tool_input)
 
 
 class BuildFinancialContextTests(TestCase):
@@ -526,3 +540,240 @@ class ChatEndpointTests(TestCase):
         )
         self.assertEqual(response.status_code, 502)
         self.assertEqual(response.data["error"], "ai_service_unavailable")
+
+
+class ValidateEntityEditProposalTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="entityedituser", password="password")
+        self.entity = VisionEntity.objects.create(
+            user=self.user, name="BBVA", type="asset", amount=Decimal("1000.00")
+        )
+
+    def test_partial_update_keeps_unspecified_fields_and_returns_previous(self):
+        result = _validate_entity_edit_proposal(
+            self.user, {"entity_id": str(self.entity.id), "amount": 1200}
+        )
+        self.assertEqual(
+            result,
+            {
+                "kind": "entity_edit",
+                "entity_id": str(self.entity.id),
+                "entity_type": "asset",
+                "amount": 1200.0,
+                "name": "BBVA",
+                "previous": {"amount": 1000.0, "name": "BBVA"},
+            },
+        )
+
+    def test_updates_name_only(self):
+        result = _validate_entity_edit_proposal(
+            self.user, {"entity_id": str(self.entity.id), "name": "BBVA Nómina"}
+        )
+        self.assertEqual(result["name"], "BBVA Nómina")
+        self.assertEqual(result["amount"], 1000.0)
+
+    def test_allows_a_negative_amount_unlike_transaction_amounts(self):
+        # Balance edits aren't a positive-only "amount of money moved" like a
+        # transaction — any finite value is a legitimate correction.
+        result = _validate_entity_edit_proposal(
+            self.user, {"entity_id": str(self.entity.id), "amount": -50}
+        )
+        self.assertEqual(result["amount"], -50.0)
+
+    def test_invalid_amount_override_is_ignored_not_rejected(self):
+        result = _validate_entity_edit_proposal(
+            self.user, {"entity_id": str(self.entity.id), "amount": "nan"}
+        )
+        self.assertIsNotNone(result)
+        self.assertEqual(result["amount"], 1000.0)
+
+    def test_rejects_missing_entity_id(self):
+        self.assertIsNone(_validate_entity_edit_proposal(self.user, {"amount": 100}))
+
+    def test_rejects_nonexistent_entity_id(self):
+        self.assertIsNone(
+            _validate_entity_edit_proposal(self.user, {"entity_id": "999999"})
+        )
+
+    def test_never_edits_another_users_entity(self):
+        other_user = User.objects.create_user(username="otherentityuser", password="password")
+        self.assertIsNone(
+            _validate_entity_edit_proposal(other_user, {"entity_id": str(self.entity.id)})
+        )
+
+    def test_rejects_non_dict_input(self):
+        self.assertIsNone(_validate_entity_edit_proposal(self.user, "not a dict"))
+
+
+class SearchTransactionsTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="searchuser", password="password")
+        self.other_user = User.objects.create_user(username="othersearchuser", password="password")
+        self.entity = VisionEntity.objects.create(
+            user=self.user, name="BBVA", type="asset", amount=Decimal("1000.00")
+        )
+        self.old_tx = Transaction.objects.create(
+            user=self.user,
+            amount=Decimal("500.00"),
+            type="expense",
+            description="Renta",
+            category="Vivienda",
+            date=timezone.now() - timedelta(days=200),
+        )
+        self.recent_tx = Transaction.objects.create(
+            user=self.user,
+            amount=Decimal("80.00"),
+            type="expense",
+            description="Café",
+            category="Comida",
+            date=timezone.now(),
+            related_entity_id=str(self.entity.id),
+        )
+        self.other_user_tx = Transaction.objects.create(
+            user=self.other_user,
+            amount=Decimal("999.00"),
+            type="expense",
+            description="Renta",
+            date=timezone.now(),
+        )
+
+    def test_finds_a_transaction_outside_the_recent_window_by_text(self):
+        result = _search_transactions(self.user, {"query": "renta"})
+        self.assertIn(f"#{self.old_tx.id} |", result)
+        self.assertNotIn(f"#{self.recent_tx.id} |", result)
+
+    def test_never_returns_another_users_transactions(self):
+        result = _search_transactions(self.user, {"query": "renta"})
+        self.assertNotIn(f"#{self.other_user_tx.id} |", result)
+
+    def test_filters_by_account_name(self):
+        result = _search_transactions(self.user, {"account_name": "BBVA"})
+        self.assertIn(f"#{self.recent_tx.id} |", result)
+        self.assertNotIn(f"#{self.old_tx.id} |", result)
+
+    def test_filters_by_date_range(self):
+        date_from = (timezone.now() - timedelta(days=1)).strftime("%Y-%m-%d")
+        result = _search_transactions(self.user, {"date_from": date_from})
+        self.assertIn(f"#{self.recent_tx.id} |", result)
+        self.assertNotIn(f"#{self.old_tx.id} |", result)
+
+    def test_filters_by_type(self):
+        Transaction.objects.create(
+            user=self.user, amount=Decimal("1000.00"), type="income",
+            description="Nómina", date=timezone.now(),
+        )
+        result = _search_transactions(self.user, {"type": "income"})
+        self.assertIn("Nómina", result)
+        self.assertNotIn(f"#{self.old_tx.id} |", result)
+
+    def test_no_results_message(self):
+        result = _search_transactions(self.user, {"query": "esto no existe en nada"})
+        self.assertEqual(result, "Sin resultados para esa búsqueda.")
+
+    def test_handles_non_dict_input_as_no_filters(self):
+        result = _search_transactions(self.user, None)
+        self.assertIn(f"#{self.recent_tx.id} |", result)
+        self.assertIn(f"#{self.old_tx.id} |", result)
+
+
+@override_settings(ANTHROPIC_API_KEY="test-key")
+class GetChatReplyToolLoopTests(TestCase):
+    """
+    `get_chat_reply` has a real tool-execution loop, but only for
+    `search_transactions` — it executes immediately and the result is fed
+    back for the model to continue. The propose_* tools never loop: a
+    tool_use block for one of them always ends the turn.
+    """
+
+    def setUp(self):
+        self.user = User.objects.create_user(username="looptestuser", password="password")
+        self.old_tx = Transaction.objects.create(
+            user=self.user,
+            amount=Decimal("500.00"),
+            type="expense",
+            description="Renta vieja",
+            category="Vivienda",
+            date=timezone.now() - timedelta(days=200),
+        )
+
+    @patch("wallet.ai_chat.anthropic.Anthropic")
+    def test_executes_search_and_feeds_the_result_back(self, mock_anthropic_cls):
+        mock_client = mock_anthropic_cls.return_value
+        mock_client.messages.create.side_effect = [
+            SimpleNamespace(
+                content=[_tool_use_block("call_1", "search_transactions", {"query": "renta"})]
+            ),
+            SimpleNamespace(
+                content=[_text_block(f"Encontré tu renta vieja, transacción #{self.old_tx.id}.")]
+            ),
+        ]
+
+        reply_text, proposals = get_chat_reply(self.user, "¿cuándo pagué mi renta vieja?", [])
+
+        self.assertEqual(mock_client.messages.create.call_count, 2)
+        self.assertIn(str(self.old_tx.id), reply_text)
+        self.assertEqual(proposals, [])
+
+        second_call_messages = mock_client.messages.create.call_args_list[1].kwargs["messages"]
+        self.assertEqual(second_call_messages[-2]["role"], "assistant")
+        tool_result_message = second_call_messages[-1]
+        self.assertEqual(tool_result_message["role"], "user")
+        self.assertEqual(tool_result_message["content"][0]["type"], "tool_result")
+        self.assertEqual(tool_result_message["content"][0]["tool_use_id"], "call_1")
+        self.assertIn(f"#{self.old_tx.id} |", tool_result_message["content"][0]["content"])
+
+    @patch("wallet.ai_chat.anthropic.Anthropic")
+    def test_stops_after_max_rounds_and_still_returns_whatever_it_has(self, mock_anthropic_cls):
+        mock_client = mock_anthropic_cls.return_value
+        # Keeps calling search_transactions forever — never produces a final reply on its own.
+        mock_client.messages.create.return_value = SimpleNamespace(
+            content=[_tool_use_block("call_x", "search_transactions", {"query": "renta"})]
+        )
+
+        reply_text, proposals = get_chat_reply(self.user, "busca todo", [])
+
+        self.assertEqual(mock_client.messages.create.call_count, MAX_TOOL_LOOP_ROUNDS)
+        self.assertEqual(proposals, [])
+        self.assertEqual(reply_text, "")
+
+    @patch("wallet.ai_chat.anthropic.Anthropic")
+    def test_a_propose_tool_ends_the_turn_without_looping(self, mock_anthropic_cls):
+        mock_client = mock_anthropic_cls.return_value
+        mock_client.messages.create.return_value = SimpleNamespace(
+            content=[
+                _text_block("Aquí tienes:"),
+                _tool_use_block(
+                    "call_1",
+                    "propose_transaction",
+                    {"amount": 100, "type": "expense", "description": "Taxi"},
+                ),
+            ]
+        )
+
+        reply_text, proposals = get_chat_reply(self.user, "agrega un taxi de 100", [])
+
+        self.assertEqual(mock_client.messages.create.call_count, 1)
+        self.assertEqual(len(proposals), 1)
+        self.assertEqual(proposals[0]["kind"], "create")
+        self.assertIn("Confírmalo en la tarjeta de abajo.", reply_text)
+
+    @patch("wallet.ai_chat.anthropic.Anthropic")
+    def test_entity_edit_proposal_is_validated_and_returned(self, mock_anthropic_cls):
+        entity = VisionEntity.objects.create(
+            user=self.user, name="BBVA", type="asset", amount=Decimal("1000.00")
+        )
+        mock_client = mock_anthropic_cls.return_value
+        mock_client.messages.create.return_value = SimpleNamespace(
+            content=[
+                _tool_use_block(
+                    "call_1", "propose_entity_edit", {"entity_id": str(entity.id), "amount": 1200}
+                ),
+            ]
+        )
+
+        reply_text, proposals = get_chat_reply(self.user, "corrige mi saldo de BBVA a 1200", [])
+
+        self.assertEqual(len(proposals), 1)
+        self.assertEqual(proposals[0]["kind"], "entity_edit")
+        self.assertEqual(proposals[0]["amount"], 1200.0)
+        self.assertIn("BBVA", reply_text)

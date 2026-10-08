@@ -5,13 +5,15 @@ thin and delegates here.
 
 v1 scope (see docs/refactor-plan.md-equivalent planning conversation):
 non-streaming, session-only conversation (no DB persistence — the frontend
-resends recent history each turn). Three tools let the assistant propose
-creating, editing or deleting a transaction from the conversation — the
-frontend renders each as an inline confirmation card and only the app (never
-the model) actually mutates anything, via the existing `addTransaction`/
-`updateTransaction`/`deleteTransaction` thunks, on explicit user confirmation.
-A turn may carry several proposals at once (a receipt photo or a statement
-screenshot can hold many transactions), so the reply returns a *list*.
+resends recent history each turn). Four "propose_*" tools let the assistant
+propose creating, editing or deleting a transaction, or editing a Balance
+account (asset/liability), from the conversation — the frontend renders each
+as an inline confirmation card and only the app (never the model) actually
+mutates anything, via the existing `addTransaction`/`updateTransaction`/
+`deleteTransaction`/`updateVisionEntity` thunks, on explicit user
+confirmation. A turn may carry several proposals at once (a receipt photo or
+a statement screenshot can hold many transactions), so the reply returns a
+*list*.
 
 The turn also accepts images (receipts, purchase screenshots, statement
 listings) as base64 blocks, which is how the model fills in concept and
@@ -20,7 +22,11 @@ category on its own. Images are only ever sent for the current turn —
 gets folded into the reply is what keeps later turns coherent ("cambia el
 monto a 300") without re-uploading anything.
 
-There is still no full tool-execution loop (no `tool_result` round-trip).
+There IS a real tool-execution loop, but only for `search_transactions`
+(see `get_chat_reply`) — it executes immediately and the result is fed back
+via a `tool_result` round-trip so the model can act on transactions outside
+the recent-history window in `build_financial_context`. The propose_* tools
+never loop: they always end the turn with something for the user to confirm.
 """
 import datetime
 import math
@@ -32,7 +38,7 @@ except ImportError:
 
 import anthropic
 from django.conf import settings
-from django.db.models import Sum
+from django.db.models import Q, Sum
 
 from .analytics import get_exclusion_filter, predict_runway
 from .models import BinanceConnection, Category, Transaction, VisionEntity
@@ -40,7 +46,15 @@ from .models import BinanceConnection, Category, Transaction, VisionEntity
 MODEL_NAME = "claude-haiku-4-5-20251001"
 MAX_HISTORY_MESSAGES = 20
 RECENT_TRANSACTIONS_LIMIT = 30
+SEARCH_TRANSACTIONS_LIMIT = 50
 TOP_CATEGORIES_LIMIT = 5
+
+# Each round is one `search_transactions` round-trip (execute the search,
+# feed the results back, let the model continue). Bounds worst-case latency
+# and cost per turn — if the model is still searching after this many
+# rounds, whatever text/proposals it produced so far still gets returned
+# rather than failing the whole turn.
+MAX_TOOL_LOOP_ROUNDS = 4
 
 # Una captura de un estado de cuenta puede traer varias transacciones, así
 # que el turno puede devolver varias propuestas y necesita más espacio de
@@ -169,11 +183,89 @@ PROPOSE_TRANSACTION_DELETE_TOOL = {
     },
 }
 
+PROPOSE_ENTITY_EDIT_TOOL = {
+    "name": "propose_entity_edit",
+    "description": (
+        "Propone editar una cuenta (activo o pasivo) EXISTENTE del usuario — "
+        "no la modifica de verdad, solo abre una tarjeta de confirmación. Usa "
+        "el `entity_id` EXACTO tal como aparece en 'CUENTAS DEL USUARIO' del "
+        "contexto (el número después de '#'); nunca lo inventes. Incluye "
+        "solo los campos que cambian — deja el resto sin mandar. Editar el "
+        "monto corrige el saldo real de la cuenta (igual que hacerlo a mano "
+        "en Balance); queda registrado como un ajuste neutral en el "
+        "historial, no como ingreso o gasto."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "entity_id": {
+                "type": "string",
+                "description": "ID exacto de la cuenta, tal como aparece en el contexto (sin el '#').",
+            },
+            "amount": {
+                "type": "number",
+                "description": "Nuevo saldo de la cuenta, solo si cambia.",
+            },
+            "name": {
+                "type": "string",
+                "description": "Nuevo nombre de la cuenta, solo si cambia.",
+            },
+        },
+        "required": ["entity_id"],
+    },
+}
+
+SEARCH_TRANSACTIONS_TOOL = {
+    "name": "search_transactions",
+    "description": (
+        "Busca entre TODAS las transacciones del usuario — no solo las de "
+        "'ÚLTIMAS TRANSACCIONES' del contexto. Úsala cuando el usuario pida "
+        "algo más viejo que eso, o pida filtrar por fecha/cuenta/categoría/"
+        "texto, antes de responder o de proponer una edición/eliminación. "
+        f"Devuelve hasta {SEARCH_TRANSACTIONS_LIMIT} resultados en el mismo "
+        "formato que el contexto (con su `transaction_id` exacto). Todos los "
+        "filtros son opcionales — combínalos o déjalos vacíos para traer lo "
+        "más reciente que cumpla lo que sí mandaste."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "query": {
+                "type": "string",
+                "description": "Texto a buscar en la descripción o categoría. Opcional.",
+            },
+            "date_from": {
+                "type": "string",
+                "description": "Fecha mínima, formato YYYY-MM-DD, inclusive. Opcional.",
+            },
+            "date_to": {
+                "type": "string",
+                "description": "Fecha máxima, formato YYYY-MM-DD, inclusive. Opcional.",
+            },
+            "type": {
+                "type": "string",
+                "enum": ["income", "expense", "transfer", "adjustment"],
+                "description": "Filtra por tipo de transacción. Opcional.",
+            },
+            "account_name": _ACCOUNT_NAME_PROPERTY,
+        },
+        "required": [],
+    },
+}
+
 ALL_TRANSACTION_TOOLS = [
     PROPOSE_TRANSACTION_TOOL,
     PROPOSE_TRANSACTION_EDIT_TOOL,
     PROPOSE_TRANSACTION_DELETE_TOOL,
+    PROPOSE_ENTITY_EDIT_TOOL,
 ]
+
+# Tools the model can call that execute immediately and loop a result back
+# (as opposed to the proposal tools above, which always end the turn with
+# something for the user to confirm in the app).
+EXECUTABLE_TOOLS = [SEARCH_TRANSACTIONS_TOOL]
+
+ALL_TOOLS = ALL_TRANSACTION_TOOLS + EXECUTABLE_TOOLS
 
 
 SYSTEM_PROMPT_TEMPLATE = """Eres "Fin", el asistente financiero de FlowCash. Respondes ÚNICAMENTE en \
@@ -182,9 +274,11 @@ el usuario lo pida).
 
 Tu única fuente de verdad es el contexto financiero que se te da abajo — son \
 datos reales del usuario, no ejemplos. No inventes montos, categorías, \
-cuentas ni transacciones que no aparezcan ahí. Si la pregunta requiere datos \
-fuera de las últimas {recent_limit} transacciones o de meses anteriores, \
-dilo explícitamente y sugiere revisar "Cartera" o "Estadísticas" en la app.
+cuentas ni transacciones que no aparezcan ahí ni en lo que te devuelva \
+`search_transactions`. El contexto solo trae las últimas {recent_limit} \
+transacciones y los saldos actuales de Balance — si necesitas algo más \
+viejo, o filtrar por fecha/cuenta/categoría/texto, usa `search_transactions` \
+en vez de decir que no tienes acceso: sí lo tienes, a todo el historial.
 
 Tu alcance es exclusivamente las finanzas personales del usuario dentro de \
 FlowCash. Si preguntan algo fuera de eso (temas generales, consejo legal, \
@@ -206,23 +300,31 @@ vacía salvo que el usuario ya te haya dicho cuál usar. Después de proponer, \
 dile en una línea breve que puede elegir la cuenta en cada tarjeta y pedirte \
 cambios si alguna categoría o concepto no cuadra.
 
-Puedes proponer crear, editar o eliminar transacciones — nunca las creas, \
-modificas ni eliminas tú mismo, solo abres una tarjeta que el usuario debe \
-confirmar en la app:
+Puedes proponer crear, editar o eliminar transacciones, y editar cuentas de \
+Balance (activos/pasivos) — nunca las creas, modificas ni eliminas tú \
+mismo, solo abres una tarjeta que el usuario debe confirmar en la app:
 - Para registrar un gasto o ingreso nuevo: pregunta lo que falte (monto, si \
 es gasto o ingreso, descripción breve, categoría si no es obvia, y a qué \
 cuenta va si el usuario lo menciona) y usa `propose_transaction` solo cuando \
-ya tengas monto, tipo y descripción.
+ya tengas monto, tipo y descripción. La tarjeta de confirmación deja elegir \
+la fecha — por default es hoy, no hace falta que la pidas salvo que el \
+usuario mencione una fecha distinta.
 - Para editar o eliminar una transacción existente: identifícala por su \
-`transaction_id` exacto en 'ÚLTIMAS TRANSACCIONES' del contexto (nunca lo \
-inventes) — si hay ambigüedad entre varias parecidas, pregunta cuál antes de \
-llamar la herramienta. Usa `propose_transaction_edit` o \
-`propose_transaction_delete` según corresponda.
-Para cuentas, usa siempre el nombre EXACTO de 'CUENTAS DEL USUARIO'. Si el \
-usuario te pide corregir algo de una tarjeta que todavía no confirma, vuelve \
-a proponer SOLO esa transacción ya corregida y dile que cancele la tarjeta \
-anterior. Nunca digas que algo ya se creó, editó o eliminó: esa confirmación \
-la da la propia app cuando el usuario confirme la tarjeta.
+`transaction_id` exacto en 'ÚLTIMAS TRANSACCIONES' del contexto, o en lo que \
+te devuelva `search_transactions` (nunca lo inventes) — si hay ambigüedad \
+entre varias parecidas, pregunta cuál antes de llamar la herramienta. Usa \
+`propose_transaction_edit` o `propose_transaction_delete` según corresponda.
+- Para corregir el saldo de una cuenta (activo o pasivo): identifícala por \
+su `entity_id` exacto en 'CUENTAS DEL USUARIO' del contexto (nunca lo \
+inventes) y usa `propose_entity_edit`. Esto corrige el saldo real de la \
+cuenta, igual que editarla a mano en Balance.
+Para mencionar una cuenta al usuario o para `account_name` en las \
+herramientas de transacción, usa siempre el nombre EXACTO de 'CUENTAS DEL \
+USUARIO'. Si el usuario te pide corregir algo de una tarjeta que todavía no \
+confirma, vuelve a proponer SOLO esa transacción ya corregida y dile que \
+cancele la tarjeta anterior. Nunca digas que algo ya se creó, editó o \
+eliminó: esa confirmación la da la propia app cuando el usuario confirme la \
+tarjeta.
 
 === CONTEXTO FINANCIERO DEL USUARIO ===
 {financial_context}
@@ -278,7 +380,9 @@ def _user_category_names(user):
 def _user_accounts_lines(user):
     entities = VisionEntity.objects.filter(user=user).order_by("name")
     return [
-        f"- {e.name} ({'activo' if e.type == 'asset' else 'pasivo'})" for e in entities
+        f"- #{e.id} | {e.name} ({'activo' if e.type == 'asset' else 'pasivo'}): "
+        f"{_format_currency(e.amount)}"
+        for e in entities
     ]
 
 
@@ -587,6 +691,109 @@ def _validate_delete_proposal(user, raw):
     }
 
 
+def _get_owned_entity(user, raw_entity_id):
+    """Same security boundary as `_get_owned_transaction`, for VisionEntity."""
+    if raw_entity_id in (None, ""):
+        return None
+    try:
+        return VisionEntity.objects.get(user=user, id=raw_entity_id)
+    except (VisionEntity.DoesNotExist, ValueError, TypeError):
+        return None
+
+
+def _validate_entity_edit_proposal(user, raw):
+    if not isinstance(raw, dict):
+        return None
+
+    entity = _get_owned_entity(user, raw.get("entity_id"))
+    if entity is None:
+        return None
+
+    previous = {"amount": float(entity.amount), "name": entity.name}
+
+    amount = previous["amount"]
+    if raw.get("amount") is not None:
+        try:
+            candidate = float(raw["amount"])
+        except (TypeError, ValueError):
+            candidate = None
+        if candidate is not None and math.isfinite(candidate):
+            amount = candidate
+
+    name = previous["name"]
+    if raw.get("name"):
+        candidate = str(raw["name"]).strip()
+        if candidate:
+            name = candidate
+
+    return {
+        "kind": "entity_edit",
+        "entity_id": str(entity.id),
+        "entity_type": entity.type,
+        "amount": amount,
+        "name": name,
+        "previous": previous,
+    }
+
+
+def _parse_search_date(raw_date):
+    if not raw_date:
+        return None
+    try:
+        naive = datetime.datetime.strptime(str(raw_date).strip(), "%Y-%m-%d")
+    except (ValueError, TypeError):
+        return None
+    return naive.replace(tzinfo=USER_TZ)
+
+
+def _search_transactions(user, raw):
+    """
+    Executes a `search_transactions` tool call immediately (unlike the
+    propose_* tools, this isn't a user-facing proposal) and returns a
+    plain-text block in `get_chat_reply`'s tool_result round-trip, in the
+    same '#id | date | type | amount | category | description' format as
+    the context so the model can lift a `transaction_id` straight from it.
+    """
+    if not isinstance(raw, dict):
+        raw = {}
+
+    qs = Transaction.objects.filter(user=user)
+
+    query = str(raw.get("query") or "").strip()
+    if query:
+        qs = qs.filter(Q(description__icontains=query) | Q(category__icontains=query))
+
+    date_from = _parse_search_date(raw.get("date_from"))
+    if date_from:
+        qs = qs.filter(date__gte=date_from)
+
+    date_to = _parse_search_date(raw.get("date_to"))
+    if date_to:
+        qs = qs.filter(date__lt=date_to + datetime.timedelta(days=1))
+
+    tx_type = raw.get("type")
+    if tx_type in ("income", "expense", "transfer", "adjustment"):
+        qs = qs.filter(type=tx_type)
+
+    account_id, _account_name = _resolve_account(user, raw.get("account_name"))
+    if account_id:
+        qs = qs.filter(related_entity_id=account_id)
+
+    rows = qs.order_by("-date").values(
+        "id", "date", "type", "amount", "category", "description"
+    )[:SEARCH_TRANSACTIONS_LIMIT]
+
+    lines = []
+    for row in rows:
+        local_date = row["date"].astimezone(USER_TZ).strftime("%Y-%m-%d")
+        category = row["category"] or "Sin categoría"
+        lines.append(
+            f"#{row['id']} | {local_date} | {row['type']} | {_format_currency(row['amount'])} | "
+            f"{category} | {row['description']}"
+        )
+    return "\n".join(lines) if lines else "Sin resultados para esa búsqueda."
+
+
 def _describe_proposal(proposal):
     """
     A plain-text summary of the proposal, always folded into the reply (see
@@ -595,6 +802,13 @@ def _describe_proposal(proposal):
     block, so this is the only trace the model has of what it just proposed
     if the user asks to tweak it in a follow-up.
     """
+    if proposal["kind"] == "entity_edit":
+        return (
+            f"Propuesta: editar la cuenta #{proposal['entity_id']} "
+            f"({'activo' if proposal['entity_type'] == 'asset' else 'pasivo'}) — "
+            f"\"{proposal['name']}\" a {_format_currency(proposal['amount'])}."
+        )
+
     account_part = f" (cuenta: {proposal['account_name']})" if proposal.get("account_name") else ""
 
     if proposal["kind"] == "delete":
@@ -623,6 +837,7 @@ _PROPOSAL_VALIDATORS = {
     "propose_transaction": _validate_create_proposal,
     "propose_transaction_edit": _validate_edit_proposal,
     "propose_transaction_delete": _validate_delete_proposal,
+    "propose_entity_edit": _validate_entity_edit_proposal,
 }
 
 
@@ -684,7 +899,7 @@ def get_chat_reply(user, message, history, images=None):
     attached images). Non-streaming.
 
     Returns `(reply_text, transaction_proposals)` — a list, empty unless the
-    model called one or more of the three transaction tools this turn (a
+    model called one or more of the propose_* tools this turn (a
     statement screenshot can legitimately produce several).
     """
     # Validar el payload de imágenes primero: es un 400 de entrada del
@@ -713,29 +928,58 @@ def get_chat_reply(user, message, history, images=None):
         messages.append({"role": "user", "content": message})
 
     client = anthropic.Anthropic(api_key=api_key)
-    try:
-        response = client.messages.create(
-            model=MODEL_NAME,
-            max_tokens=MAX_OUTPUT_TOKENS,
-            system=system_prompt,
-            tools=ALL_TRANSACTION_TOOLS,
-            messages=messages,
-        )
-    except anthropic.AnthropicError as exc:
-        raise AnthropicServiceError(str(exc)) from exc
 
-    text_parts = []
     proposals = []
-    for block in response.content:
-        block_type = getattr(block, "type", None)
-        if block_type == "text":
-            text_parts.append(block.text)
-        elif block_type == "tool_use" and len(proposals) < MAX_PROPOSALS_PER_TURN:
-            validator = _PROPOSAL_VALIDATORS.get(block.name)
-            if validator is not None:
-                proposal = validator(user, block.input)
-                if proposal is not None:
-                    proposals.append(proposal)
+    text_parts = []
+    # `search_transactions` executes immediately and loops its result back
+    # to the model (a real tool_result round-trip) — the propose_* tools
+    # never do, they always end the turn with something for the user to
+    # confirm. Bounded by MAX_TOOL_LOOP_ROUNDS so a model stuck searching
+    # can't turn one chat message into an unbounded number of API calls.
+    for _round in range(MAX_TOOL_LOOP_ROUNDS):
+        try:
+            response = client.messages.create(
+                model=MODEL_NAME,
+                max_tokens=MAX_OUTPUT_TOKENS,
+                system=system_prompt,
+                tools=ALL_TOOLS,
+                messages=messages,
+            )
+        except anthropic.AnthropicError as exc:
+            raise AnthropicServiceError(str(exc)) from exc
+
+        text_parts = []
+        search_calls = []
+        for block in response.content:
+            block_type = getattr(block, "type", None)
+            if block_type == "text":
+                text_parts.append(block.text)
+            elif block_type == "tool_use" and block.name == "search_transactions":
+                search_calls.append(block)
+            elif block_type == "tool_use" and len(proposals) < MAX_PROPOSALS_PER_TURN:
+                validator = _PROPOSAL_VALIDATORS.get(block.name)
+                if validator is not None:
+                    proposal = validator(user, block.input)
+                    if proposal is not None:
+                        proposals.append(proposal)
+
+        if not search_calls:
+            break
+
+        messages.append({"role": "assistant", "content": response.content})
+        messages.append(
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "tool_result",
+                        "tool_use_id": block.id,
+                        "content": _search_transactions(user, block.input),
+                    }
+                    for block in search_calls
+                ],
+            }
+        )
 
     reply_text = "".join(text_parts).strip()
     if proposals:
