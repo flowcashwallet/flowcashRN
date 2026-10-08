@@ -194,3 +194,32 @@ class EntityAdjustmentLoggingTests(TestCase):
         self.asset.save()
         tx = Transaction.objects.get(related_entity_id=str(self.asset.id))
         self.assertTrue(Transaction.objects.filter(get_exclusion_filter(), pk=tx.pk).exists())
+
+    def test_editing_an_adjustment_transaction_re_syncs_the_entity_balance(self):
+        """Editing the logged 'adjustment' transaction's amount (e.g. from
+        the transaction edit form) must move the entity's real balance by
+        the difference, not just rewrite history."""
+        self.asset.amount = Decimal("1200.00")  # +200 adjustment logged
+        self.asset.save()
+        tx = Transaction.objects.get(related_entity_id=str(self.asset.id))
+        self.assertEqual(tx.amount, Decimal("200.00"))
+
+        tx.amount = Decimal("250.00")  # user corrects it to +250
+        tx.save()
+
+        self.asset.refresh_from_db()
+        # 1000 (original) + 250 (corrected adjustment) = 1250
+        self.assertEqual(self.asset.amount, Decimal("1250.00"))
+        # Editing the adjustment transaction must not spawn a second one.
+        self.assertEqual(Transaction.objects.count(), 1)
+
+    def test_deleting_an_adjustment_transaction_reverts_the_entity_balance(self):
+        self.asset.amount = Decimal("700.00")  # -300 adjustment logged
+        self.asset.save()
+        tx = Transaction.objects.get(related_entity_id=str(self.asset.id))
+        self.assertEqual(tx.amount, Decimal("-300.00"))
+
+        tx.delete()
+
+        self.asset.refresh_from_db()
+        self.assertEqual(self.asset.amount, Decimal("1000.00"))

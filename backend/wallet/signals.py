@@ -39,7 +39,10 @@ def update_entity_balance(entity_id, amount, transaction_type, is_reversal=False
         elif transaction_type == 'transfer':
             # If this is the source of a transfer, it decreases
             entity.amount -= amount
-            
+        elif transaction_type == 'adjustment':
+            # amount is already the signed delta (see log_entity_amount_adjustment)
+            entity.amount += amount
+
     elif entity.type == 'liability':
         if transaction_type == 'expense':
             # Spending on credit card -> Debt Increases
@@ -49,6 +52,8 @@ def update_entity_balance(entity_id, amount, transaction_type, is_reversal=False
             entity.amount -= amount
         elif transaction_type == 'transfer':
             # Transfer FROM liability (Cash advance) -> Debt Increases
+            entity.amount += amount
+        elif transaction_type == 'adjustment':
             entity.amount += amount
 
     # Marks this save as transaction-driven so the VisionEntity signals below
@@ -110,12 +115,20 @@ def apply_new_transaction_state(sender, instance, created, **kwargs):
     """
     After saving, apply the effect of the NEW transaction data.
     """
+    # A freshly auto-generated 'adjustment' transaction already reflects a
+    # balance change that was applied directly to the entity — that's what
+    # triggered its creation (see log_entity_amount_adjustment). Applying it
+    # again here would double the change. Only an EDIT of an *existing*
+    # adjustment transaction (created=False) should flow back into the
+    # entity's balance, since in that case the entity wasn't touched.
+    skip_primary = instance.type == 'adjustment' and created
+
     # 1. Primary Entity
-    if instance.related_entity_id:
+    if instance.related_entity_id and not skip_primary:
         update_entity_balance(
-            instance.related_entity_id, 
-            instance.amount, 
-            instance.type, 
+            instance.related_entity_id,
+            instance.amount,
+            instance.type,
             is_reversal=False
         )
 
