@@ -311,11 +311,20 @@ export const EntityDetailModal: React.FC<EntityDetailModalProps> = ({
           contentContainerStyle={styles.listContent}
           keyboardShouldPersistTaps="handled"
           renderItem={({ item }) => {
-            const isIncoming =
-              item.type === "income" ||
-              (item.type === "transfer" &&
-                item.transferRelatedEntityId === entity.id);
+            // 'adjustment' amounts are stored SIGNED (see signals.py) —
+            // positive means the balance went up, negative means it went
+            // down. Every other type keeps the usual type-implies-sign
+            // convention instead.
+            const isAdjustment = item.type === "adjustment";
+            const isIncoming = isAdjustment
+              ? item.amount > 0
+              : item.type === "income" ||
+                (item.type === "transfer" &&
+                  item.transferRelatedEntityId === entity.id);
             const amountColor = isIncoming ? colors.success : colors.expense;
+            const displayAmount = isAdjustment
+              ? Math.abs(item.amount)
+              : item.amount;
 
             return (
               <Pressable onPress={() => onPressTransaction(item)}>
@@ -345,7 +354,7 @@ export const EntityDetailModal: React.FC<EntityDetailModalProps> = ({
                   </View>
                   <Typography variant="number" style={{ color: amountColor }}>
                     {isIncoming ? "+" : "−"}
-                    {formatCurrency(item.amount)}
+                    {formatCurrency(displayAmount)}
                   </Typography>
                 </GlassSurface>
               </Pressable>

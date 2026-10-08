@@ -39,6 +39,8 @@ export default function TransactionFormScreen() {
     setType,
     amount,
     setAmount,
+    isAdjustmentIncrease,
+    setIsAdjustmentIncrease,
     description,
     setDescription,
     selectedCategory,
@@ -66,7 +68,11 @@ export default function TransactionFormScreen() {
     setRecurrenceMonths,
   } = useTransactionForm({
     id: id as string,
-    initialType: initialType as "income" | "expense" | "transfer",
+    initialType: initialType as
+      | "income"
+      | "expense"
+      | "transfer"
+      | "adjustment",
     initialAmount: paramAmount as string,
     initialDescription: paramDescription as string,
     initialCategory: paramCategory as string,
@@ -107,6 +113,10 @@ export default function TransactionFormScreen() {
                 amount={amount}
                 onChangeAmount={setAmount}
                 colors={colors}
+                isAdjustmentIncrease={isAdjustmentIncrease}
+                onToggleAdjustmentSign={() =>
+                  setIsAdjustmentIncrease((prev) => !prev)
+                }
               />
               {!isEditing && (
                 <TransactionTypeSelector

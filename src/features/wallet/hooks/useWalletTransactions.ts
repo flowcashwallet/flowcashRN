@@ -15,7 +15,7 @@ import {
 interface TransactionData {
   amount: string;
   description: string;
-  type: "income" | "expense" | "transfer";
+  type: "income" | "expense" | "transfer" | "adjustment";
   category?: string | null;
   relatedEntityId?: string | null;
   transferRelatedEntityId?: string | null;

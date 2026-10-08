@@ -17,6 +17,11 @@ const createProposal: TransactionProposal = {
   accountId: null,
   accountName: null,
   previous: null,
+  date: Date.now(),
+  entityId: null,
+  entityType: null,
+  name: null,
+  previousEntity: null,
 };
 
 function renderBubble(

@@ -13,6 +13,27 @@ jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 34, left: 0, right: 0 }),
 }));
 
+// `DateField` lo requiere condicionalmente, vía `require(...).default` — a
+// diferencia de `TransactionFormScreen.test.tsx` (que nunca llega a abrir el
+// picker), esta tarjeta sí lo abre, así que el mock necesita el `.default`.
+jest.mock("@react-native-community/datetimepicker", () => {
+  const { View } = jest.requireActual("react-native");
+  const MockDateTimePicker = (props: any) => (
+    <View testID="dateTimePicker" {...props} />
+  );
+  MockDateTimePicker.displayName = "MockDateTimePicker";
+  return { default: MockDateTimePicker };
+});
+
+/** Campos nuevos que no varían entre los fixtures de propuestas de transacción. */
+const TX_PROPOSAL_EXTRA = {
+  date: new Date(2026, 0, 15).getTime(),
+  entityId: null,
+  entityType: null,
+  name: null,
+  previousEntity: null,
+} as const;
+
 const expenseProposal: TransactionProposal = {
   kind: "create",
   transactionId: null,
@@ -23,6 +44,7 @@ const expenseProposal: TransactionProposal = {
   accountId: null,
   accountName: null,
   previous: null,
+  ...TX_PROPOSAL_EXTRA,
 };
 
 function renderCard(
@@ -128,6 +150,7 @@ describe("TransactionProposalCard — editar", () => {
       category: "Comida",
       accountName: null,
     },
+    ...TX_PROPOSAL_EXTRA,
   };
 
   it("muestra el título de edición", () => {
@@ -187,6 +210,7 @@ describe("TransactionProposalCard — selector de cuenta inline", () => {
       accountId: null,
       accountName: null,
       previous: null,
+      ...TX_PROPOSAL_EXTRA,
     };
     renderCard({ proposal: deleteProposal, visionEntities, onSelectAccount: jest.fn() });
     expect(screen.queryByText(STRINGS.aiChat.selectAccountPlaceholder)).toBeNull();
@@ -225,6 +249,7 @@ describe("TransactionProposalCard — eliminar", () => {
     accountId: null,
     accountName: null,
     previous: null,
+    ...TX_PROPOSAL_EXTRA,
   };
 
   it("muestra el título de eliminación y los datos de la transacción", () => {
@@ -242,5 +267,107 @@ describe("TransactionProposalCard — eliminar", () => {
   it("muestra el estado 'Eliminada' al confirmar", () => {
     renderCard({ proposal: deleteProposal, status: "confirmed" });
     expect(screen.getByText(STRINGS.aiChat.proposalDeleted)).toBeTruthy();
+  });
+});
+
+describe("TransactionProposalCard — fecha editable al crear", () => {
+  it("no muestra el selector de fecha si no se pasa onChangeDate", () => {
+    renderCard();
+    expect(screen.queryByTestId("dateTimePicker")).toBeNull();
+  });
+
+  it("no muestra el selector de fecha en una propuesta de edición/eliminación", () => {
+    const editProposal: TransactionProposal = {
+      ...expenseProposal,
+      kind: "edit",
+      transactionId: "7",
+    };
+    renderCard({ proposal: editProposal, onChangeDate: jest.fn() });
+    // El botón de fecha (formateada en es-ES) solo aparece para "create".
+    expect(screen.queryByText(/de \d{4}/)).toBeNull();
+  });
+
+  it("llama a onChangeDate con el timestamp elegido", () => {
+    const onChangeDate = jest.fn();
+    renderCard({ onChangeDate });
+
+    // El picker nativo solo se monta tras tocar el botón de fecha.
+    fireEvent.press(screen.getByText(/de \d{4}/));
+    fireEvent(screen.getByTestId("dateTimePicker"), "onChange", {}, new Date(2026, 1, 20));
+
+    expect(onChangeDate).toHaveBeenCalledWith(new Date(2026, 1, 20).getTime());
+  });
+});
+
+describe("TransactionProposalCard — editar cuenta (Balance)", () => {
+  const entityEditProposal: TransactionProposal = {
+    kind: "entity_edit",
+    transactionId: null,
+    amount: 1200,
+    type: "expense",
+    description: "",
+    category: null,
+    accountId: null,
+    accountName: null,
+    previous: null,
+    date: Date.now(),
+    entityId: "9",
+    entityType: "asset",
+    name: "BBVA",
+    previousEntity: { amount: 1000, name: "BBVA" },
+  };
+
+  it("muestra el título de edición de cuenta y el tipo", () => {
+    renderCard({ proposal: entityEditProposal });
+    expect(screen.getByText(STRINGS.aiChat.editAccountTitle)).toBeTruthy();
+    expect(screen.getByText("Activo")).toBeTruthy();
+  });
+
+  it("muestra el pasivo correctamente", () => {
+    renderCard({
+      proposal: { ...entityEditProposal, entityType: "liability" },
+    });
+    expect(screen.getByText("Pasivo")).toBeTruthy();
+  });
+
+  it("muestra el monto como 'antes → ahora' cuando cambió", () => {
+    renderCard({ proposal: entityEditProposal });
+    expect(screen.getByText(/\$1,000\.00 → \$1,200\.00/)).toBeTruthy();
+  });
+
+  it("muestra el nombre de la cuenta", () => {
+    renderCard({ proposal: entityEditProposal });
+    expect(screen.getByText("BBVA")).toBeTruthy();
+  });
+
+  it("confirma/cancela igual que las propuestas de transacción", () => {
+    const onConfirm = jest.fn();
+    const onCancel = jest.fn();
+    renderCard({ proposal: entityEditProposal, onConfirm, onCancel });
+
+    fireEvent.press(screen.getByText(STRINGS.aiChat.confirmProposal));
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+
+    fireEvent.press(screen.getByText(STRINGS.common.cancel));
+    expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it("muestra el estado 'Actualizada' al confirmar, no 'Agregada'", () => {
+    renderCard({ proposal: entityEditProposal, status: "confirmed" });
+    expect(screen.getByText(STRINGS.aiChat.proposalUpdated)).toBeTruthy();
+  });
+
+  it("nunca muestra el selector de cuenta ni de fecha", () => {
+    const visionEntities = [
+      { id: "1", userId: "u", name: "BBVA", amount: 1000, type: "asset" as const, createdAt: 0 },
+    ];
+    renderCard({
+      proposal: entityEditProposal,
+      visionEntities,
+      onSelectAccount: jest.fn(),
+      onChangeDate: jest.fn(),
+    });
+    expect(screen.queryByText(STRINGS.aiChat.selectAccountPlaceholder)).toBeNull();
+    expect(screen.queryByTestId("dateTimePicker")).toBeNull();
   });
 });

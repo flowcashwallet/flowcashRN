@@ -7,7 +7,7 @@ export interface Transaction {
   id: string;
   userId: string;
   amount: number;
-  type: "income" | "expense" | "transfer";
+  type: "income" | "expense" | "transfer" | "adjustment";
   description: string;
   category?: string | null; // e.g. "🍔 Comida"
   relatedEntityId?: string | null; // ID of the Asset or Liability (Source for Transfer)

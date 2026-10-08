@@ -40,6 +40,7 @@ export default function TransactionDetailsScreen() {
     if (!transaction) return "";
     if (transaction.type === "income") return STRINGS.wallet.income;
     if (transaction.type === "expense") return STRINGS.wallet.expense;
+    if (transaction.type === "adjustment") return STRINGS.wallet.adjustment;
     return STRINGS.wallet.transfer;
   }, [transaction]);
 
@@ -47,8 +48,22 @@ export default function TransactionDetailsScreen() {
     if (!transaction) return colors.text;
     if (transaction.type === "income") return colors.success;
     if (transaction.type === "expense") return colors.error;
+    if (transaction.type === "adjustment") {
+      // Signed amount (see backend signals.py): positive = balance went up.
+      return transaction.amount >= 0 ? colors.success : colors.error;
+    }
     return colors.primary;
   }, [colors, transaction]);
+
+  // 'adjustment' stores a signed amount — show the absolute value and let
+  // amountColor above carry the direction, same idea as the entity detail
+  // list.
+  const displayAmount = useMemo(() => {
+    if (!transaction) return 0;
+    return transaction.type === "adjustment"
+      ? Math.abs(transaction.amount)
+      : transaction.amount;
+  }, [transaction]);
 
   const handleEdit = () => {
     if (!transaction) return;
@@ -101,7 +116,7 @@ export default function TransactionDetailsScreen() {
                   weight="bold"
                   style={{ marginTop: 6, color: amountColor }}
                 >
-                  {formatCurrency(transaction.amount)}
+                  {formatCurrency(displayAmount)}
                 </Typography>
                 <Typography
                   variant="body"

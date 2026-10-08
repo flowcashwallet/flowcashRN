@@ -14,7 +14,7 @@ interface TransactionItemProps {
   amount: number;
   description: string;
   date: number;
-  type: "income" | "expense" | "transfer";
+  type: "income" | "expense" | "transfer" | "adjustment";
   category?: string | null;
   onDelete?: (id: string) => void;
   onPress?: () => void;
@@ -51,13 +51,28 @@ export function TransactionItem({
 
   const isIncome = type === "income";
   const isTransfer = type === "transfer";
+  const isAdjustment = type === "adjustment";
+  const isNeutral = isTransfer || isAdjustment;
 
   const amountColor = isIncome
     ? colors.success
-    : isTransfer
+    : isNeutral
       ? colors.text
       : colors.expense;
-  const sign = isIncome ? "+" : isTransfer ? "" : "−";
+  // 'adjustment' amounts are stored SIGNED (positive = balance went up,
+  // negative = went down — see signals.py) so the sign can show real
+  // direction, same as income/expense, just kept in the neutral color
+  // since it doesn't count as either.
+  const sign = isIncome
+    ? "+"
+    : isAdjustment
+      ? amount > 0
+        ? "+"
+        : "−"
+      : isTransfer
+        ? ""
+        : "−";
+  const displayAmount = isAdjustment ? Math.abs(amount) : amount;
 
   // Extract emoji from category string (e.g. "🍔 Comida" -> "🍔")
   const emoji = category ? category.slice(0, 2) : null;
@@ -128,6 +143,8 @@ export function TransactionItem({
                 size={20}
                 color={colors.icon}
               />
+            ) : isAdjustment ? (
+              <IconSymbol name="pencil" size={20} color={colors.icon} />
             ) : emoji ? (
               <Typography variant="body">{emoji}</Typography>
             ) : (
@@ -150,7 +167,7 @@ export function TransactionItem({
 
           <Typography variant="number" style={{ color: amountColor }}>
             {sign}
-            {formatCurrency(amount)}
+            {formatCurrency(displayAmount)}
           </Typography>
         </GlassSurface>
       </TouchableOpacity>

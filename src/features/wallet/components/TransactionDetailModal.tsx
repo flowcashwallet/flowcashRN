@@ -23,7 +23,7 @@ interface UpdateTransactionData {
   id: string;
   amount: string;
   description: string;
-  type: "income" | "expense" | "transfer";
+  type: "income" | "expense" | "transfer" | "adjustment";
   category?: string | null;
   relatedEntityId?: string | null;
   oldAmount: number;

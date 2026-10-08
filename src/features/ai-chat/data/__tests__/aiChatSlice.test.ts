@@ -7,7 +7,9 @@ import aiChatReducer, {
   sendMessage,
   TransactionProposal,
   updateProposalAccount,
+  updateProposalDate,
 } from "@/features/ai-chat/data/aiChatSlice";
+import { VisionEntity } from "@/features/vision/data/visionSlice";
 import { fetchWithAuth } from "@/utils/apiClient";
 
 jest.mock("@/utils/apiClient", () => ({
@@ -30,6 +32,17 @@ function buildStoreWithAuth() {
     reducer: {
       aiChat: aiChatReducer,
       auth: (state = { user: { id: "1" }, token: "t" }) => state,
+    },
+  });
+}
+
+/** `confirmTransactionProposal` lee `state.vision.entities` para "entity_edit" — necesita el objeto completo para el PATCH. */
+function buildStoreWithAuthAndVision(entities: VisionEntity[]) {
+  return configureStore({
+    reducer: {
+      aiChat: aiChatReducer,
+      auth: (state = { user: { id: "1" }, token: "t" }) => state,
+      vision: (state = { entities, loading: false, error: null }) => state,
     },
   });
 }
@@ -59,6 +72,11 @@ const createProposal: TransactionProposal = {
   accountId: null,
   accountName: null,
   previous: null,
+  date: new Date("2026-09-17T12:00:00Z").getTime(),
+  entityId: null,
+  entityType: null,
+  name: null,
+  previousEntity: null,
 };
 
 describe("aiChatSlice", () => {
@@ -213,7 +231,11 @@ describe("aiChatSlice", () => {
     const message = store.getState().aiChat.messages[0];
     expect(message.proposals).toHaveLength(1);
     expect(message.proposals![0].status).toBe("pending");
-    expect(message.proposals![0].proposal).toEqual({
+    const proposal = message.proposals![0].proposal;
+    // `date` lo pone el frontend (el modelo no propone fecha) — se compara
+    // aparte, el resto con igualdad estricta.
+    expect(typeof proposal.date).toBe("number");
+    expect(proposal).toMatchObject({
       kind: "create",
       transactionId: null,
       amount: 250,
@@ -304,6 +326,38 @@ describe("aiChatSlice", () => {
       description: "Súper",
       category: "Comida",
       accountName: null,
+    });
+  });
+
+  it("una respuesta con `transaction_proposals` (entity_edit) se mapea a camelCase", async () => {
+    mockFetchWithAuth.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        reply: "Confírmalo abajo:",
+        transaction_proposals: [
+          {
+            kind: "entity_edit",
+            amount: 1200,
+            entity_id: "9",
+            entity_type: "asset",
+            name: "BBVA",
+            previous: { amount: 1000, name: "BBVA" },
+          },
+        ],
+      }),
+    });
+
+    const store = buildStore();
+    await store.dispatch(sendChatMessage({ text: "corrige mi saldo de BBVA a 1200" }) as any);
+
+    const proposal = store.getState().aiChat.messages[0].proposals![0].proposal;
+    expect(proposal).toMatchObject({
+      kind: "entity_edit",
+      amount: 1200,
+      entityId: "9",
+      entityType: "asset",
+      name: "BBVA",
+      previousEntity: { amount: 1000, name: "BBVA" },
     });
   });
 
@@ -513,6 +567,109 @@ describe("confirmTransactionProposal / cancelTransactionProposal / updateProposa
       ?.proposals!.find((p) => p.id === proposalId)?.proposal;
     expect(proposal?.accountId).toBe("9");
     expect(proposal?.accountName).toBe("BBVA");
+    expect(mockFetchWithAuth).not.toHaveBeenCalled();
+  });
+
+  it("updateProposalDate actualiza la fecha propuesta sin tocar el backend", () => {
+    const store = buildStoreWithAuth();
+    const { messageId, proposalId } = seedProposalMessage(store);
+    const newDate = new Date("2026-01-05T00:00:00Z").getTime();
+
+    store.dispatch(updateProposalDate({ messageId, proposalId, date: newDate }));
+
+    const proposal = store
+      .getState()
+      .aiChat.messages.find((m) => m.id === messageId)
+      ?.proposals!.find((p) => p.id === proposalId)?.proposal;
+    expect(proposal?.date).toBe(newDate);
+    expect(mockFetchWithAuth).not.toHaveBeenCalled();
+  });
+
+  it("confirmar un 'create' manda la fecha elegida en la tarjeta, no la de hoy a secas", async () => {
+    mockFetchWithAuth.mockResolvedValue({ ok: true, json: async () => backendTransaction });
+
+    const store = buildStoreWithAuth();
+    const { messageId, proposalId } = seedProposalMessage(store);
+    const chosenDate = new Date("2026-01-05T00:00:00Z").getTime();
+    store.dispatch(updateProposalDate({ messageId, proposalId, date: chosenDate }));
+    const proposal = store.getState().aiChat.messages[0].proposals![0].proposal;
+
+    await store.dispatch(
+      confirmTransactionProposal({ messageId, proposalId, proposal }) as any,
+    );
+
+    const [, options] = mockFetchWithAuth.mock.calls[0];
+    const body = JSON.parse(options.body);
+    expect(body.date).toBe(new Date(chosenDate).toISOString());
+  });
+
+  it("confirmar un 'entity_edit' hace PATCH a la cuenta y avisa que se actualizó", async () => {
+    mockFetchWithAuth.mockResolvedValue({
+      ok: true,
+      json: async () => ({ id: 9, name: "BBVA", amount: "1200.00", type: "asset" }),
+    });
+
+    const entity: VisionEntity = {
+      id: "9",
+      userId: "1",
+      name: "BBVA",
+      amount: 1000,
+      type: "asset",
+      createdAt: 0,
+    };
+    const store = buildStoreWithAuthAndVision([entity]);
+    const entityEditProposal: TransactionProposal = {
+      ...createProposal,
+      kind: "entity_edit",
+      entityId: "9",
+      entityType: "asset",
+      name: "BBVA",
+      amount: 1200,
+      previousEntity: { amount: 1000, name: "BBVA" },
+    };
+    const { messageId, proposalId } = seedProposalMessage(store, entityEditProposal);
+    const proposal = store.getState().aiChat.messages[0].proposals![0].proposal;
+
+    await store.dispatch(
+      confirmTransactionProposal({ messageId, proposalId, proposal }) as any,
+    );
+
+    expect(mockFetchWithAuth).toHaveBeenCalledWith(
+      expect.stringContaining("/9/"),
+      expect.objectContaining({ method: "PATCH" }),
+      expect.anything(),
+      expect.anything(),
+    );
+    const state = store.getState().aiChat;
+    expect(
+      state.messages.find((m) => m.id === messageId)?.proposals![0].status,
+    ).toBe("confirmed");
+    expect(state.messages[state.messages.length - 1].content).toContain(
+      'Se actualizó "BBVA" a $1,200.00',
+    );
+  });
+
+  it("confirmar un 'entity_edit' de una cuenta que ya no existe falla sin romper nada", async () => {
+    const store = buildStoreWithAuthAndVision([]);
+    const entityEditProposal: TransactionProposal = {
+      ...createProposal,
+      kind: "entity_edit",
+      entityId: "999",
+      entityType: "asset",
+      name: "Fantasma",
+      amount: 100,
+    };
+    const { messageId, proposalId } = seedProposalMessage(store, entityEditProposal);
+    const proposal = store.getState().aiChat.messages[0].proposals![0].proposal;
+
+    await store.dispatch(
+      confirmTransactionProposal({ messageId, proposalId, proposal }) as any,
+    );
+
+    const state = store.getState().aiChat;
+    expect(
+      state.messages.find((m) => m.id === messageId)?.proposals![0].status,
+    ).toBe("pending");
     expect(mockFetchWithAuth).not.toHaveBeenCalled();
   });
 });

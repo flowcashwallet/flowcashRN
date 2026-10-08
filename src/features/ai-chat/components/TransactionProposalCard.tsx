@@ -8,6 +8,7 @@ import {
   TransactionProposal,
 } from "@/features/ai-chat/data/aiChatSlice";
 import { VisionEntity } from "@/features/vision/data/visionSlice";
+import { DateField } from "@/features/wallet/components/transaction-form/DateField";
 import { EntitySelectorField } from "@/features/wallet/components/transaction-form/EntitySelectorField";
 import STRINGS from "@/i18n/es.json";
 import { formatCurrency } from "@/utils/format";
@@ -26,6 +27,8 @@ interface TransactionProposalCardProps {
    */
   visionEntities?: VisionEntity[];
   onSelectAccount?: (accountId: string | null, accountName: string | null) => void;
+  /** Solo para "create" — deja elegir otra fecha antes de confirmar (por default es hoy). */
+  onChangeDate?: (date: number) => void;
 }
 
 /** "antes → ahora" cuando cambió, o solo el valor actual si no. `null` oculta la fila entera. */
@@ -53,14 +56,60 @@ export function TransactionProposalCard({
   onCancel,
   visionEntities,
   onSelectAccount,
+  onChangeDate,
 }: TransactionProposalCardProps) {
-  const { colors } = useTheme();
+  const { colors, theme } = useTheme();
+  const isActionable = status === "pending" || status === "confirming";
+
+  if (proposal.kind === "entity_edit") {
+    const previousEntity = proposal.previousEntity;
+    const amountText = diffLine(
+      previousEntity ? formatCurrency(previousEntity.amount) : undefined,
+      formatCurrency(proposal.amount),
+    );
+    const nameText = diffLine(previousEntity?.name, proposal.name);
+
+    return (
+      <GlassSurface
+        style={styles.card}
+        fallbackStyle={[
+          styles.flatCard,
+          { backgroundColor: colors.surface, borderColor: colors.border },
+        ]}
+      >
+        <Typography variant="overline" muted style={styles.kindLabel}>
+          {STRINGS.aiChat.editAccountTitle}
+        </Typography>
+        <View style={styles.row}>
+          <Typography variant="bodySmall" muted>
+            {proposal.entityType === "liability" ? "Pasivo" : "Activo"}
+          </Typography>
+          <Typography variant="number" style={{ color: colors.text }}>
+            {amountText}
+          </Typography>
+        </View>
+        <Typography variant="body" weight="semibold" style={styles.description}>
+          {nameText}
+        </Typography>
+        <ProposalActions
+          isActionable={isActionable}
+          status={status}
+          isDelete={false}
+          confirmedLabel={STRINGS.aiChat.proposalUpdated}
+          onConfirm={onConfirm}
+          onCancel={onCancel}
+          colors={colors}
+        />
+      </GlassSurface>
+    );
+  }
+
   const isIncome = proposal.type === "income";
   const amountColor = isIncome ? colors.success : colors.expense;
   const sign = isIncome ? "+" : "−";
-  const isActionable = status === "pending" || status === "confirming";
   const isDelete = proposal.kind === "delete";
   const isEdit = proposal.kind === "edit";
+  const isCreate = proposal.kind === "create";
   const previous = proposal.previous;
 
   const amountText = diffLine(
@@ -139,34 +188,77 @@ export function TransactionProposalCard({
         </View>
       ) : null}
 
-      {isActionable ? (
-        <View style={styles.actions}>
-          <Button
-            title={STRINGS.common.cancel}
-            variant="outline"
-            size="small"
-            disabled={status === "confirming"}
-            onPress={onCancel}
-            style={styles.actionButton}
-          />
-          <Button
-            title={isDelete ? STRINGS.aiChat.deleteConfirm : STRINGS.aiChat.confirmProposal}
-            size="small"
-            loading={status === "confirming"}
-            onPress={onConfirm}
-            style={[styles.actionButton, isDelete && { backgroundColor: colors.error }]}
+      {isCreate && isActionable && onChangeDate ? (
+        <View style={styles.datePicker}>
+          <DateField
+            date={new Date(proposal.date)}
+            onChangeDate={(date) => onChangeDate(date.getTime())}
+            colors={colors}
+            theme={theme}
           />
         </View>
-      ) : (
-        <Typography
-          variant="caption"
-          muted
-          style={[styles.statusLabel, { color: colors.textSecondary }]}
-        >
-          {status === "confirmed" ? confirmedLabel : STRINGS.aiChat.proposalCancelled}
-        </Typography>
-      )}
+      ) : null}
+
+      <ProposalActions
+        isActionable={isActionable}
+        status={status}
+        isDelete={isDelete}
+        confirmedLabel={confirmedLabel}
+        onConfirm={onConfirm}
+        onCancel={onCancel}
+        colors={colors}
+      />
     </GlassSurface>
+  );
+}
+
+/** Botones Cancelar/Confirmar, o el texto de estado si ya no es accionable — compartido por ambas variantes de la tarjeta. */
+function ProposalActions({
+  isActionable,
+  status,
+  isDelete,
+  confirmedLabel,
+  onConfirm,
+  onCancel,
+  colors,
+}: {
+  isActionable: boolean;
+  status: ProposalStatus;
+  isDelete: boolean;
+  confirmedLabel: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+  colors: ReturnType<typeof useTheme>["colors"];
+}) {
+  if (isActionable) {
+    return (
+      <View style={styles.actions}>
+        <Button
+          title={STRINGS.common.cancel}
+          variant="outline"
+          size="small"
+          disabled={status === "confirming"}
+          onPress={onCancel}
+          style={styles.actionButton}
+        />
+        <Button
+          title={isDelete ? STRINGS.aiChat.deleteConfirm : STRINGS.aiChat.confirmProposal}
+          size="small"
+          loading={status === "confirming"}
+          onPress={onConfirm}
+          style={[styles.actionButton, isDelete && { backgroundColor: colors.error }]}
+        />
+      </View>
+    );
+  }
+  return (
+    <Typography
+      variant="caption"
+      muted
+      style={[styles.statusLabel, { color: colors.textSecondary }]}
+    >
+      {status === "confirmed" ? confirmedLabel : STRINGS.aiChat.proposalCancelled}
+    </Typography>
   );
 }
 
@@ -206,6 +298,11 @@ const styles = StyleSheet.create({
   accountPicker: {
     marginTop: Spacing.xs,
     marginBottom: -Spacing.l,
+  },
+  /** `DateField` trae su propio margen pensado para un formulario apilado — igual que `accountPicker`, se recorta para esta tarjeta compacta. */
+  datePicker: {
+    marginTop: -Spacing.xs,
+    marginBottom: -Spacing.m,
   },
   actions: {
     flexDirection: "row",

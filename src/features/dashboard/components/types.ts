@@ -54,7 +54,7 @@ export interface AnomalousMovement {
   id: string;
   description: string;
   category: string;
-  type: "income" | "expense" | "transfer";
+  type: "income" | "expense" | "transfer" | "adjustment";
   amount: number;
   expected: number;
   zScore: number;

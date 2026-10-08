@@ -17,7 +17,7 @@ import { useWalletTransactions } from "./useWalletTransactions";
 
 export interface UseTransactionFormProps {
   id?: string;
-  initialType?: "income" | "expense" | "transfer";
+  initialType?: "income" | "expense" | "transfer" | "adjustment";
   initialAmount?: string;
   initialDescription?: string;
   initialCategory?: string;
@@ -48,17 +48,21 @@ export const useTransactionForm = ({
     ? transactions.find((t) => t.id === id)
     : null;
 
-  const [type, setType] = useState<"income" | "expense" | "transfer">(
-    (existingTransaction?.type as "income" | "expense" | "transfer") ||
-      (initialType as "income" | "expense" | "transfer") ||
-      "expense",
-  );
+  const [type, setType] = useState<
+    "income" | "expense" | "transfer" | "adjustment"
+  >(existingTransaction?.type || initialType || "expense");
   const [amount, setAmount] = useState(
     existingTransaction
-      ? formatAmountInput(existingTransaction.amount.toFixed(2))
+      ? formatAmountInput(Math.abs(existingTransaction.amount).toFixed(2))
       : initialAmount
         ? formatAmountInput(initialAmount)
         : "",
+  );
+  // 'adjustment' amounts are signed (see backend signals.py) — the form
+  // keeps `amount` above as an always-positive string like every other
+  // type, and tracks direction separately so the user can flip it.
+  const [isAdjustmentIncrease, setIsAdjustmentIncrease] = useState(
+    existingTransaction ? existingTransaction.amount >= 0 : true,
   );
   const [description, setDescription] = useState(
     existingTransaction?.description || initialDescription || "",
@@ -270,6 +274,13 @@ export const useTransactionForm = ({
       }
     }
 
+    // 'adjustment' stores a SIGNED amount (positive = balance went up,
+    // negative = went down — see backend signals.py); `amount` here is
+    // always the positive digits the user typed, so the sign comes from
+    // the separate increase/decrease toggle.
+    const submittedAmount =
+      type === "adjustment" && !isAdjustmentIncrease ? `-${amount}` : amount;
+
     setIsSaving(true);
     try {
       let success = false;
@@ -277,7 +288,7 @@ export const useTransactionForm = ({
         success =
           (await updateTransaction({
             id: existingTransaction.id,
-            amount: amount,
+            amount: submittedAmount,
             description,
             type,
             category: selectedCategory || "General",
@@ -296,7 +307,7 @@ export const useTransactionForm = ({
       } else {
         success =
           (await addTransaction({
-            amount: amount,
+            amount: submittedAmount,
             description,
             type,
             category: selectedCategory || "General",
@@ -367,6 +378,8 @@ export const useTransactionForm = ({
     setType,
     amount,
     setAmount,
+    isAdjustmentIncrease,
+    setIsAdjustmentIncrease,
     description,
     setDescription,
     selectedCategory,

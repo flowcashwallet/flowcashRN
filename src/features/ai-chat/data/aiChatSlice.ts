@@ -3,13 +3,14 @@ import {
   deleteTransaction,
   updateTransaction,
 } from "@/features/wallet/data/walletSlice";
+import { updateVisionEntity } from "@/features/vision/data/visionSlice";
 import { endpoints } from "@/services/api";
 import { AppDispatch, RootState } from "@/store/store";
 import { fetchWithAuth } from "@/utils/apiClient";
 import { formatCurrency } from "@/utils/format";
 import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
 
-export type TransactionProposalKind = "create" | "edit" | "delete";
+export type TransactionProposalKind = "create" | "edit" | "delete" | "entity_edit";
 
 export interface TransactionProposalSnapshot {
   amount: number;
@@ -17,6 +18,11 @@ export interface TransactionProposalSnapshot {
   description: string;
   category: string | null;
   accountName: string | null;
+}
+
+export interface EntityEditProposalSnapshot {
+  amount: number;
+  name: string;
 }
 
 export interface TransactionProposal {
@@ -31,46 +37,103 @@ export interface TransactionProposal {
   accountName: string | null;
   /** Solo en "edit": los valores actuales antes del cambio, para mostrar el diff en la tarjeta. */
   previous: TransactionProposalSnapshot | null;
+  /**
+   * Solo en "create" — por default es "ahora", pero la tarjeta de
+   * confirmación deja elegir otra antes de confirmar (el modelo no propone
+   * fecha, ver `propose_transaction` en ai_chat.py).
+   */
+  date: number;
+  /** Solo en "entity_edit" — ver `propose_entity_edit` en ai_chat.py. */
+  entityId: string | null;
+  entityType: "asset" | "liability" | null;
+  name: string | null;
+  previousEntity: EntityEditProposalSnapshot | null;
 }
 
 /** Forma tal cual la manda el backend (snake_case) — ver `ChatViewSet.message`/`ai_chat.py`. */
 interface TransactionProposalWire {
   kind: TransactionProposalKind;
-  transaction_id: string | null;
+  transaction_id?: string | null;
   amount: number;
-  type: "income" | "expense";
-  description: string;
-  category: string | null;
-  account_id: string | null;
-  account_name: string | null;
-  previous: {
-    amount: number;
-    type: "income" | "expense";
-    description: string;
-    category: string | null;
-    account_name: string | null;
-  } | null;
+  type?: "income" | "expense";
+  description?: string;
+  category?: string | null;
+  account_id?: string | null;
+  account_name?: string | null;
+  // Shape depends on `kind`: the transaction kinds send
+  // {amount, type, description, category, account_name}; "entity_edit"
+  // sends {amount, name} instead — see `_validate_entity_edit_proposal`.
+  previous?:
+    | {
+        amount: number;
+        type: "income" | "expense";
+        description: string;
+        category: string | null;
+        account_name: string | null;
+      }
+    | { amount: number; name: string }
+    | null;
+  // "entity_edit" only:
+  entity_id?: string;
+  entity_type?: "asset" | "liability";
+  name?: string;
 }
 
 function mapProposal(wire: TransactionProposalWire): TransactionProposal {
+  if (wire.kind === "entity_edit") {
+    const previous = wire.previous as { amount: number; name: string } | null | undefined;
+    return {
+      kind: "entity_edit",
+      transactionId: null,
+      amount: wire.amount,
+      type: "expense",
+      description: "",
+      category: null,
+      accountId: null,
+      accountName: null,
+      previous: null,
+      date: Date.now(),
+      entityId: wire.entity_id ?? null,
+      entityType: wire.entity_type ?? null,
+      name: wire.name ?? null,
+      previousEntity: previous ?? null,
+    };
+  }
+
+  const previous = wire.previous as
+    | {
+        amount: number;
+        type: "income" | "expense";
+        description: string;
+        category: string | null;
+        account_name: string | null;
+      }
+    | null
+    | undefined;
+
   return {
     kind: wire.kind,
-    transactionId: wire.transaction_id,
+    transactionId: wire.transaction_id ?? null,
     amount: wire.amount,
-    type: wire.type,
-    description: wire.description,
-    category: wire.category,
-    accountId: wire.account_id,
-    accountName: wire.account_name,
-    previous: wire.previous
+    type: wire.type ?? "expense",
+    description: wire.description ?? "",
+    category: wire.category ?? null,
+    accountId: wire.account_id ?? null,
+    accountName: wire.account_name ?? null,
+    previous: previous
       ? {
-          amount: wire.previous.amount,
-          type: wire.previous.type,
-          description: wire.previous.description,
-          category: wire.previous.category,
-          accountName: wire.previous.account_name,
+          amount: previous.amount,
+          type: previous.type,
+          description: previous.description,
+          category: previous.category,
+          accountName: previous.account_name,
         }
       : null,
+    date: Date.now(),
+    entityId: null,
+    entityType: null,
+    name: null,
+    previousEntity: null,
   };
 }
 
@@ -186,6 +249,11 @@ interface ConfirmationSummary {
   category: string | null;
 }
 
+interface EntityEditConfirmationSummary {
+  amount: number;
+  name: string;
+}
+
 /** Texto del mensaje de confirmación que aparece en el chat tras crear/editar. */
 function confirmationText(kind: "create" | "edit", summary: ConfirmationSummary) {
   const label = summary.type === "income" ? "ingreso" : "gasto";
@@ -199,26 +267,47 @@ function deletionConfirmationText(summary: ConfirmationSummary) {
   return `🗑️ Se eliminó "${summary.description}" (${formatCurrency(summary.amount)}).`;
 }
 
+/** Texto del mensaje de confirmación tras editar una cuenta de Balance. */
+function entityEditConfirmationText(summary: EntityEditConfirmationSummary) {
+  return `✅ Se actualizó "${summary.name}" a ${formatCurrency(summary.amount)}.`;
+}
+
 /**
  * Confirma una propuesta que el asistente hizo vía `propose_transaction`/
- * `propose_transaction_edit`/`propose_transaction_delete`: el modelo NUNCA
- * crea, edita ni elimina nada — solo la app, al confirmar el usuario la
- * tarjeta en el chat, reutilizando los mismos thunks que usa el resto de la
- * app (Wallet, formulario manual, comandos de voz) para cada acción.
+ * `propose_transaction_edit`/`propose_transaction_delete`/
+ * `propose_entity_edit`: el modelo NUNCA crea, edita ni elimina nada — solo
+ * la app, al confirmar el usuario la tarjeta en el chat, reutilizando los
+ * mismos thunks que usa el resto de la app (Wallet, Balance, formulario
+ * manual, comandos de voz) para cada acción.
  */
 export const confirmTransactionProposal = createAsyncThunk<
-  {
-    messageId: string;
-    proposalId: string;
-    kind: TransactionProposalKind;
-    summary: ConfirmationSummary;
-  },
+  | { messageId: string; proposalId: string; kind: "create" | "edit" | "delete"; summary: ConfirmationSummary }
+  | { messageId: string; proposalId: string; kind: "entity_edit"; summary: EntityEditConfirmationSummary },
   { messageId: string; proposalId: string; proposal: TransactionProposal },
   { state: RootState; dispatch: AppDispatch; rejectValue: string }
 >(
   "aiChat/confirmTransactionProposal",
-  async ({ messageId, proposalId, proposal }, { dispatch, rejectWithValue }) => {
+  async ({ messageId, proposalId, proposal }, { dispatch, getState, rejectWithValue }) => {
     try {
+      if (proposal.kind === "entity_edit") {
+        const existing = getState().vision.entities.find(
+          (e) => e.id === proposal.entityId,
+        );
+        if (!existing) {
+          return rejectWithValue("entity_not_found");
+        }
+        const name = proposal.name ?? existing.name;
+        await dispatch(
+          updateVisionEntity({ ...existing, name, amount: proposal.amount }),
+        ).unwrap();
+        return {
+          messageId,
+          proposalId,
+          kind: "entity_edit" as const,
+          summary: { amount: proposal.amount, name },
+        };
+      }
+
       const summary: ConfirmationSummary = {
         amount: proposal.amount,
         type: proposal.type,
@@ -254,7 +343,7 @@ export const confirmTransactionProposal = createAsyncThunk<
           description: proposal.description,
           category: proposal.category,
           relatedEntityId: proposal.accountId,
-          date: Date.now(),
+          date: proposal.date,
         }),
       ).unwrap();
       return { messageId, proposalId, kind: "create" as const, summary };
@@ -317,6 +406,14 @@ const aiChatSlice = createSlice({
         entry.proposal.accountName = action.payload.accountName;
       }
     },
+    /** El usuario cambia la fecha propuesta en una tarjeta de "create" antes de confirmarla. */
+    updateProposalDate: (
+      state,
+      action: PayloadAction<{ messageId: string; proposalId: string; date: number }>,
+    ) => {
+      const entry = findProposalEntry(state, action.payload.messageId, action.payload.proposalId);
+      if (entry) entry.proposal.date = action.payload.date;
+    },
     clearChat: (state) => {
       state.messages = [];
       state.status = "idle";
@@ -360,13 +457,20 @@ const aiChatSlice = createSlice({
         const { messageId, proposalId, kind, summary } = action.payload;
         const entry = findProposalEntry(state, messageId, proposalId);
         if (entry) entry.status = "confirmed";
+
+        let content: string;
+        if (kind === "delete") {
+          content = deletionConfirmationText(summary);
+        } else if (kind === "entity_edit") {
+          content = entityEditConfirmationText(summary);
+        } else {
+          content = confirmationText(kind, summary);
+        }
+
         state.messages.push({
           id: `${Date.now()}-assistant-confirm`,
           role: "assistant",
-          content:
-            kind === "delete"
-              ? deletionConfirmationText(summary)
-              : confirmationText(kind, summary),
+          content,
           createdAt: Date.now(),
         });
       })
@@ -387,6 +491,7 @@ export const {
   sendMessage,
   cancelTransactionProposal,
   updateProposalAccount,
+  updateProposalDate,
   clearChat,
 } = aiChatSlice.actions;
 export default aiChatSlice.reducer;

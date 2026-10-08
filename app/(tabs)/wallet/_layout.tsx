@@ -1,5 +1,5 @@
-import { useTheme } from "@/contexts/ThemeContext";
 import { useMenuPanel } from "@/contexts/MenuPanelContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import { registerForPushNotificationsAsync } from "@/services/notifications";
 import { Stack, useRouter } from "expo-router";
 import React from "react";
@@ -147,7 +147,8 @@ export default function WalletLayout() {
           name="categories"
           options={{
             headerShown: false,
-            presentation: "modal",
+            presentation: isIOS ? "formSheet" : "card",
+            ...(isIOS ? { sheetAllowedDetents: [0.9] } : {}),
           }}
         />
         <Stack.Screen
@@ -190,10 +191,10 @@ export default function WalletLayout() {
           name="category-picker"
           options={{
             headerShown: true,
-            presentation: "formSheet",
+            presentation: isIOS ? "formSheet" : "card",
             headerTransparent: true,
             headerTitle: "Categorías",
-            sheetAllowedDetents: [0.9],
+            ...(isIOS ? { sheetAllowedDetents: [0.9] } : {}),
             contentStyle: {
               backgroundColor: colors.background,
             },

@@ -7,7 +7,11 @@ import { StyleSheet, TouchableOpacity, View } from "react-native";
 type TransactionType = "income" | "expense" | "transfer";
 
 interface TransactionTypeSelectorProps {
-  type: TransactionType;
+  // Widened so this can accept the transaction-form's full `type` state
+  // (which also includes 'adjustment', never selectable here — those
+  // transactions are auto-generated, see signals.py) without a cast at
+  // the call site.
+  type: TransactionType | "adjustment";
   onSelectType: (type: TransactionType) => void;
   colors: ThemeColors;
 }
