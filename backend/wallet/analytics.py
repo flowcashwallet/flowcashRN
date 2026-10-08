@@ -10,7 +10,7 @@ from .models import Transaction, Budget, FixedExpense
 
 def get_exclusion_filter():
     return (
-        Q(type='transfer')
+        Q(type='transfer') | Q(type='adjustment')
     )
 
 

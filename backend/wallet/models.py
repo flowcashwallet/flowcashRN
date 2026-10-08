@@ -7,6 +7,7 @@ class Transaction(models.Model):
         ('income', 'Income'),
         ('expense', 'Expense'),
         ('transfer', 'Transfer'),
+        ('adjustment', 'Adjustment'),
     ]
     
     PAYMENT_TYPES = [
