@@ -176,7 +176,6 @@ def store_old_entity_amount(sender, instance, **kwargs):
             instance._old_amount = None
     else:
         instance._old_amount = None
-    print(f"[store_old_entity_amount] entity pk={instance.pk} old_amount={getattr(instance, '_old_amount', 'MISSING')}")
 
 @receiver(post_save, sender=VisionEntity)
 def log_entity_amount_adjustment(sender, instance, created, **kwargs):
@@ -188,33 +187,26 @@ def log_entity_amount_adjustment(sender, instance, created, **kwargs):
     transaction (income/expense/transfer already logs itself; see
     `_skip_adjustment_log` set by `update_entity_balance` and the transfer-
     destination saves above) or from creating the entity for the first time.
-    """
-    skip_flag = getattr(instance, '_skip_adjustment_log', False)
-    old_amount = getattr(instance, '_old_amount', 'MISSING')
-    print(
-        f"[log_entity_amount_adjustment] entity pk={instance.pk} created={created} "
-        f"skip_flag={skip_flag} old_amount={old_amount} new_amount={instance.amount}"
-    )
 
-    if created or skip_flag:
-        print("[log_entity_amount_adjustment] skipped: created or skip_flag")
+    `amount` is stored SIGNED for this type only (positive = balance went
+    up, negative = went down) — it's the only way the frontend can tell
+    direction apart, since this never flows through the income/expense
+    type-implies-sign convention the way other transactions do.
+    """
+    if created or getattr(instance, '_skip_adjustment_log', False):
         return
 
     old_amount = getattr(instance, '_old_amount', None)
     if old_amount is None:
-        print("[log_entity_amount_adjustment] skipped: old_amount is None/missing")
         return
 
     delta = instance.amount - old_amount
-    print(f"[log_entity_amount_adjustment] delta={delta}")
     if delta == 0:
-        print("[log_entity_amount_adjustment] skipped: delta is 0")
         return
 
-    print(f"[log_entity_amount_adjustment] creating adjustment transaction, amount={abs(delta)}")
     Transaction.objects.create(
         user=instance.user,
-        amount=abs(delta),
+        amount=delta,
         type='adjustment',
         description=f'Ajuste de saldo: {instance.name}',
         category=instance.category,

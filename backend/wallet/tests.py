@@ -157,13 +157,13 @@ class EntityAdjustmentLoggingTests(TestCase):
         self.assertEqual(tx.type, "adjustment")
         self.assertEqual(tx.amount, Decimal("200.00"))
 
-    def test_manual_amount_decrease_logs_an_adjustment_with_positive_amount(self):
+    def test_manual_amount_decrease_logs_a_negative_adjustment(self):
         self.asset.amount = Decimal("700.00")
         self.asset.save()
 
         tx = Transaction.objects.get(related_entity_id=str(self.asset.id))
         self.assertEqual(tx.type, "adjustment")
-        self.assertEqual(tx.amount, Decimal("300.00"))
+        self.assertEqual(tx.amount, Decimal("-300.00"))
 
     def test_saving_with_no_amount_change_does_not_log_anything(self):
         self.asset.name = "Bank (renamed)"
